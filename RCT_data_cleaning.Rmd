@@ -1,0 +1,625 @@
+---
+title: "RCT_data_cleaning"
+author: "Yulin Shao"
+date: "2025-05-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rio)
+library(janitor)
+library(readxl)
+library(striprtf)
+library(stringr)
+library(tibble)
+library(tidyr)
+library(stringi)
+```
+
+
+
+
+# Trial 1
+## Load Data
+```{r}
+# trial 1
+df1_sheets = import_list("raw_data/1/1.xlsx")
+
+df1_base = df1_sheets[[1]]
+df1_4m = df1_sheets[[2]]
+df1_3m = df1_sheets[[3]]
+```
+
+## Cleaning
+```{r}
+df1_base_clean = df1_base %>% slice(-1)
+df1_4m_clean = df1_4m %>% slice(-1)
+df1_3m_clean = df1_3m %>% slice(-1)
+
+# Step 2: Assign treatment group
+assign_treatment = function(row) {
+  if (row <= 114) return("True Acupuncture + Placebo")
+  else if (row <= 228) return("Metformin + Sham Acupuncture")
+  else return("Sham Acupuncture + Placebo")
+}
+
+# Step 3: Join baseline + 4-month + 7-month
+df1_combined = df1_base_clean %>%
+  mutate(row_index = row_number()) %>%
+  bind_cols(
+    df1_4m_clean %>% select(-Group, -`Patient number`) %>% rename_with(~ paste0("m4_", .x)),
+    df1_3m_clean %>% select(-Group, -`Patient number`) %>% rename_with(~ paste0("m7_", .x))
+  ) %>%
+  mutate(
+    Treatment = sapply(row_index, assign_treatment),
+    ID = row_number()
+  )
+
+# Step 4: Create new labeled variables
+df1_final = df1_combined %>%
+  mutate(
+    # Primary
+    YP_delta_HOMA_IR_4m = as.numeric(`m4_HOMA-IR`) - as.numeric(`HOMA-IR`),
+
+    # Related (after primary)
+    post_YP_delta_HOMA_IR_7m = as.numeric(`m7_HOMA-IR`) - as.numeric(`HOMA-IR`),
+
+    # Secondary outcomes
+    YS_delta_BMI_4m = as.numeric(`m4_BMI`) - as.numeric(BMI),
+    YS_delta_WHR_4m = as.numeric(`m4_WHR`) - as.numeric(WHR),
+    YS_delta_Acne_4m = as.numeric(`m4_Acne`) - as.numeric(Acne),
+    YS_delta_Hirsutism_4m = as.numeric(`m4_Hirsutism`) - as.numeric(Hirsutism),
+    YS_delta_FPG_4m = as.numeric(`m4_FPG`) - as.numeric(FPG),
+    YS_delta_FINS_4m = as.numeric(`m4_FINS`) - as.numeric(FINS),
+    YS_delta_GlucoseAUC_4m = as.numeric(`m4_Glucose AUC`) - as.numeric(`Glucose AUC`),
+    YS_delta_InsulinAUC_4m = as.numeric(`m4_Insulin AUC`) - as.numeric(`Insulin AUC`),
+    YS_delta_HOMA_beta_4m = as.numeric(`m4_HOMA-β`) - as.numeric(`HOMA-β`),
+    YS_delta_Cpeptide_4m = as.numeric(`m4_C-Peptide`) - as.numeric(`C-Peptide`),
+    YS_delta_HbA1c_4m = as.numeric(`m4_HbA1c`) - as.numeric(HbA1c),
+    YS_delta_LH_FSH_4m = as.numeric(`m4_LH/FSH`) - as.numeric(`LH/FSH`),
+    YS_delta_TotalT_4m = as.numeric(`m4_Total T`) - as.numeric(`Total T`),
+    YS_delta_FAI_4m = as.numeric(`m4_FAI`) - as.numeric(FAI)
+  ) %>%
+  rename(
+    # Baseline outcomes become covariates (prefix X_)
+    X_HOMA_IR = `HOMA-IR`,
+    X_BMI = BMI,
+    X_WHR = WHR,
+    X_Acne = Acne,
+    X_Hirsutism = Hirsutism,
+    X_FPG = FPG,
+    X_FINS = FINS,
+    X_GlucoseAUC = `Glucose AUC`,
+    X_InsulinAUC = `Insulin AUC`,
+    X_HOMA_beta = `HOMA-β`,
+    X_Cpeptide = `C-Peptide`,
+    X_HbA1c = HbA1c,
+    X_LH_FSH = `LH/FSH`,
+    X_TotalT = `Total T`,
+    X_FAI = FAI,
+    # Other covariates
+    X_Age = Age,
+    X_Weight = Weight,
+    X_Waist = Waist,
+    X_TG = TG,
+    X_HDL = HDL,
+    X_LDL = LDL,
+    X_CHOL = CHOL,
+    X_ApoA1 = `ApoA-1`,
+    X_ApoB = ApoB
+  ) %>%
+  select(
+    Treatment,
+    YP_delta_HOMA_IR_4m,
+    post_YP_delta_HOMA_IR_7m,
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# write trial 1
+write.csv(df1_final, "cleaned_data/trial1.csv", row.names = FALSE)
+```
+
+# Trial 2
+## Load Data
+```{r}
+# trial 2
+df2 = read_sav("raw_data/2/2.sav")
+```
+
+
+## Cleaning
+```{r}
+
+df2_final = df2 %>%
+  # Set treatment labels
+  mutate(
+    Treatment = case_when(
+      NOD == 1 ~ "Ivermectin+Doxycycline",
+      NOD == 0 ~ "Placebo"
+    )
+  ) %>%
+
+  # Rename according to cleaning protocol
+  rename(
+    # Primary outcomes
+    YP_recovery_time       = Sym_Recover,
+    YP_early_7d            = res_7day,
+    YP_late_12d            = Res_12day,
+
+    # Secondary outcomes
+    YS_severity_worsen     = Conversion_binary,
+    YS_pos_14d             = Pers_positiv,
+
+    # Covariates
+    X_agegrp               = Age_group,
+    X_sex                  = Sex,
+    X_fever                = Fever,
+    X_cough                = Cough,
+    X_respdiff             = Resp_dist,
+    X_diabetes             = Diabete,
+    X_hyperten             = Hypertension,
+    X_comorb               = Co_mor,
+    X_onset_to_treat_7d    = Interval
+  ) %>%
+
+  # Replace placeholder missing values with NA
+  mutate(across(where(~is.numeric(.) || is.integer(.) || is.logical(.)), ~na_if(., 99))) %>%
+
+  # Select and reorder columns
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# write trial 2
+write.csv(df2_final, "cleaned_data/trial2.csv", row.names = FALSE)
+```
+
+# Trial 3
+## Load Data
+```{r}
+# trial 3
+df3_sm = read_rtf("raw_data/3/sputum__microbiology.rtf")
+df3_sn = read_rtf("raw_data/3/sputum_IL-8_and_NE.rtf")
+df3_demo = read_rtf("raw_data/3/demographics.rtf")
+```
+
+
+
+## Cleaning
+### df3_sm
+```{r}
+lines = unlist(str_split(df3_sm, "[\r\n]+"))
+lines = lines[lines != ""]    # drop empty
+
+raw_table = lines[str_detect(lines, "^\\*\\|")]
+
+drop_pattern = paste0(
+  "NovaBiotics",         # header
+  "|NBTCS02",            # header
+  "|Sputum Microbiology",# title
+  "|Patient ID",         # column names
+  "|Abbreviations",      # abbrev block
+  "|\\[1\\]",            # footnote 1
+  "|\\[2\\]"             # footnote 2
+)
+table_clean = raw_table %>%
+  discard(~ str_detect(.x, drop_pattern)) %>%       # drop H/F
+  keep   (~ str_detect(.x, "[A-Za-z0-9]"))           # only keep lines with some data
+
+table_stripped = table_clean %>%
+  str_remove("^\\*\\|\\s*") %>%
+  str_remove("\\s*\\|\\s*$")
+
+cols = c(
+  "Patient_ID","Treatment_Group","Visit","Date_Collected",
+  "Volume_mL","Weight_g","Total_Colony_CFU_mL","Final_Colony_CFU_mL",
+  "Total_GNR_CFU_mL","Log10_Total_GNR","Isolate","Organism"
+)
+fields = str_split(table_stripped, "\\s*\\|\\s*")
+df3_sm_cleaned = as_tibble(do.call(rbind, fields), .name_repair = "minimal")
+names(df3_sm_cleaned) = cols
+
+num_cols = c(
+  "Volume_mL","Weight_g",
+  "Total_Colony_CFU_mL","Final_Colony_CFU_mL",
+  "Total_GNR_CFU_mL","Log10_Total_GNR"
+)
+
+df3_sm_final = df3_sm_cleaned %>%
+  mutate(across(everything(), ~ na_if(.x, ""))) %>%
+  fill(Patient_ID, Treatment_Group, Visit, .direction = "down") %>%
+  mutate(across(
+    all_of(num_cols),
+    ~ as.numeric(str_remove_all(.x, "[^0-9.-]"))
+  ))
+
+df3_sm_final = df3_sm_final %>%
+  rename(
+    ID = Patient_ID,
+    Treatment = Treatment_Group
+  ) %>%
+  mutate(
+    Visit = str_replace_all(Visit, "\\s+", "_")  # "Day 14" → "Day_14"
+  )
+
+df_wide = df3_sm_final %>%
+  select(ID, Treatment, Visit, Total_GNR_CFU_mL) %>%
+  distinct() %>%
+  pivot_wider(
+    names_from = Visit,
+    values_from = Total_GNR_CFU_mL,
+    names_prefix = "Total_GNR_CFU_mL_"
+  )
+
+# Step 3: Compute deltas
+df3_sm_final_spread = df_wide %>%
+  mutate(
+    YP_delta_Total_GNR_14d = if_else(
+      !is.na(Total_GNR_CFU_mL_Baseline) & !is.na(Total_GNR_CFU_mL_Day_14),
+      Total_GNR_CFU_mL_Day_14 - Total_GNR_CFU_mL_Baseline,
+      NA_real_
+    ),
+    pre_YP_delta_Total_GNR_7d = if_else(
+      !is.na(Total_GNR_CFU_mL_Baseline) & !is.na(Total_GNR_CFU_mL_Day_7),
+      Total_GNR_CFU_mL_Day_7 - Total_GNR_CFU_mL_Baseline,
+      NA_real_
+    ),
+    post_YP_delta_Total_GNR_21d = if_else(
+      !is.na(Total_GNR_CFU_mL_Baseline) & !is.na(Total_GNR_CFU_mL_Day_21),
+      Total_GNR_CFU_mL_Day_21 - Total_GNR_CFU_mL_Baseline,
+      NA_real_
+    )
+  ) %>%
+  rename(
+    X_Total_GNR_Baseline = Total_GNR_CFU_mL_Baseline
+  ) %>% 
+  select(
+    ID, Treatment,
+    YP_delta_Total_GNR_14d,
+    pre_YP_delta_Total_GNR_7d,
+    post_YP_delta_Total_GNR_21d,
+    X_Total_GNR_Baseline
+  )
+```
+
+### df3_sn
+```{r}
+lines = unlist(str_split(df3_sn, "[\r\n]+"))
+
+# 2) Drop any truly blank lines
+lines = lines[lines != ""]
+
+# 3) Pull out all the “table” lines (they all begin "*|")
+raw_table = lines[str_detect(lines, "^\\*\\|")]
+
+# 4) Remove headers, column-titles, footers and any blank "*|  |" rows
+drop_pattern = paste0(
+  "NovaBiotics"        , "|" ,
+  "NBTCS02"            , "|" ,
+  "Sputum IL-8 and Neutrophil Elastase Levels" , "|" ,
+  "Patient ID"         , "|" ,
+  "IL-8"               , "|" ,
+  "Neutrophil Elastase", "|" ,
+  "Abbreviations"      , "|" ,
+  "\\[1\\]"            , "|" ,
+  "\\[2\\]"
+)
+table_clean = raw_table %>%
+  discard(~ str_detect(.x, drop_pattern)) %>%  # drop the junk
+  keep   (~ str_detect(.x, "[A-Za-z0-9]"))      # drop any remaining all-blank rows
+
+# 5) Strip off the leading "*| " and the trailing " |"
+table_stripped = table_clean %>%
+  str_remove("^\\*\\|\\s*") %>%
+  str_remove("\\s*\\|\\s*$")
+
+# 6) Split each line on “|” → a character matrix
+fields_list = str_split(table_stripped, "\\s*\\|\\s*")
+mat         = do.call(rbind, fields_list)
+
+# 7) Turn into a tibble and name the columns
+#    We know each data row has 12 fields:
+#       1 ID, 2 Tx, 3 Visit, 4 Date, 
+#       5 IL8_Result, 6 IL8_SD, 7 (empty), 
+#       8 NE_Result, 9 NE_SD, 10 (empty), 
+#       11 Comment, 12 (empty)
+df3_sn_cleaned = as_tibble(mat, .name_repair = "minimal")
+colnames(df3_sn_cleaned) = c(
+  "Patient_ID","Treatment_Group","Visit","Assessment_Date",
+  "IL8_Result","IL8_SD","_drop1",
+  "NE_Result","NE_SD","_drop2",
+  "Comment","_drop3"
+)
+
+# 8) Drop the dummy columns and turn "" → NA
+df3_sn_final = df3_sn_cleaned %>%
+  select(-starts_with("_drop")) %>%
+  mutate(across(everything(), ~ na_if(.x, "")))
+
+# 9) Carry only ID, Treatment, and Visit forward
+df3_sn_final = df3_sn_final %>%
+  fill(Patient_ID, Treatment_Group, Visit, .direction="down")
+
+# 10) Parse your numeric assay columns
+df3_sn_final = df3_sn_final %>%
+  mutate(
+    IL8_Result = as.numeric(str_remove_all(IL8_Result, "[^0-9\\.-]")),
+    IL8_SD     = as.numeric(str_remove_all(IL8_SD,     "[^0-9\\.-]")),
+    NE_Result  = as.numeric(str_remove_all(NE_Result,  "[^0-9\\.-]")),
+    NE_SD      = as.numeric(str_remove_all(NE_SD,      "[^0-9\\.-]"))
+  )
+
+df3_sn_final = df3_sn_final %>%
+  rename(
+    ID = Patient_ID,
+    Treatment = Treatment_Group
+  ) %>%
+  mutate(
+    Visit = str_replace_all(Visit, "\\s+", "_")
+  )
+
+# Step 2: Pivot to wide format (IL8 and NE only)
+df_wide = df3_sn_final %>%
+  select(ID, Treatment, Visit, IL8_Result, NE_Result) %>%
+  distinct() %>%
+  pivot_wider(
+    names_from = Visit,
+    values_from = c(IL8_Result, NE_Result),
+    names_sep = "_"
+  )
+
+# Step 3: Compute deltas and rename covariates
+df3_sn_spread = df_wide %>%
+  mutate(
+    YS_delta_IL8_14d = IL8_Result_Day_14 - IL8_Result_Baseline,
+    YS_delta_NE_14d  = NE_Result_Day_14  - NE_Result_Baseline
+  ) %>%
+  rename(
+    X_IL8_Baseline = IL8_Result_Baseline,
+    X_IL8_Day_7    = IL8_Result_Day_7,
+    X_IL8_Day_14   = IL8_Result_Day_14,
+    X_NE_Baseline  = NE_Result_Baseline,
+    X_NE_Day_7     = NE_Result_Day_7,
+    X_NE_Day_14    = NE_Result_Day_14
+  ) %>%
+  select(
+    ID, Treatment,
+    YS_delta_IL8_14d, YS_delta_NE_14d,
+    X_IL8_Baseline,
+    X_NE_Baseline
+  )
+```
+
+
+### df3_demo
+```{r}
+lines = unlist(str_split(df3_demo, "[\r\n]+"))
+lines = lines[lines != ""]  
+
+# 2) Keep only the “*| … |” rows and drop any without a digit  
+raw_table   = lines[str_detect(lines, "^\\*\\|")]  
+table_clean = raw_table[str_detect(raw_table, "\\d")]  
+
+# — new step: drop everything after the 441005 row —  
+end_idx = which(str_detect(table_clean, "\\*\\|\\s*441005\\s*\\|"))[1]  
+if (!is.na(end_idx)) {  
+  table_clean = table_clean[1:end_idx]  
+}  
+
+# 3) Strip off the leading "*| " and trailing " |"  
+table_stripped = table_clean %>%  
+  str_remove("^\\*\\|\\s*") %>%  
+  str_remove("\\s*\\|\\s*$")  
+
+# 4) Split on "|" into a matrix of fields  
+fields_list = str_split(table_stripped, "\\s*\\|\\s*")  
+mat         = do.call(rbind, fields_list)  
+
+# 5) Turn into a tibble, name the columns, then keep only ID & Sex  
+df3_demo_final = as_tibble(mat, .name_repair = "minimal")  
+colnames(df3_demo_final) = c("ID","Treatment_Group","Sex")  
+
+df3_demo_final = df3_demo_final %>%  
+  select(ID, Sex) %>%  
+  mutate(Sex = na_if(Sex, "")) %>% 
+  rename(X_Sex = Sex)
+```
+
+### Join dfs
+```{r}
+df3_final = full_join(df3_demo_final, df3_sm_final_spread, by = "ID")
+
+# Step 2: Join in IL-8 / NE data
+df3_final = full_join(df3_final, df3_sn_spread, by = "ID")
+
+# Step 3: Remove duplicated Treatment columns if needed
+# Assume: keep the Treatment from the first frame that contains it
+df3_final = df3_final %>%
+  select(-Treatment.y) %>%
+  rename(Treatment = Treatment.x) %>% 
+  select(-ID) %>% 
+  relocate(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  ) %>% 
+  mutate(across(
+    where(is.numeric),
+    ~ if_else(.x == 0, NA_real_, .x)
+  ))
+```
+
+## Output Data
+```{r}
+# wrtie trial 3
+write.csv(df3_final, "cleaned_data/trial3.csv", row.names = FALSE)
+```
+
+
+
+# Trial 4
+## Load Data
+```{r}
+# trial 4
+df4 = read_xlsx("raw_data/4/4.xlsx")
+```
+
+## Cleaning
+```{r}
+df4_final = df4 %>%
+  clean_names() %>%
+  rename(
+    treatment = group,
+    
+    # Baseline covariates
+    X_FIB4    = fib4,
+    X_APRI    = apri,
+    X_VD      = vd0,
+    X_AST     = ast0,
+    X_ALT     = alt0,
+    X_Plt     = plt0,
+    X_Age     = age,
+    X_Sex     = sex,
+    X_BMI     = bmi,
+    
+    # Primary outcome baselines
+    X_TGF_baseline  = tgf0,
+    X_TIMP_baseline = timp0,
+    X_MMP_baseline  = mmp0,
+    X_P3NP_baseline = p3np0
+  ) %>%
+  mutate(
+    Treatment = recode(treatment,
+                       "A" = "VD",
+                       "B" = "Placebo"),
+    
+    # Primary outcome deltas (6-week − baseline)
+    YP_delta_TGF_6w   = as.numeric(tgf6) - as.numeric(X_TGF_baseline),
+    YP_delta_TIMP_6w  = as.numeric(timp6) - as.numeric(X_TIMP_baseline),
+    YP_delta_MMP_6w   = as.numeric(mmp6) - as.numeric(X_MMP_baseline),
+    YP_delta_P3NP_6w  = as.numeric(p3np6) - as.numeric(X_P3NP_baseline)
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("X_")
+  )
+
+```
+
+## Output Data
+```{r}
+# write trial 4
+write.csv(df4_final, "cleaned_data/trial4.csv", row.names = FALSE)
+```
+
+# Trial 5
+## Loard Data
+```{r}
+df5 = read_xlsx("raw_data/5/5.xlsx")
+```
+
+## Cleaning
+
+```{r}
+df5_clean = df5 %>%
+  # Identify treatment and index cases
+  rename(Treatment = arm) %>%
+  mutate(
+    # Convert Treatment to factor with descriptive labels
+    Treatment = factor(Treatment, 
+                     levels = c(1, 2, 3),
+                     labels = c("Control", "Household Prophylaxis", "Village-wide Prophylaxis"))
+  ) %>%
+  group_by(villcode) %>%
+  mutate(is_index_case = row_number() == 1) %>%
+  ungroup() %>%
+  
+  # Convert dates and necessary variables
+  mutate(
+    rdate = as.Date(as.character(rdate), format = "%Y-%m-%d", na.rm = TRUE),
+    idate = as.Date(as.character(idate), format = "%Y-%m-%d", na.rm = TRUE),
+    Total_numeric = as.numeric(as.character(Total))
+  ) %>%
+  
+  # Create primary outcome variables (YP prefix)
+  # YP_meningitis is the individual-level primary outcome
+  mutate(
+    YP_meningitis = if_else(is_index_case, 0L, 1L)
+  ) %>%
+  
+  # Secondary outcome variables (YS prefix)
+  rename(
+    YS_cipro_protection = priscpro,
+    X_villcode = villcode) %>%
+  mutate(
+    YS_pcr_positive = case_when(
+      grepl("positive", labresults, ignore.case = TRUE) ~ 1L,
+      grepl("negative", labresults, ignore.case = TRUE) ~ 0L,
+      TRUE ~ NA_integer_
+    )
+  ) %>%
+  
+  # Create covariates (X prefix) - based on paper's analysis
+  mutate(
+    X_age_years = suppressWarnings(as.numeric(as.character(agey))),
+    X_sex = as.integer(sex),
+    X_days_to_intervention = ifelse(!is.na(rdate) & !is.na(idate), 
+                                  as.numeric(difftime(idate, rdate, units = "days")), 
+                                  NA_real_),
+    X_village_population = Total_numeric,
+    numcipro_numeric = suppressWarnings(as.numeric(as.character(numcipro))),
+    X_cipro_coverage = ifelse(
+      !is.na(numcipro_numeric) & !is.na(X_village_population) & X_village_population > 0,
+      numcipro_numeric / X_village_population,
+      NA_real_
+    )
+  )
+
+# Using explicit namespace for select to avoid MASS package conflict
+df5_final = df5_clean %>%
+  select(
+    # Treatment variable first
+    Treatment,
+    
+    # Primary outcome variables (YP prefix)
+    YP_meningitis,
+    
+    # Secondary outcome variables (YS prefix)
+    YS_cipro_protection,
+    YS_pcr_positive,
+    
+    # Covariates (X prefix) - only key ones from paper
+    X_age_years,
+    X_sex,
+    X_days_to_intervention,
+    X_village_population,
+    X_cipro_coverage,
+    
+    # Include villcode for identification
+    X_villcode
+  )
+```
+
+
+## Output Data
+```{r}
+# write trial 5
+write.csv(df5_final, "cleaned_data/trial5.csv", row.names = FALSE)
+```
+
