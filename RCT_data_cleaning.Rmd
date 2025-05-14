@@ -16,6 +16,7 @@ library(stringr)
 library(tibble)
 library(tidyr)
 library(stringi)
+library(haven)
 ```
 
 
@@ -529,7 +530,7 @@ write.csv(df4_final, "cleaned_data/trial4.csv", row.names = FALSE)
 ```
 
 # Trial 5
-## Loard Data
+## Load Data
 ```{r}
 df5 = read_xlsx("raw_data/5/5.xlsx")
 ```
@@ -623,3 +624,531 @@ df5_final = df5_clean %>%
 write.csv(df5_final, "cleaned_data/trial5.csv", row.names = FALSE)
 ```
 
+# Trial 6
+## Load Data
+```{r}
+# trial 6
+df6_alloc = read_excel("raw_data/6/6.xlsx", sheet = "1. Allocation")
+df6_imt   = read_excel("raw_data/6/6.xlsx", sheet = "2. IMT")
+df6_other = read_excel("raw_data/6/6.xlsx", sheet = "3. Other data")
+```
+
+
+## Cleaning
+```{r}
+df6 = df6_alloc %>%
+  inner_join(df6_imt, by = c("ID", "allocation")) %>%
+  inner_join(df6_other, by = "ID")
+
+df6[df6 == "."] = NA
+
+df6_final = df6 %>%
+  clean_names() %>%
+  mutate(
+    Treatment = case_when(
+      allocation == 1 ~ "Sitagliptin",
+      allocation == 2 ~ "Conventional"
+    ),
+
+        # Primary outcome
+    pre_YP_delta_CCA_IMT_12m = as.numeric(x12m_right_cca_mean_imt) - as.numeric(x0m_right_cca_mean_imt),
+    YP_delta_CCA_IMT_24m     = as.numeric(x24m_right_cca_mean_imt) - as.numeric(x0m_right_cca_mean_imt),
+    X_cca_imt_0m             = as.numeric(x0m_right_cca_mean_imt),
+
+    # Secondary outcomes
+    YS_delta_hba1c_12m       = as.numeric(hba1c_ngsp_12m) - as.numeric(hba1c_ngsp_0m),
+    YS_delta_hba1c_24m       = as.numeric(hba1c_ngsp_24m) - as.numeric(hba1c_ngsp_0m),
+    X_hba1c_0m               = as.numeric(hba1c_ngsp_0m),
+
+    YS_delta_fbg_12m         = as.numeric(fbs_12m) - as.numeric(fbs_0m),
+    YS_delta_fbg_24m         = as.numeric(fbs_24m) - as.numeric(fbs_0m),
+    X_fbg_0m                 = as.numeric(fbs_0m),
+
+    YS_delta_insulin_12m     = as.numeric(insulin_12m) - as.numeric(insulin_0m),
+    YS_delta_insulin_24m     = as.numeric(insulin_24m) - as.numeric(insulin_0m),
+    X_insulin_0m             = as.numeric(insulin_0m),
+
+    YS_delta_creatinine_12m  = as.numeric(creatinine_12m) - as.numeric(creatinine_0m),
+    YS_delta_creatinine_24m  = as.numeric(creatinine_24m) - as.numeric(creatinine_0m),
+    X_creatinine_0m          = as.numeric(creatinine_0m),
+
+    YS_delta_albumin_12m     = as.numeric(urinary_albumin_12m) - as.numeric(urinary_albumin_0m),
+    YS_delta_albumin_24m     = as.numeric(urinary_albumin_24m) - as.numeric(urinary_albumin_0m),
+    X_albumin_0m             = as.numeric(urinary_albumin_0m),
+
+    YS_delta_egfr_12m        = as.numeric(e_gfr_12m) - as.numeric(e_gfr_0m),
+    YS_delta_egfr_24m        = as.numeric(e_gfr_24m) - as.numeric(e_gfr_0m),
+    X_egfr_0m                = as.numeric(e_gfr_0m),
+
+    YS_delta_cystatin_c_12m  = as.numeric(cystatin_c_12m) - as.numeric(cystatin_c_0m),
+    YS_delta_cystatin_c_24m  = as.numeric(cystatin_c_24m) - as.numeric(cystatin_c_0m),
+    X_cystatin_c_0m          = as.numeric(cystatin_c_0m),
+
+    YS_delta_weight_12m      = as.numeric(body_weight_12m) - as.numeric(body_weight_0m),
+    YS_delta_weight_24m      = as.numeric(body_weight_24m) - as.numeric(body_weight_0m),
+    X_weight_0m              = as.numeric(body_weight_0m),
+
+    YS_delta_1_5ag_12m       = as.numeric(x1_5ag_12m) - as.numeric(x1_5ag_0m),
+    YS_delta_1_5ag_24m       = as.numeric(x1_5ag_24m) - as.numeric(x1_5ag_0m),
+    X_1_5ag_0m               = as.numeric(x1_5ag_0m),
+
+    YS_delta_sdldl_12m       = as.numeric(small_dense_ldl_12m) - as.numeric(small_dense_ldl_0m),
+    YS_delta_sdldl_24m       = as.numeric(small_dense_ldl_24m) - as.numeric(small_dense_ldl_0m),
+    X_sdldl_0m               = as.numeric(small_dense_ldl_0m),
+
+    YS_delta_adipo_12m       = as.numeric(hmw_adiponectin_12m) - as.numeric(hmw_adiponectin_0m),
+    YS_delta_adipo_24m       = as.numeric(hmw_adiponectin_24m) - as.numeric(hmw_adiponectin_0m),
+    X_adipo_0m               = as.numeric(hmw_adiponectin_0m),
+
+    YS_delta_rlpc_12m        = as.numeric(rlp_c_12m) - as.numeric(rlp_c_0m),
+    YS_delta_rlpc_24m        = as.numeric(rlp_c_24m) - as.numeric(rlp_c_0m),
+    X_rlpc_0m                = as.numeric(rlp_c_0m),
+
+    YS_delta_mda_ldl_12m     = as.numeric(mda_ldl_12m) - as.numeric(mda_ldl_0m),
+    YS_delta_mda_ldl_24m     = as.numeric(mda_ldl_24m) - as.numeric(mda_ldl_0m),
+    X_mda_ldl_0m             = as.numeric(mda_ldl_0m),
+
+    # Additional baseline covariates used in ANCOVA
+    X_age                    = age_x,
+    X_sex                    = sex_x,
+    X_statin                 = statin,
+    X_dm_treatment           = dm_treatment,
+    X_hba1c_ancova           = as.numeric(al_hb_a1c_jds),
+    X_sbp                    = as.numeric(al_sbp),
+    X_max_imt                = as.numeric(al_max_imt)
+  ) %>%
+  select(
+    Treatment,
+    YP_delta_CCA_IMT_24m,
+    pre_YP_delta_CCA_IMT_12m,
+    starts_with("YS_delta_"),
+    starts_with("X_")
+  )
+```
+
+
+## Output Data
+```{r}
+# write trial 6
+write.csv(df6_final, "cleaned_data/trial6.csv", row.names = FALSE)
+```
+
+
+# Trial 7
+## Load Data
+```{r}
+# trial 7
+df7 = read_dta("raw_data/7/7.dta")
+```
+
+## Cleaning
+```{r}
+df7_final = df7 %>%
+  mutate(
+    # Treatment label
+    Treatment = case_when(
+      arm == 0 ~ "Sotrovimab",
+      arm == 1 ~ "Bamlanivimab/Etesevimab",
+      arm == 2 ~ "Casirivimab/Imdevimab"
+    ),
+    
+    # Primary outcome (composite event)
+    YP_progression_binary = outcome_global,
+
+    # Secondary outcomes
+    YS_symptom_duration   = TotalDsympt,
+    YS_death_28d          = outcome1,
+    YS_hospital_28d       = outcome2,
+
+    # Covariates
+    X_variant             = variant,
+    X_IgG                 = IgG,
+    X_vaccine_status      = NewVax,
+    X_BMI_cat             = BMI_CAT,
+    X_immunodef           = immunodeficency,
+    X_renal               = renal,
+    X_diabetes            = diabetes,
+    X_CVD                 = CVD,
+    X_bpco                = bpco,
+    X_liver               = liver
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+
+## Output Data
+```{r}
+# write trial 7
+write.csv(df7_final, "cleaned_data/trial7.csv", row.names = FALSE)
+```
+
+# Trial 8
+## Load Data
+```{r}
+# trial 8
+df8 = read_csv("raw_data/8/8.csv", locale = locale(encoding = "ISO-8859-1"))
+```
+
+
+## Cleaning
+```{r}
+df8_final = df8 %>% 
+  clean_names()%>%
+  mutate(
+    # Treatment: which pacing condition came first
+    Treatment = case_when(
+      pacemaker_randomisering1_6080 == 60 ~ "DDD_60_first",
+      pacemaker_randomisering1_6080 == 80 ~ "DDD_80_first",
+      TRUE ~ NA_character_
+    ),
+
+    # Primary outcomes
+    X_msna_60 = as.numeric(bursts_100rr_60),
+    X_msna_80 = as.numeric(bursts_100rr_80),
+    YP_delta_msna = X_msna_80 - X_msna_60,
+
+    X_log_ntprobnp_60 = as.numeric(log_bnp_v_60_slag),
+    X_log_ntprobnp_80 = as.numeric(log_bnp_v_80_slag),
+    YP_delta_log_ntprobnp = X_log_ntprobnp_80 - X_log_ntprobnp_60,
+
+    # Secondary outcomes
+    X_vo2max_60 = as.numeric(vo2_max_kg_60),
+    X_vo2max_80 = as.numeric(vo2_max_kg_80),
+    YS_delta_vo2max = X_vo2max_80 - X_vo2max_60,
+
+    X_vevco2_60 = as.numeric(ve_co2_60),
+    X_vevco2_80 = as.numeric(ve_co2_80),
+    YS_delta_vevco2 = X_vevco2_80 - X_vevco2_60,
+
+    X_workload_60 = as.numeric(belastning_max_w_60),
+    X_workload_80 = as.numeric(belastning_max_w_80),
+    YS_delta_workload = X_workload_80 - X_workload_60,
+
+    X_vo2pulse_60 = as.numeric(vo2puls_ml_60),
+    X_vo2pulse_80 = as.numeric(vo2puls_ml_80),
+    YS_delta_vo2pulse = X_vo2pulse_80 - X_vo2pulse_60,
+    
+    # Covariates
+    X_nyha_class     = nyha_klasse,
+    X_creatinine     = kreatinin,
+    X_device_brand   = company
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# write trial 8
+write.csv(df8_final, "cleaned_data/trial8.csv", row.names = FALSE)
+```
+
+# Trial 9
+## Load Data
+```{r}
+df9_dm = read_csv("raw_data/9/TASK008_BCG-CORONA_DM.csv") %>% clean_names()
+df9_sv = read_csv("raw_data/9/TASK008_BCG-CORONA_SV.csv") %>% clean_names()
+df9_lb = read_csv("raw_data/9/TASK008_BCG-CORONA_LB.csv") %>% clean_names()
+df9_ae = read_csv("raw_data/9/TASK008_BCG-CORONA_AE.csv") %>% clean_names()
+df9_mh = read_csv("raw_data/9/TASK008_BCG-CORONA_MH.csv") %>% clean_names()
+```
+
+
+
+
+## Cleaning
+```{r}
+# ID + Treatment + Covariates
+dm_cleaned = df9_dm %>%
+  select(usubjid, trtgrp, sex, age, education) %>%
+  rename(
+    ID = usubjid,
+    Treatment = trtgrp,
+    X_sex = sex,
+    X_age = age,
+    X_education = education
+  )
+
+# ─────────────────────────────────────────────
+# Primary outcome: COVID-19 hospitalization
+yp_covid_hosp = df9_ae %>%
+  filter(aellt == "COVID-19", aesercrit == "Hospitalization_prolongation") %>%
+  distinct(usubjid) %>%
+  mutate(YP_covid_hospitalized = 1) %>%
+  rename(ID = usubjid)
+
+# ─────────────────────────────────────────────
+# YS_sarscov2_infection: any SARS-CoV-2 positive test
+ys_sarscov2 = df9_lb %>%
+  filter(lbtest == "SARS-CoV-2 Serology") %>%
+  mutate(
+    # Create time-based suffix
+    visit_suffix = case_when(
+      str_detect(visitnam, "Screening") ~ "_0w",
+      str_detect(visitnam, "Wk 10")     ~ "_10w",
+      str_detect(visitnam, "Wk 26")     ~ "_26w",
+      str_detect(visitnam, "Wk 52")     ~ "_52w",
+      TRUE ~ NA_character_
+    ),
+    value = ifelse(lborres == "Positive", 1L, 0L)
+  ) %>%
+  filter(!is.na(visit_suffix)) %>%
+  select(usubjid, visit_suffix, value) %>%
+  pivot_wider(
+    names_from = visit_suffix,
+    values_from = value,
+    names_prefix = "YS_sarscov2_infection_",
+    values_fn = max   # resolve duplicates
+    # no values_fill → missing remains NA
+  ) %>%
+  rename(ID = usubjid)
+
+# ─────────────────────────────────────────────
+# YS_urti: URTI event
+ys_urti = df9_ae %>%
+  group_by(usubjid) %>% 
+  summarise(YS_urti = as.integer(any(aept == "Upper respiratory tract infection", 
+                                                 na.rm = TRUE))) %>%
+  rename(ID = usubjid)
+
+
+# ─────────────────────────────────────────────
+# YS_all_hospitalized: hospitalized for any reason
+ys_all_hosp = df9_sv %>%
+  group_by(usubjid) %>%
+  summarise(YS_all_hospitalized = as.integer(any(hayn == "Yes", na.rm = TRUE))) %>%
+  rename(ID = usubjid)
+
+# ─────────────────────────────────────────────
+# YS_death: death reported in AE
+ys_death = df9_ae %>%
+  group_by(usubjid) %>%
+  summarise(YS_death = as.integer(any(!is.na(aedeath)))) %>%
+  rename(ID = usubjid)
+
+
+# ─────────────────────────────────────────────
+# YS_latent_tb: 
+ys_latent_tb = df9_lb %>%
+  filter(lbtest == "Interferon-Gamma Release Assays (IGRAs)") %>%
+  mutate(
+    # Create time-based suffix
+    visit_suffix = case_when(
+      str_detect(visitnam, "Screening") ~ "_0w",
+      str_detect(visitnam, "Wk 52")     ~ "_52w",
+      TRUE ~ NA_character_
+    ),
+    value = ifelse(lborres == "Positive", 1L, 0L)
+  ) %>%
+  filter(!is.na(visit_suffix)) %>%
+  select(usubjid, visit_suffix, value) %>%
+  pivot_wider(
+    names_from = visit_suffix,
+    values_from = value,
+    names_prefix = "YS_latent_tb",
+  ) %>%
+  rename(ID = usubjid)
+
+# ─────────────────────────────────────────────
+# YS_ae_grade2plus: adverse events of Grade 2 or worse
+ys_ae_severe = df9_ae %>%
+  group_by(usubjid) %>% 
+  summarise(YS_ae_grade2plus = as.integer(any(aehs >= 2, na.rm = TRUE))) %>% 
+  rename(ID = usubjid)
+
+# ─────────────────────────────────────────────
+# Combine all cleaned data
+df9_final = dm_cleaned %>%
+  left_join(yp_covid_hosp, by = "ID") %>%
+  left_join(ys_sarscov2, by = "ID") %>%
+  left_join(ys_urti, by = "ID") %>%
+  left_join(ys_absent, by = "ID") %>%
+  left_join(ys_all_hosp, by = "ID") %>%
+  left_join(ys_icu, by = "ID") %>%
+  left_join(ys_death, by = "ID") %>%
+  left_join(ys_latent_tb, by = "ID") %>%
+  left_join(ys_active_tb, by = "ID") %>%
+  left_join(ys_ae_severe, by = "ID") %>%
+  mutate(across(starts_with("YP_"), ~replace_na(., 0))) %>%
+  mutate(across(starts_with("YS_"), ~replace_na(., 0)))
+
+extra_dm_covars = df9_dm %>%
+  select(usubjid, race, work_hours, patients_seen, expect_interact) %>%
+  rename(
+    ID = usubjid,
+    X_race = race,
+    X_work_hours = work_hours,
+    X_patient_load = patients_seen,
+    X_expected_exposure = expect_interact
+  )
+
+df9_final = df9_final %>%
+  left_join(extra_dm_covars, by = "ID") %>% 
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_"),
+  )
+```
+
+## Output Data
+```{r}
+# trial 9
+write.csv(df9_final, "cleaned_data/trial9.csv", row.names = FALSE)
+```
+
+
+# Trial 10
+## Load Data
+```{r}
+# trial 10
+df10 = read.delim("raw_data/10/10.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+```
+
+
+## Cleaning
+```{r}
+df10_final = df10 %>%
+  clean_names() %>%
+  
+  # Label treatment
+  mutate(
+    Treatment = case_when(
+      ttt == 1 ~ "Placebo",
+      ttt == 2 ~ "Sildenafil_40mg",
+      ttt == 3 ~ "Sildenafil_80mg"
+    )
+  ) %>%
+  
+  # Summarize per patient-treatment group
+  group_by(id_total, Treatment) %>%
+  summarise(
+    YP_mean_rcs = mean(rcs, na.rm = TRUE),
+    YP_total_attacks = sum(nb_crises, na.rm = TRUE),
+    YP_total_duration_min = sum(duree_tot, na.rm = TRUE),
+    
+    # Covariates (same across rows per patient)
+    X_age = first(age),
+    X_sex = first(homme),             # 1 = male
+    X_rp_type = first(second),        # 1 = secondary RP
+    X_ccb_use = first(inhib),         # 1 = on CCB
+    X_mean_temp = mean(temp, na.rm = TRUE),
+    X_mean_humidity = mean(humid, na.rm = TRUE),
+    
+    .groups = "drop"
+  ) %>%
+  rename(ID = id_total)
+```
+
+## Output Data
+```{r}
+# trial 10
+write.csv(df10_final, "cleaned_data/trial10.csv", row.names = FALSE)
+```
+
+
+# Trial 11
+## Load Data
+```{r}
+# trial 11
+df11 = read_csv("raw_data/11/11.csv") %>% clean_names()
+```
+
+## Cleaning
+```{r}
+df11[df11 == "null"] = NA
+df11[df11 == "."] = NA
+df11_final = df11 %>%
+  mutate(
+    # Treatment arm assignment
+    Treatment = randassign,
+
+    # ───── PRIMARY OUTCOMES (log10 biomass change) ─────
+    YP_delta_log10_biomass_oral_8w = log10(as.numeric(biomass_raw_ow2)) - log10(as.numeric(biomass_raw_ow1)),
+    YP_delta_log10_biomass_sputum_8w = log10(as.numeric(biomass_raw_spt2)) - log10(as.numeric(biomass_raw_spt1)),
+
+    # ───── SECONDARY OUTCOMES ─────
+    # Alpha diversity
+    YS_delta_shannon_oral_8w = shannon_ow_chg,
+    YS_delta_shannon_sputum_8w = shannon_spt_chg,
+    YS_delta_simpson_oral_8w = simpson_ow_chg,
+    YS_delta_simpson_sputum_8w = simpson_spt_chg,
+
+    # Inflammatory markers
+    YS_delta_crp_8w = crp_changew8,
+    YS_delta_fibrinogen_8w = fibrinogen_changew8,
+    YS_delta_leukocyte_8w = leukocyte_changew8,
+
+    # Symptom scores
+    YS_delta_sgrq_total_8w = sgrq_total_changew8,
+    YS_delta_bcss_8w = bcss_changew8,
+
+    # ───── COVARIATES ─────
+    X_age = age_range,
+    X_sex = sex,
+    X_smoked = smoked,
+    X_current_smoker = current_smoker,
+    X_years_smoke = years_smoke,
+    X_pack_years = pack_years,
+
+    # Baseline inflammatory markers
+    X_crp_baseline = crp,
+    X_fibrinogen_baseline = fibrinogen,
+    X_leukocyte_baseline = leukocyte,
+
+    # Baseline microbiota composition
+    X_biomass_raw_ow1 = biomass_raw_ow1,
+    X_biomass_raw_spt1 = biomass_raw_spt1,
+    X_shannon_ow1 = shannon_ow1,
+    X_shannon_spt1 = shannon_spt1,
+    X_simpson_ow1 = simpson_ow1,
+    X_simpson_spt1 = simpson_spt1
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+
+
+# Trial 12
+## Load Data
+
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 13
+## Load Data
+
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 14a
+## Load Data
+
+
+## Cleaning
+
+## Output Data

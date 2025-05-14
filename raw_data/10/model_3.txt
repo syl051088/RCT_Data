@@ -1,0 +1,235 @@
+
+model{
+
+#################
+##### MODEL ##### 3 = informative priors for sildenafil effect
+################# 
+
+# submodel for the number of crises : fixed and random effects
+for (i in 1:Nmesures) {
+    nb.crises[i]        ~   dpois(lambda.crise[i])
+    log.lambda.crise[i] <-  b.crise.cst + r.crise.indiv[indiv[i]] +
+                            ( b.crise[1] + b.crise.indiv[1,indiv[i]] )*ttt1[i] + 
+                            ( b.crise[2] + b.crise.indiv[2,indiv[i]] )*ttt2[i] + 
+                            b.crise.temp*temp[i] + b.crise.humid*humid[i] +
+                            b.crise.age*age[i] + b.crise.homme*homme[i] +
+                            b.crise.inhib*inhib[i] + b.crise.second*second[i]
+    lambda.crise[i]     <-  exp(log.lambda.crise[i])                
+}
+
+# submodel for the RCS : fixed and random effects
+# gamma distribution parameters for R and JAGS
+#       r = a = "shape"
+#       lambda = 1/s = "rate" = 1/"scale" = "dispersion"
+# 		shape = lambda x Expectation
+# 		lambda = Expectation / Variance
+for (i in 1:Nmesures) {
+    rcs[i]              ~   dgamma(shape.rcs[i], dispersion.rcs)T(,10)
+    log.E.rcs[i]        <-  b.rcs.cst + r.rcs.indiv[indiv[i]] + 
+                            ( b.rcs[1] + b.rcs.indiv[1,indiv[i]] )*ttt1[i] +
+                            ( b.rcs[2] + b.rcs.indiv[2,indiv[i]] )*ttt2[i] + 
+                            b.rcs.temp*temp[i] + b.rcs.humid*humid[i] +
+                            b.rcs.age*age[i] + b.rcs.homme*homme[i] +
+                            b.rcs.inhib*inhib[i] + b.rcs.second*second[i]
+    E.rcs[i]            <-  exp(log.E.rcs[i])
+    shape.rcs[i]        <-  E.rcs[i] * dispersion.rcs   
+}
+
+# submodel for the daily duration : fixed and random effects
+
+for (i in 1:Nmesures) {
+    duree[i]           	~   dgamma(shape.duree[i], dispersion.duree[i])
+    log.E.duree[i]     	<-    b.duree.cst + r.duree.indiv[indiv[i]] + 
+                            ( b.duree[1] + b.duree.indiv[1,indiv[i]] )*ttt1[i] +
+                            ( b.duree[2] + b.duree.indiv[2,indiv[i]] )*ttt2[i] + 
+                            b.duree.temp*temp[i] + b.duree.humid*humid[i] +
+                            b.duree.age*age[i] + b.duree.homme*homme[i] +
+                            b.duree.inhib*inhib[i] + b.duree.second*second[i]
+	E.duree[i]         	<-  exp(log.E.duree[i])
+	shape.duree[i]		<-  nb.crises[i]+0.000001
+	dispersion.duree[i]	<- shape.duree[i] / E.duree[i]
+
+}
+
+# submodel for the number of crises : random effects distribution
+for (m in 1:Nindivs)  { 
+    r.crise.indiv[m]    ~   dnorm(0, pow(sigma2.crise.indiv,-1))
+    b.crise.indiv[1,m]  ~   dnorm(0, pow(sigma2.crise.indiv.b1,-1))
+    b.crise.indiv[2,m]  ~   dnorm(0, pow(sigma2.crise.indiv.b2,-1))
+}
+
+# submodel for the RCS : random effects distribution   
+for (m in 1:Nindivs)  { 
+    r.rcs.indiv[m]      ~   dnorm(0, pow(sigma2.rcs.indiv,-1))
+    b.rcs.indiv[1,m]    ~   dnorm(0, pow(sigma2.rcs.indiv.b1,-1))
+    b.rcs.indiv[2,m]    ~   dnorm(0, pow(sigma2.rcs.indiv.b2,-1))
+}
+
+# submodel for the daily duration : random effects distribution   
+for (m in 1:Nindivs)  { 
+    r.duree.indiv[m]    ~   dnorm(0, pow(sigma2.duree.indiv,-1))
+    b.duree.indiv[1,m]  ~   dnorm(0, pow(sigma2.duree.indiv.b1,-1))
+    b.duree.indiv[2,m]  ~   dnorm(0, pow(sigma2.duree.indiv.b2,-1))
+}
+
+
+
+##################
+##### PRIORS #####
+##################
+
+
+
+# number of crises, fixed effects
+moy.crise.cst			<- 	0.184458
+
+moy.crise.ttt1			<- 	-0.2035318
+moy.crise.ttt2			<- 	-0.2035318
+
+moy.crise.temp			<-	0
+moy.crise.humid			<-	0
+
+moy.crise.age			<-	0
+moy.crise.homme			<-	0
+
+moy.crise.second		<-	0
+moy.crise.inhib			<-	-0.7142857
+
+	
+sd.crise.cst			<- 	1.168326
+
+sd.crise.ttt1			<- 	0.048635
+sd.crise.ttt2			<- 	0.048635
+
+sd.crise.temp			<-	10
+sd.crise.humid			<-	10
+
+sd.crise.age			<-	10
+sd.crise.homme			<-	10
+
+sd.crise.second			<-	10
+sd.crise.inhib			<-	0.2922741
+
+
+# RCS, fixed effects
+moy.rcs.cst				<- 	1.444178
+
+moy.rcs.ttt1			<- 	-0.1431588
+moy.rcs.ttt2			<- 	-0.1431588
+
+moy.rcs.temp			<-	0
+moy.rcs.humid			<-	0
+
+moy.rcs.age				<-	0
+moy.rcs.homme			<-	0
+
+moy.rcs.second			<-	0
+moy.rcs.inhib			<-	-1.39
+
+
+sd.rcs.cst				<- 	0.3600715
+
+sd.rcs.ttt1				<- 	0.048635
+sd.rcs.ttt2				<- 	0.048635
+
+sd.rcs.temp				<-	10
+sd.rcs.humid			<-	10
+
+sd.rcs.age				<-	10
+sd.rcs.homme			<-	10
+
+sd.rcs.second			<-	10
+sd.rcs.inhib			<-	0.4132653
+
+moy.dispersion.rcs      <-  (moy.rcs.cst    / pow(sd.rcs.cst,2))
+inf.dispersion.rcs      <-  0                   
+sup.dispersion.rcs      <-  moy.dispersion.rcs +5
+
+
+# duration, fixed effects
+moy.duree.cst           <- 0 
+
+moy.duree.ttt1          <- -0.325625 
+moy.duree.ttt2          <- -0.325625
+
+moy.duree.temp          <-  0
+moy.duree.humid         <-  0
+
+moy.duree.age           <-  0
+moy.duree.homme         <-  0
+
+moy.duree.second        <-  0
+moy.duree.inhib         <-  0
+
+
+sd.duree.cst            <- 10
+
+sd.duree.ttt1           <- 0.075298
+sd.duree.ttt2           <- 0.075298
+
+sd.duree.temp           <-  10
+sd.duree.humid          <-  10
+
+sd.duree.age            <-  10
+sd.duree.homme          <-  10
+
+sd.duree.second         <-  10
+sd.duree.inhib          <-  10
+
+### submodel for the number of crises : fixed and random effects distributions
+
+# fixed effects
+b.crise.cst             ~   dnorm (moy.crise.cst, pow(sd.crise.cst,-2))    
+b.crise[1]              ~   dnorm (moy.crise.ttt1, pow(sd.crise.ttt1,-2))  
+b.crise[2]              ~   dnorm (moy.crise.ttt2, pow(sd.crise.ttt2,-2))  
+b.crise.temp            ~   dnorm (moy.crise.temp, pow(sd.crise.temp,-2))  
+b.crise.humid           ~   dnorm (moy.crise.humid, pow(sd.crise.humid,-2))
+b.crise.age             ~   dnorm (moy.crise.age, pow(sd.crise.age,-2))
+b.crise.homme           ~   dnorm (moy.crise.homme, pow(sd.crise.homme,-2))
+b.crise.second          ~   dnorm (moy.crise.second, pow(sd.crise.second,-2))
+b.crise.inhib           ~   dnorm (moy.crise.inhib, pow(sd.crise.inhib,-2))
+
+# random effects
+sigma2.crise.indiv      ~   dunif(0.01,5)
+sigma2.crise.indiv.b1   ~   dunif(0.01,5)
+sigma2.crise.indiv.b2   ~   dunif(0.01,5)
+
+### submodel for the RCS : fixed and random effects distributions
+
+# fixed effects
+b.rcs.cst               ~   dnorm (moy.rcs.cst, pow(sd.rcs.cst,-2))    
+b.rcs[1]                ~   dnorm (moy.rcs.ttt1, pow(sd.rcs.ttt1,-2))  
+b.rcs[2]                ~   dnorm (moy.rcs.ttt2, pow(sd.rcs.ttt2,-2))  
+b.rcs.temp              ~   dnorm (moy.rcs.temp, pow(sd.rcs.temp,-2))  
+b.rcs.humid             ~   dnorm (moy.rcs.humid, pow(sd.rcs.humid,-2))
+b.rcs.age               ~   dnorm (moy.rcs.age, pow(sd.rcs.age,-2))
+b.rcs.homme             ~   dnorm (moy.rcs.homme, pow(sd.rcs.homme,-2))
+b.rcs.second            ~   dnorm (moy.rcs.second, pow(sd.rcs.second,-2))
+b.rcs.inhib             ~   dnorm (moy.rcs.inhib, pow(sd.rcs.inhib,-2))  
+
+# random effects
+sigma2.rcs.indiv        ~   dunif(0.01,5)
+sigma2.rcs.indiv.b1     ~   dunif(0.01,5)
+sigma2.rcs.indiv.b2     ~   dunif(0.01,5)
+
+# gamma distribution dispersion for RCS
+dispersion.rcs          ~   dunif(inf.dispersion.rcs,sup.dispersion.rcs )
+
+### submodel for the daily duration : fixed and random effects distributions
+
+# fixed effects
+b.duree.cst             ~   dnorm (moy.duree.cst, pow(sd.duree.cst,-2))     
+b.duree[1]              ~   dnorm (moy.duree.ttt1, pow(sd.duree.ttt1,-2))   
+b.duree[2]              ~   dnorm (moy.duree.ttt2, pow(sd.duree.ttt2,-2))   
+b.duree.temp            ~   dnorm (moy.duree.temp, pow(sd.duree.temp,-2))   
+b.duree.humid           ~   dnorm (moy.duree.humid, pow(sd.duree.humid,-2)) 
+b.duree.age             ~   dnorm (moy.duree.age, pow(sd.duree.age,-2))
+b.duree.homme           ~   dnorm (moy.duree.homme, pow(sd.duree.homme,-2))
+b.duree.second          ~   dnorm (moy.duree.second, pow(sd.duree.second,-2))
+b.duree.inhib           ~   dnorm (moy.duree.inhib, pow(sd.duree.inhib,-2))
+
+# random effects
+sigma2.duree.indiv      ~   dunif(0.01,10)
+sigma2.duree.indiv.b1   ~   dunif(0.01,10)
+sigma2.duree.indiv.b2   ~   dunif(0.01,10)
+}
