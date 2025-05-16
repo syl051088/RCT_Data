@@ -1125,30 +1125,304 @@ df11_final = df11 %>%
 ```
 
 ## Output Data
+```{r}
+# trial 11
+write.csv(df11_final, "cleaned_data/trial11.csv", row.names = FALSE)
+```
 
 
 # Trial 12
 ## Load Data
+```{r}
+df12_f3 = read_excel("raw_data/12/12.xlsx", sheet = "Figure 3", skip = 1)
+df12_t1  = read_excel("raw_data/12/12.xlsx", sheet = "Table 1", skip = 1)
+df12_f4    = read_excel("raw_data/12/12.xlsx", sheet = "Figure 4", skip = 1)
+df12_f5    = read_excel("raw_data/12/12.xlsx", sheet = "Figure 5", skip = 1)
+df12_f6    = read_excel("raw_data/12/12.xlsx", sheet = "Figure 6", skip = 1)
+df12_t2      = read_excel("raw_data/12/12.xlsx", sheet = "Table 2", skip = 1)
+df12_t3     = read_excel("raw_data/12/12.xlsx", sheet = "Table 3", skip = 1)
+```
 
 
 ## Cleaning
+```{r}
+# 1. Baseline covariates from Table 1 ----
+df12_cov = df12_t1 %>%
+  rename(
+    ID                   = IDexternal,
+    Treatment            = Arm,
+    X_age_years          = age_years,
+    X_cd4_baseline       = cd4,
+    X_vl_baseline        = vl,
+    X_bmi                = bmi,
+    X_gender             = gender,
+    X_ethnicgroup        = ethnicgroup,
+    X_bcg_selfreport     = bcg_selfreport
+  ) %>%
+  select(ID, Treatment, starts_with("X_")) %>%
+  distinct(ID, Treatment, .keep_all = TRUE)
+
+# 2. Primary outcome at days 0, 14, 70 & 182 (Figure 5) ----
+df12_primary = df12_f5 %>%
+  rename(ID = IDexternal, Treatment = Arm) %>%
+  filter(day %in% c(0, 14, 56, 70, 182)) %>%
+  pivot_wider(
+    id_cols    = c(ID, Treatment),
+    names_from = day,
+    values_from = H1_cd4_ifng_tnfa_il2
+  ) %>%
+  rename(
+    X_H1_cd4_ifng_tnfa_il2_0d    = `0`,
+    pre_YP_H1_cd4_ifng_tnfa_il2_14d = `14`,
+    pre_YP_H1_cd4_ifng_tnfa_il2_56d = `56`,
+    YP_H1_cd4_ifng_tnfa_il2_70d     = `70`,
+    post_YP_H1_cd4_ifng_tnfa_il2_182d = `182`
+  ) %>%
+  distinct(ID, Treatment, .keep_all = TRUE)
+
+# 3. Secondary outcomes → only day 70 as YS + day 0 as baseline covariate ----
+
+## 3a. CD4 cytokines (Figure 4)
+df12_cyto_baseline = df12_f4 %>%
+  rename(ID = IDexternal, Treatment = Arm) %>%
+  filter(day == 0) %>%
+  select(ID, Treatment,
+         X_YS_ifn_g_cd4_0d  = ifn_g_cd4,
+         X_YS_tnf_a_cd4_0d  = tnf_a_cd4,
+         X_YS_il2_cd4_0d    = il2_cd4,
+         X_YS_il17_cd4_0d   = il17_cd4) %>%
+  distinct(ID, Treatment, .keep_all = TRUE)
+
+df12_cyto_ys = df12_f4 %>%
+  rename(ID = IDexternal, Treatment = Arm) %>%
+  filter(day == 70) %>%
+  select(ID, Treatment,
+         YS_ifn_g_cd4_70d  = ifn_g_cd4,
+         YS_tnf_a_cd4_70d  = tnf_a_cd4,
+         YS_il2_cd4_70d    = il2_cd4,
+         YS_il17_cd4_70d   = il17_cd4) %>%
+  distinct(ID, Treatment, .keep_all = TRUE)
+
+## 3b. CD8 proliferation (Figure 3)
+df12_cd8_baseline = df12_f3 %>%
+  rename(ID = IDexternal, Treatment = Arm) %>%
+  filter(Tcell == 2, day == 0) %>%
+  select(ID, Treatment,
+         X_prolif_cd8_0d = response) %>%
+  distinct(ID, Treatment, .keep_all = TRUE)
+
+df12_cd8_ys = df12_f3 %>%
+  rename(ID = IDexternal, Treatment = Arm) %>%
+  filter(Tcell == 2, day == 70) %>%
+  select(ID, Treatment,
+         YS_prolif_cd8_70d = response) %>%
+  distinct(ID, Treatment, .keep_all = TRUE)
+
+## 3c. QFT Gold (Table 3 — baseline already a covariate)
+df12_qgit = df12_t3 %>%
+  rename(
+    ID                     = IDexternal,
+    Treatment              = Arm,
+    X_QGIT_0d = QGIT_baseline,
+    YS_QGIT_182d         = QGIT_day182
+  ) %>%
+  select(ID, Treatment, starts_with("X_"), starts_with("YS_")) %>%
+  distinct(ID, Treatment, .keep_all = TRUE)
+
+# 4. Final join + NA‐cleanup ----
+df12_final = df12_cov %>%
+  full_join(df12_primary,       by = c("ID","Treatment")) %>%
+  full_join(df12_cyto_baseline, by = c("ID","Treatment")) %>%
+  full_join(df12_cyto_ys,       by = c("ID","Treatment")) %>%
+  full_join(df12_cd8_baseline,  by = c("ID","Treatment")) %>%
+  full_join(df12_cd8_ys,        by = c("ID","Treatment")) %>%
+  full_join(df12_qgit,          by = c("ID","Treatment")) %>% 
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_"),
+    -ID
+  )
+```
 
 ## Output Data
+```{r}
+# trial 12
+write.csv(df12_final, "cleaned_data/trial12.csv", row.names = FALSE)
+```
 
 
 # Trial 13
 ## Load Data
-
-
+```{r}
+df13 = read_sav("raw_data/13/13.sav")
+```
 ## Cleaning
+```{r}
+df13_final = df13 %>%
+  # Label treatment
+  mutate(
+    Treatment = case_when(
+      studygrp_AR == 1 ~ "IV infusion",
+      studygrp_AR == 2 ~ "IM injection"
+    )
+  ) %>% 
+  rename(
+    # --- Primary outcomes ---
+    YP_PPH500           = totalbld500,      # PPH ≥ 500 mL (yes/no)
+    YP_TOTALBLOOD       = totalbld_ARGoxy,  # total measured blood loss
+
+    # --- Secondary outcomes ---
+    YS_BLD_30MIN         = sangre_30,         # blood loss at 30 min
+    YS_BLD_60MIN         = sangre_60,         # blood loss at 60 min
+    YS_SI_15MIN         = SI_15min,          # shock index at 15 min
+    YS_SI_30MIN         = SI_30min,          # shock index at 30 min
+    YS_SI_45MIN         = SI_45min,          # shock index at 45 min
+    YS_SI_60MIN         = SI_60min,          # shock index at 60 min
+    YS_PPH1000          = totalbld1000,      # PPH ≥ 1 000 mL (yes/no)
+    YS_UTEROTONICOS     = uterotonicos,      # any additional uterotonics
+    YS_HB_CHG           = Hbdiff,            # Δ hemoglobin pre→post
+
+    # Optional vitals (if you want them as secondary, otherwise drop these)
+    YS_SYSBP_30MIN      = presion_sist_30,   # systolic BP @ 30 min
+    YS_DIASBP_30MIN     = presion_diast_30,  # diastolic BP @ 30 min
+    YS_HR_30MIN         = frecuencia_30,      # HR @ 30 min
+    YS_SYSBP_60MIN      = presion_sist_60,   # systolic BP @ 60 min
+    YS_DIASBP_60MIN     = presion_diast_60,  # diastolic BP @ 60 min
+    YS_HR_60MIN         = frecuencia_60,      # HR @ 60 min
+
+    # --- Baseline covariates ---
+    X_AGE               = edad,              # maternal age (years)
+    X_PARITY            = numembarazos,      # number of pregnancies
+    X_HB_BASELINE       = Nivel_hb,          # hemoglobin on admission
+    X_INDUCTION         = induccion,         # labor induction (yes/no)
+    X_SI_BASELINE       = SI_baseline        # baseline shock index
+  ) %>%
+
+  # 3. Reorder columns as requested
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),   # (none here)
+    starts_with("post_YP_"),  # (none here)
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
+```{r}
+# trial 13
+write.csv(df13_final, "cleaned_data/trial13.csv", row.names = FALSE)
+```
 
 
-# Trial 14a
+# Trial 14
 ## Load Data
-
+```{r}
+df14_ae = read_csv("raw_data/14/TERECO_Public_Data_ae_long.csv")
+df14_wide = read_csv("raw_data/14/TERECO_Public_Data_wide.csv")
+```
 
 ## Cleaning
+```{r}
+df_wide_clean = df14_wide %>%
+  rename(
+    Treatment = group_randomized,
+    
+    # Primary outcome
+    X_6MWD_0w = `_6MWD1`,
+    YP_6MWD_6w = `_6MWD2`,
+    YP_6MWD_28w = `_6MWD3`,
+    
+    # Squat
+    X_squat_0w = squat1,
+    YS_squat_6w = squat2,
+    YS_squat_28w = squat3,
+    
+    # Pulmonary function
+    X_fev1_0w = fev1,
+    YS_fev1_6w = fev2,
+    YS_fev1_28w = fev3,
+    
+    X_fvc_0w = fvc1,
+    YS_fvc_6w = fvc2,
+    YS_fvc_28w = fvc3,
+    
+    X_fevfvc_0w = fev_fvc_ratio1,
+    YS_fevfvc_6w = fev_fvc_ratio2,
+    YS_fevfvc_28w = fev_fvc_ratio3,
+    
+    X_mvv_0w = mvv1,
+    YS_mvv_6w = mvv2,
+    YS_mvv_28w = mvv3,
+    
+    X_pef_0w = pef1,
+    YS_pef_6w = pef2,
+    YS_pef_28w = pef3,
+    
+    # SF-12
+    X_SF12_PCS_0w = SF12_PCS1,
+    YS_SF12_PCS_6w = SF12_PCS2,
+    YS_SF12_PCS_28w = SF12_PCS3,
+    
+    X_SF12_MCS_0w = SF12_MCS1,
+    YS_SF12_MCS_6w = SF12_MCS2,
+    YS_SF12_MCS_28w = SF12_MCS3,
+    
+    # Dyspnoea (binary: 1=favourable)
+    YS_dyspnea_2w = mMRC_fav2w,
+    YS_dyspnea_4w = mMRC_fav4w,
+    YS_dyspnea_6w = mMRC_fav2,
+    YS_dyspnea_28w = mMRC_fav3,
+    
+    # Covariates
+    X_age = age,
+    X_sex = male,
+    X_disease_severity = disease_sev_bin,
+    X_corticosteroid = treat_corticosteroid,
+    X_oxygen = treat_oxygen,
+    X_smoke = smoke_history,
+    X_los = los_days,
+    X_comorbidity = comorbidity_cat,
+    X_diabetes = com2_diabetes,
+    X_heart = com2_heartdisease,
+    X_lung = com2_lungdisease,
+    X_obesity = com2_obesity,
+    X_hypertension = com2_hypertension,
+    X_othercomorb = com2_other
+  ) %>%
+  mutate(Treatment = if_else(Treatment == 1, "TERECO", "No Active Rehabilitation"))
+
+
+# Step 2: Summarize AE into binary indicator
+df_ae_clean = df14_ae %>%
+  group_by(num_ID) %>%
+  summarise(YS_AE = 1)
+
+# Step 3: Merge and finalize
+df_final = df_wide_clean %>%
+  left_join(df_ae_clean, by = "num_ID") %>%
+  mutate(YS_AE = if_else(is.na(YS_AE), 0, YS_AE))
+
+# Step 4: Reorder and drop ID
+df14_final = df_final %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
+
+```{r}
+# trial 14
+write.csv(df14_final, "cleaned_data/trial14.csv", row.names = FALSE)
+```
