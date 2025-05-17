@@ -1393,7 +1393,8 @@ df_wide_clean = df14_wide %>%
     X_lung = com2_lungdisease,
     X_obesity = com2_obesity,
     X_hypertension = com2_hypertension,
-    X_othercomorb = com2_other
+    X_othercomorb = com2_other,
+    X_center = center
   ) %>%
   mutate(Treatment = if_else(Treatment == 1, "TERECO", "No Active Rehabilitation"))
 
@@ -1426,3 +1427,279 @@ df14_final = df_final %>%
 # trial 14
 write.csv(df14_final, "cleaned_data/trial14.csv", row.names = FALSE)
 ```
+
+# Trial 15
+## Load Data
+```{r}
+df15 = read.csv("raw_data/15/15.csv")
+```
+
+## Cleaning
+```{r}
+df15_final = df15[-c(1, 9), ]
+df15_final = df15_final %>%
+  rename(
+    Treatment = Group,
+
+    # Primary outcome
+    X_EmoReact_0w = `Emo..R._1`,
+    post_EmoReact_4w = `Emo..R._2`,
+
+    # Secondary outcomes
+    X_CBCLTotal_0w = CBCL_Total_1,
+    post_CBCLTotal_4w = CBCL_Total_2,
+    X_Internal_0w = Inter_1,
+    post_Internal_4w = Inter_2,
+    X_External_0w = Exter_1,
+    post_External_4w = Exter_2,
+    X_Anx_Dep_0w = `Anx..Dep._1`,
+    post_Anx_Dep_4w = `Anx..Dep._2`,
+    X_Somatic_0w = Somatic_1,
+    post_Somatic_4w = Somatic_2,
+    X_Withdrawn_0w = `Withd._1`,
+    post_Withdrawn_4w = `Withd._2`,
+    X_Sleep_0w = Sleep_1,
+    post_Sleep_4w = Sleep_2,
+    X_Attention_0w = Attention_1,
+    post_Attention_4w = Attention_2,
+    X_Aggressive_0w = Aggressive_1,
+    post_Aggressive_4w = Aggressive_2,
+    X_Others_0w = Others_1,
+    post_Others_4w = Others_2,
+    X_Child_Stress_0w = Child_1,
+    post_Child_Stress_4w = Child_2,
+    X_Parent_Stress_0w = Parent_1,
+    post_Parent_Stress_4w = Parent_2,
+    X_PSI_Total_0w = PSI_Total_1,
+    post_PSI_Total_4w = PSI_Total_2,
+
+    # Covariates
+    X_GMFCS = GMFCS_level,
+    X_side = side,
+    X_cp_type = type
+  ) %>%
+  # Step 3: Recode treatment
+  mutate(
+    Treatment = if_else(Treatment == 1, "Conventional+Snoezelen", "Conventional Only"),
+
+    # Step 4: Compute change scores with YP_delta_ prefix
+    YP_delta_EmoReact_4w = post_EmoReact_4w - X_EmoReact_0w,
+    YS_delta_CBCLTotal_4w = post_CBCLTotal_4w - X_CBCLTotal_0w,
+    YS_delta_Internal_4w = post_Internal_4w - X_Internal_0w,
+    YS_delta_External_4w = post_External_4w - X_External_0w,
+    YS_delta_Anx_Dep_4w = post_Anx_Dep_4w - X_Anx_Dep_0w,
+    YS_delta_Somatic_4w = post_Somatic_4w - X_Somatic_0w,
+    YS_delta_Withdrawn_4w = post_Withdrawn_4w - X_Withdrawn_0w,
+    YS_delta_Sleep_4w = post_Sleep_4w - X_Sleep_0w,
+    YS_delta_Attention_4w = post_Attention_4w - X_Attention_0w,
+    YS_delta_Aggressive_4w = post_Aggressive_4w - X_Aggressive_0w,
+    YS_delta_Others_4w = post_Others_4w - X_Others_0w,
+    YS_delta_Child_Stress_4w = post_Child_Stress_4w - X_Child_Stress_0w,
+    YS_delta_Parent_Stress_4w = post_Parent_Stress_4w - X_Parent_Stress_0w,
+    YS_delta_PSI_Total_4w = post_PSI_Total_4w - X_PSI_Total_0w
+  ) %>%
+  # Step 5: Select and reorder columns
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# trial 15
+write.csv(df15_final, "cleaned_data/trial15.csv", row.names = FALSE)
+```
+
+# Trial 16
+## Load Data
+```{r}
+df16 = read_excel("raw_data/16/16.xlsx")
+```
+
+## Cleaning
+```{r}
+df16_final = df16 %>%
+  mutate(
+    Treatment = if_else(Group == 1, "Internet Delivered", "Waitlist")
+  )
+
+# Clean and rename using ITT values
+df16_final = df16_final %>%
+  mutate(
+    # Convert and compute primary outcome
+    X_BDI_0w = as.numeric(BDI_pre),
+    YP_delta_BDI_9w = as.numeric(BDI_post_ITT) - as.numeric(BDI_pre),
+    pre_YP_delta_BDI_6w = as.numeric(BDI_followup_ITT) - as.numeric(BDI_pre),
+
+    # Secondary outcomes
+    X_MADRS_0w = as.numeric(MADRS_pre),
+    YS_delta_MADRS_9w = as.numeric(MADRS_post_ITT) - as.numeric(MADRS_pre),
+    pre_YS_delta_MADRS_6w = as.numeric(MADRS_followup_ITT) - as.numeric(MADRS_pre),
+
+    X_BAI_0w = as.numeric(BAI_pre),
+    YS_delta_BAI_9w = as.numeric(BAI_post_ITT) - as.numeric(BAI_pre),
+    pre_YS_delta_BAI_6w = as.numeric(BAI_followup_ITT) - as.numeric(BAI_pre),
+
+    X_QOLI_0w = as.numeric(QOLI_pre),
+    YS_delta_QOLI_9w = as.numeric(QOLI_post_ITT) - as.numeric(QOLI_pre),
+    pre_YS_delta_QOLI_6w = as.numeric(QOLI_followup_ITT) - as.numeric(QOLI_pre),
+
+    X_IPAQ_0w = as.numeric(IPAQ_pre),
+    YS_delta_IPAQ_9w = as.numeric(IPAQ_post_ITT) - as.numeric(IPAQ_pre),
+    pre_YS_delta_IPAQ_6w = as.numeric(IPAQ_followup_ITT) - as.numeric(IPAQ_pre)
+  ) %>%
+  rename(
+    X_age = Age,
+    X_sex = Sex,
+    X_marital = Marital_status,
+    X_education = Education,
+    X_medication = Medication,
+    X_psychotherapy = Psychotherapy
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("Post_YP_"),
+    starts_with("YS_"),
+    starts_with("pre_YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# trial 16
+write.csv(df16_final, "cleaned_data/trial16.csv", row.names = FALSE)
+```
+
+# Trial 17
+## Load Data
+```{r}
+df17 = read.csv("raw_data/17/17.csv")
+```
+
+## Cleaning
+```{r}
+df17_final = df17 %>% 
+  rename(
+    Treatment = group,
+    X_LDL_0w = LDL,
+    X_TC_0w = TC,
+    X_TG_0w = TG,
+    X_HDL_0w = HDL,
+    X_age = age,
+    X_sex = sex,
+    X_hbp = hbp,
+    X_smoke = smoke,
+    X_DM = DM,
+    X_BMI = BMId
+  ) %>% 
+   mutate(
+    YP_delta_LDL_24w = t_LDL - X_LDL_0w,
+    YS_delta_TC_24w = t_TC - X_TC_0w,
+    YS_delta_TG_24w = t_TG - X_TG_0w,
+    YS_delta_HDL_24w = t_HDL - X_HDL_0w
+   ) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("YS"),
+    starts_with("X")
+  )
+```
+
+## Output Data
+```{r}
+# trial 17
+write.csv(df17_final, "cleaned_data/trial17.csv", row.names = FALSE)
+```
+
+# Trial 18
+## Load Data
+```{r}
+df18 = read_xls("raw_data/18/18.xls")
+```
+
+
+## Cleaning
+```{r}
+df18_final = df18 %>%
+  mutate(
+    # Treatment assignment
+    Treatment = case_when(
+      Random == 1 ~ "Kanyakla",
+      Random == 0 ~ "Standard Care",
+      TRUE ~ NA_character_
+  ),
+
+    # Primary outcome (1-year): time-to-event tuple
+    YP_time_to_disengaged_12m = time1,
+    YP_event_disengaged_12m = as.numeric(outcome1==1),
+
+    # Secondary: 2-year time-to-event
+    post_YP_time_to_disengaged_24m = time2,
+    post_YP_event_disengaged_24m = as.numeric(outcome2==1),
+
+    # Final 2-year status
+    post_YP_disengaged_24m_final = outcome2end
+  ) %>% 
+  # 2d. Psychosocial at 1 year → YS_…_12m (raw) & YS_delta_…_12m (change)
+  rename(
+    YS_delta_StigInternal_12m = StigInternalDelta,
+    YS_delta_StigAnticipate_12m = StigAnticipateDelta,
+    YS_delta_StigEnact_12m     = StigEnactDelta,
+    YS_delta_StigOverall_12m   = StigOverallDelta,
+
+    YS_delta_yourHIVTotal_12m  = yourHIVDelta,
+    YS_delta_theirHIVTotal_12m = theirHIVDelta,
+
+    YS_delta_MaterialSupportMean_12m= MaterialDelta,
+    YS_delta_EmotionalSupportMean_12m= EmotionalDelta,
+    YS_delta_ClinicSupportMean_12m  = ClinicDelta,
+    YS_delta_MedSupportMean_12m     = MedDelta
+  ) %>%
+
+  # 2e. Baseline covariates → X_…_0d
+  rename(
+    X_AgeCat                   = AgeCat,
+    X_Gender                   = Gender,
+    X_TimeSinceDx             = TimeSinceDx,
+    X_TimeSinceClinic          = TimeSinceClinic,
+    X_TimeSinceART             = TimeSinceART,
+    X_ARTStatus                = ARTStatus,
+    X_TakingART                = TakingART,
+    X_Disclose                 = Disclose,
+
+    X_StigInternal_0m             = StigInternal_bl,
+    X_StigAnticipate_0m           = StigAnticipate_bl,
+    X_StigEnact_0m                = StigEnact_bl,
+    X_StigOverall_0m              = StigOverall_bl,
+
+    X_yourHIVTotal_0m             = yourHIVTotal_bl,
+    X_theirHIVTotal_0m            = theirHIVTotal_bl,
+
+    X_MaterialSupportMean_0m      = MaterialSupportMean_bl,
+    X_EmotionalSupportMean_0m     = EmotionalSupportMean_bl,
+    X_ClinicSupportMean_0m        = ClinicSupportMean_bl,
+    X_MedSupportMean_0m           = MedSupportMean_bl
+  ) %>%
+  # Step 3: Select and order final variables
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# trial 18
+write.csv(df18_final, "cleaned_data/trial18.csv", row.names = FALSE)
+```
+
