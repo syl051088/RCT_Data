@@ -1703,3 +1703,286 @@ df18_final = df18 %>%
 write.csv(df18_final, "cleaned_data/trial18.csv", row.names = FALSE)
 ```
 
+# Trial 19
+## Load Data
+```{r}
+df19 = read_xls("raw_data/19/19.xls")
+```
+
+## Cleaning
+```{r}
+df19_final = df19 %>%
+  rename(
+    Treatment               = `OPERATIVE METHOD`,
+    X_CREATININE_0d         = `PREOPERATIVE CREATININE`,
+    X_RECIPIENT_AGE_YEARS   = `RECIPIENT AGE (YEARS)`,
+    X_RECIPIENT_GENDER      = `RECIPIENT GENDER`,
+    X_RECIPIENT_DIAGNOSIS   = `RECIPIENT DIAGNOSIS`,
+    X_CHILD_PUGH_SCORE      = `CHILD-PUGH SCORE`,
+    X_MELD_SCORE            = `MELD SCORE`,
+    X_DONOR_AGE_YEARS       = `DONOR AGE`,
+    X_DONOR_GENDER          = `DONOR GENDER`,
+    X_DONOR_DIAGNOSIS       = `DONOR DIAGNOSIS`,
+    X_DONOR_WEIGHT       = `DONOR WEIGHT (kg)`,
+    X_GRAFT_SHARING         = `GRAFT SHARING`,
+    YP_FHVP_CVP_GRADIENT    = `FHVP-CVP GRADIENT (mmHg)`,
+    YS_CREATININE_1d        = `1PO CREATININE`,
+    YS_CREATININE_2d        = `2PO CREATININE`,
+    YS_CREATININE_3d        = `3PO CREATININE`,
+    YS_CREATININE_5d        = `5PO CREATININE`,
+    YS_CREATININE_6d        = `6PO CREATININE`,
+    YS_CREATININE_7d        = `7PO CREATININE`,
+    YS_CREATININE_14d       = `14PO CREATININE`,
+    YS_CREATININE_21d       = `21PO CREATININE`,
+    YS_CREATININE_28d       = `28PO CREATININE`,
+    YS_MASSIVE_ASCITES      = `POSTOPERATIVE MASSIVE ASCITIS`
+  ) %>%
+  # 2. Derive ARF prevalence up to 28 days per RIFLE–AKIN “Risk” (≥1.5×baseline or Δ≥0.3)
+  rowwise() %>%
+  mutate(
+    YS_ARF_PREVALENCE_28d = as.integer(
+      any(c_across(starts_with("YS_CREATININE_")) / X_CREATININE_0d >= 1.5, na.rm = TRUE)
+      |
+      any(c_across(starts_with("YS_CREATININE_")) - X_CREATININE_0d    >= 0.3, na.rm = TRUE)
+    )
+  ) %>%
+  ungroup() %>%
+  # 3. Keep one‐row-per-patient with only Treatment, YP_, YS_, and X_ columns
+  select(
+    Treatment,
+    YP_FHVP_CVP_GRADIENT,
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# trial 19
+write.csv(df19_final, "cleaned_data/trial19.csv", row.names = FALSE)
+```
+
+# Trial 20
+## load Data
+```{r}
+df20 = read_dta("raw_data/20/20.dta")
+```
+
+## Cleaning
+```{r}
+df20_final = df20 %>% 
+  rename(
+
+    # Primary outcome
+    YP_IWT_minutes_12w = Totaltimemin,
+
+    # Covariates
+    X_Age = Age1,
+    X_Sex = sex,
+    X_BMI = bmi,
+    X_Height_cm = height,
+    X_Weight_0w = Weight,
+
+    # Baseline secondary outcomes
+    X_HbA1c_0w = HbA1c1,
+    X_AndroidFat_0w = AndroidRegionFat1,
+    X_GynoidFat_0w = GynoidRegionFat1,
+    X_TotalFat_0w = TotalRegionFat1,
+    X_PAEE_0w = PAEE_b,
+    X_QoL_Physical_0w = PCS1,
+    X_QoL_Mental_0w = MCS1,
+    X_VO2max_0w = VO2max1,
+
+    # Changes in secondary outcomes from baseline to 12 weeks
+    YS_delta_HbA1c_12w = HbA1c_change,
+    YS_delta_AndroidFat_12w = AndroidRegionFat_change,
+    YS_delta_GynoidFat_12w = GynoidRegionFat_change,
+    YS_delta_TotalFat_12w = TotalRegionFat_change,
+    YS_delta_Weight_12w = weight_change,
+    YS_delta_PAEE_12w = PAEE_change,
+    YS_delta_QoL_Physical_12w = PCS_change,
+    YS_delta_QoL_Mental_12w = MCS_change,
+    YS_delta_VO2max_12w = VO2max_change
+  ) %>%
+   mutate(
+    Treatment = case_when(
+      group == 1 ~ "IWT only",
+      group == 2 ~ "IWT+Support",
+      TRUE ~ NA_character_) 
+    )%>% 
+  # 3. Arrange columns: Treatment, YP_, YS_, X_
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# trial 20
+write.csv(df20_final, "cleaned_data/trial20.csv", row.names = FALSE)
+```
+
+# Trial 21
+## Load Data
+```{r}
+df21 = read.csv("raw_data/21/21.csv")
+```
+
+## Cleaning
+```{r}
+df21_final = df21%>%
+    rename(
+    # Treatment arm
+    Treatment                         = group,
+    
+    # Baseline covariates (prefix X_)
+    X_cough                           = cough,
+    X_duration_of_cough_weeks            = duration_of_cough_weeks,
+    X_night_sweats                    = night_sweats,
+    X_weight_loss                     = weight_loss,
+    X_fever                           = fever,
+    X_reported_hiv_status             = reported_hiv_status,
+    X_antiretroviral_therapy          = taking_antiretoviral_therapy,
+    X_eq5d_0d                         = euro_qol_5q_5d_3l_zimbabwe_tariff,
+    X_cxr_done                        = cxr_done,
+    X_cad4tbv5_score                  = cad4t_bv5_score,
+    X_cad4tbv5_above_threshold        = cad4t_bv5_above_threshold,
+    X_sputum_xpert_done               = sputum_xpert_done,
+    X_sputum_xpert_result             = sputum_xpert_result,
+    
+    # Primary outcomes (prefix YP_)
+    YP_tb_treatment_initiation        = primary_outcome_tb_treatment_initiation,
+    YP_days_to_tb_initiation          = primary_outcome_days_to_tb_initiation,
+    
+    # Secondary outcomes (prefix YS_)
+    YS_undiagnosed_tb                 = secondary_outcome_undiagnsed_tb,
+    YS_same_day_tb_treatment          = secondary_outcome_same_day_tb_treatment,
+    YS_undiagnosed_hiv                = secondary_outcome_undiagnosed_hiv,
+    YS_mortality                      = secondary_outcome_mortality,
+    YS_eq5d_56d                       = secondary_outcome_eq5d
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+```
+
+## Output Data
+```{r}
+# trial 21
+write.csv(df21_final, "cleaned_data/trial21.csv", row.names = FALSE)
+```
+
+# Trial 22
+## Load Data
+```{r}
+df22 = read_sav("raw_data/22/22.sav")
+```
+
+## Cleaning
+```{r}
+df22_final = df22 %>% 
+  rename(
+    Treatment = 1,    # Arm: 1=control, 2=treatment
+    X_sex     = 2,    # Sex: 0=male, 1=female
+    X_age     = 3     # Age (years)
+  ) %>%
+  # 3. ACQ‐6 items (rows 4–9) at baseline → X_acq_q*_0w
+  rename_with(.cols = 4:9,
+              .fn = ~ paste0("X_acq_q", seq_along(.), "_0w")) %>%
+  # 4. ACQ sum scores: pre (row 10), post (row 11)
+  rename_with(.cols = 10, .fn = ~ "X_acq_sum_0w") %>%
+  rename_with(.cols = 11, .fn = ~ "YS_acq_sum_32w") %>%
+  # 5. QoL items (rows 12–43) at baseline → X_qol_q*_0w
+  rename_with(.cols = 12:43,
+              .fn = ~ paste0("X_qol_q", seq_along(.), "_0w")) %>%
+  # 6. QoL total and mean scores (rows 44–46)
+  rename_with(.cols = 44, .fn = ~ "X_qol_total_0w") %>%
+  rename_with(.cols = 45, .fn = ~ "YS_qol_mean_32w") %>%
+  rename_with(.cols = 46, .fn = ~ "X_qol_mean_0w") %>%
+  # 7. Domain sums (rows 47–54): pre (_0w) vs post (_32w)
+  rename_with(.cols = 47:54, .fn = function(x) {
+    domains = rep(c("activity", "symptoms", "emotional", "environment"), each = 2)
+    times   = rep(c("0w", "32w"), times = 4)
+    paste0(ifelse(times=="0w", "X_", "YS_"),
+           "domain_", domains, "_", times)
+  }) %>%
+  # 8. Exacerbation questions (rows 55–59) at 32 weeks → YS_exacerbation_q*_32w
+  rename_with(.cols = 55:59,
+              .fn = ~ paste0("YS_exacerbation_q", seq_along(.), "_32w")) %>%
+  # 9. Select only the cleaned columns (wide format)
+  select(Treatment, starts_with("YP_"), starts_with("YS_"), starts_with("X_"))
+```
+
+## Output Data
+
+
+# Trial 23
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 24
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 25
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 26
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 27
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 28
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Trial 29
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+
+# Trial 30
+## Load Data
+
+## Cleaning
+
+## Output Data
