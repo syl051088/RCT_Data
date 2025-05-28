@@ -1,0 +1,102 @@
+"Treatment","YP_bleeding_text","YP_surgical_problem_bleeding","YP_bleeding_score","YP_bleeding_category3","YS_vent_settings_changes","YS_vent_mode_modification","YS_hypoxemia_episodes","YS_recruitment_maneuvers","YS_min_SpO2","YS_surgery_duration_min","YS_pain_PACU","YS_endocrine_status_3m","X_pregnancy","X_BMI>35","X_lung_disease","X_redo_surgery","X_Tv","X_FiO2","X_AI","X_Rate"
+"VCV","important without modifying the conduct of the surgical procedure","yes",6,"major","6","no","0","0","97","49","0",NA,"no","no","no","no",375,"0.5",NA,12
+"PCV","minimal (almost nil)","no",2,"mild","4","no","0","0","98","27","3",NA,"no","no","no","no",475,"0.59999999999999998","15",12
+"VCV","weak",NA,4,"moderate","0","no","1","1","92","40",NA,NA,"no","no","no","no",450,"0.5",NA,12
+"VCV","medium","no",5,"moderate","2",NA,"0","0","92","45",NA,NA,"no","no","no","no",450,"0.5",NA,12
+"PCV","important without modifying the conduct of the surgical procedure","yes",6,"major","6","no","0","0","96","29",NA,NA,"no","no","no","no",NA,"0.5","15",12
+"VCV","medium",NA,5,"moderate","4","no","0","0","95","42",NA,NA,"no","no","no","no",525,"0.5",NA,12
+"PCV","medium","yes",5,"moderate","4","no","0","0","98","65","5",NA,"no","no","no","no",411,"0.5",NA,12
+"PCV","important and modifying the conduct of the surgical procedure","yes",7,"major","8","no","0","0","98","67",NA,NA,"no","no","no","no",430,NA,"15",12
+"VCV","important and modifying the conduct of the surgical procedure","yes",7,"major","1","yes","0","0","99","107",NA,NA,"no","no","no","no",500,"0.5",NA,12
+"PCV","medium","no",5,"moderate","2","no","0","0","97","29",NA,NA,"no","no","no","no",557,"0.5","15",12
+"VCV",NA,NA,NA,NA,"5","yes","1",NA,NA,NA,"1",NA,"no","no","no","no",300,"0.5",NA,12
+"VCV","very weak","no",3,"mild","1","no","0","0","98","35","1",NA,"no","no","no","no",500,"0.5","0",12
+"VCV","medium",NA,5,"moderate","2","no","0","0","98","50",NA,NA,"no","no","no","no",375,"0.5",NA,12
+"PCV","important without modifying the conduct of the surgical procedure","yes",6,"major","8","no","0","0","95","33","1",NA,"no","no","no","no",488,"0.5","15",10
+"VCV","medium","no",5,"moderate","2","no","0","0","98","35","0",NA,"no","no","no","no",550,"0.59999999999999998",NA,12
+"PCV","important without modifying the conduct of the surgical procedure","yes",6,"major","4","no","0","1","92","30","0",NA,"no","no","no","no",NA,"0.5","15",12
+"VCV","minimal (almost nil)","no",2,"mild","3","no","0","0","98","25","0",NA,"no","no","no","no",500,"0.5",NA,12
+"PCV","very weak","no",3,"mild","5","no","0","0","96","42","3",NA,"no","no","no","no",500,"0.59999999999999998","15",12
+"VCV","important and modifying the conduct of the surgical procedure","yes",7,"major","2","no","0","0","96","42","1-2",NA,"no","no","no","no",400,"0.59999999999999998",NA,12
+"VCV","important and modifying the conduct of the surgical procedure","yes",7,"major","1","no",NA,"0","99","40",NA,NA,"no","no","no","no",475,"0.5",NA,12
+"PCV","very weak","no",3,"mild","0","no","0","0","97","20",NA,NA,"no","no","no","no",480,"0.5",NA,12
+"PCV","medium","no",5,"moderate","10","no","4","1","90","40","1",NA,"no","no","no","no",420,"0.5","15",12
+"PCV","minimal (almost nil)","no",2,"mild","4","no","0","0","94","30","0",NA,"no","no","no","no",400,"0.5","11",11
+"VCV","medium","yes",5,"moderate","2","no","0","0","98","35","1",NA,"no","no","no","no",400,"0.59999999999999998","0",12
+"VCV","weak","no",4,"moderate","0","no","0","0","97","39","1",NA,"no","no","no","no",525,"0.5",NA,14
+"PCV","very weak","no",3,"mild","0","no","0","0","98","50","7",NA,"no","no","no","no",375,"0.5","10",12
+"VCV","important and modifying the conduct of the surgical procedure","yes",7,"major","3","no","0","0","97","48","2",NA,"no","no","no","no",364,"0.5",NA,12
+"VCV",NA,NA,NA,NA,"3","no","0","0","96","73",NA,NA,"no","no","no","no",462,"0.5",NA,12
+"PCV","important without modifying the conduct of the surgical procedure","yes",6,"major","2","no","0","0","92","34","0",NA,"no","no","no","no",400,"0.5","12",14
+"PCV","very weak","no",3,"mild","3","no","0","0","96","32",NA,NA,"no","no","no","no",525,"0.5","15",12
+"PCV","medium","yes",5,"moderate","3","no","1","1","81","23",NA,NA,"no","no","no","no",392,"0.5","15",12
+"VCV","weak","no",4,"moderate","0","no","0","0","99","69","8",NA,"no","no","no","no",550,"1",NA,12
+"PCV","very weak","no",3,"mild","6","no","0","0","99","83","0","no","no","no","no","no",341,"0.5","15",12
+"PCV","medium",NA,5,"moderate","5","no","0","0","94","66","0",NA,"no","no","no","no",455,"0.5","15",12
+"VCV","weak","no",4,"moderate","3","no","0","0","97","48","0",NA,"no","no","no","no",560,"0.5",NA,12
+"VCV",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,"no","no","no","no",525,"0.5",NA,12
+"VCV","medium","yes",5,"moderate","4","no","0","0","94","30",NA,NA,"no","no","no","no",325,"0.5",NA,12
+"VCV","medium",NA,5,"moderate","0","no","0","0","95","50","4",NA,"no","no","no","no",500,"1",NA,12
+"PCV","important and modifying the conduct of the surgical procedure","yes",7,"major","7","no","0","0","100","32",NA,NA,"no","no","no","no",340,"0.5","15",12
+"PCV","minimal (almost nil)","no",2,"mild","2","no","0","0","97","24",NA,NA,"no","no","no","no",411,"0.5","15",12
+"VCV","very weak","no",3,"mild","3","no","0","0","99","52",NA,NA,"no","no","no","no",480,"0.5",NA,12
+"PCV","very weak","no",3,"mild","1","no","0","0","99","30",NA,NA,"no","no","no","no",390,"0.5","15",12
+"PCV","very weak","no",3,"mild","8","no","0","0","98","43",NA,"no","no","no","no","no",513,"0.5","15",12
+"VCV","very weak","no",3,"mild","0","no","0","0","98","49",NA,NA,"no","no","no","no",500,"0.5",NA,12
+"VCV","medium","yes",5,"moderate","0","no","0","0","95","34",NA,NA,"no","no","no","no",450,"0.5",NA,12
+"PCV","medium",NA,5,"moderate","2","no","0","0","97","120",NA,NA,"no","no","no","no",539,"0.5","15",12
+"PCV","medium","no",5,"moderate","3","no","0","0","97","47",NA,NA,"no","no","no","no",NA,"0.5","15",12
+"PCV","minimal (almost nil)","no",2,"mild","3","no","0","0","98","48",NA,NA,"no","no","no","no",367,"0.5","15",12
+"VCV","medium","yes",5,"moderate","0","no","0","0","95","35","0",NA,"no","no","no","no",500,"0.5",NA,12
+"PCV","medium","yes",5,"moderate","2","no","0","0","97","50",NA,NA,"no","no","no","no",480,"0.5","15",12
+"VCV","weak","no",4,"moderate","0","no","0","0","95","35","1",NA,"no","no","no","no",550,"0.55000000000000004",NA,12
+"VCV","weak","no",4,"moderate","4","no","0","0","99","53",NA,NA,"no","no","no","no",481,"0.29999999999999999",NA,16
+"VCV","medium","yes",5,"moderate","0","no","0","0","96","52",NA,NA,"no","no","no","no",375,"0.5",NA,12
+"VCV","very weak","no",3,"mild","1","no","1","1","90","39","0",NA,"no","no","no","no",375,"0.5",NA,12
+"PCV","minimal (almost nil)","no",2,"mild","3","no","0","0","97","25",NA,NA,"no","no","no","no",770,"0.5","15",12
+"PCV","important without modifying the conduct of the surgical procedure","yes",6,"major","2","no","0","0","100","33",NA,NA,"no","no","no","no",551,"0.5","15",12
+"VCV","very weak","no",3,"mild","0","no","0","0","98","52",NA,NA,"no","no","no","no",450,"0.5",NA,12
+"PCV","important without modifying the conduct of the surgical procedure","yes",6,"major","3","no","0","0","97","62","7",NA,"no","no","no","no",354,"0.5","15",12
+"VCV","important without modifying the conduct of the surgical procedure",NA,6,"major","0","no","0","0","97","69","2",NA,"no","no","no","no",550,"0.5",NA,12
+"PCV","medium","no",5,"moderate","4","no","0","0","98","74","1",NA,"no","no","no","no",700,"0.5","15",12
+"VCV","important without modifying the conduct of the surgical procedure","yes",6,"major","4","no","0","0","98","32","0",NA,"no","no","no","no",475,"0.5",NA,12
+"PCV","important without modifying the conduct of the surgical procedure",NA,6,"major","15","no","0","0","94","83","0",NA,"no","no","no","no",NA,"0.5","15",12
+"VCV","medium","no",5,"moderate","5","no","0","0","96","65","4",NA,"no","no","no","no",400,"0.5",NA,12
+"PCV","weak","no",4,"moderate","6","no","0","0","97","45","0",NA,"no","no","no","no",NA,"0.40000000000000002","15",12
+"VCV","minimal (almost nil)","no",2,"mild","4","no","0","0","93","36","2",NA,"no","no","no","no",320,"0.5",NA,14
+"PCV","weak","no",4,"moderate","10","no","0","0","95","30","1",NA,"no","no","no","no",557,"0.5","15",12
+"PCV","very weak","no",3,"mild","0","no","0","0","97","23","0",NA,"no","no","no","no",410,"0.45000000000000001","14",12
+"VCV","very weak","no",3,"mild","3","no","0","0","98","36","1",NA,"no","no","no","no",462,"0.5",NA,12
+"PCV","medium","yes",5,"moderate","3","no","0","0","96","59","1",NA,"no","no","no","no",425,"0.5","15",12
+"VCV","minimal (almost nil)","no",2,"mild","0","no","0","0","98","41","0",NA,"no","no","no","no",375,"0.5",NA,12
+"VCV","very weak","no",3,"mild","0","no","0","0","97","40","1",NA,"no","no","no","no",500,"0.5",NA,12
+"PCV","important without modifying the conduct of the surgical procedure","no",6,"major","4","no","0","0","99","44","0",NA,"no","no","no","no",411,"0.5","15",11
+"PCV","important and modifying the conduct of the surgical procedure","yes",7,"major","1","no","0","0","94","50","3",NA,"no","no","no","no",430,"0.5","12",12
+"VCV","important without modifying the conduct of the surgical procedure","yes",6,"major","0","no","0","0","95","34","1",NA,"no","no","no","no",450,"0.5",NA,12
+"PCV","very weak","no",3,"mild","9","no","0","0","98","35","1",NA,"no","no","no","no",540,"0.5","15",12
+"VCV","important without modifying the conduct of the surgical procedure","yes",6,"major","0","no","0","0","98","37","1",NA,"no","no","no","no",437,"0.5",NA,12
+"PCV","very weak","no",3,"mild","10","no","0","1","97","41","1",NA,"no","no","no","no",440,"0.5",NA,14
+"VCV","medium","no",5,"moderate","4","no","0","0","98","41",NA,NA,"no","no","no","no",525,"0.5",NA,14
+"PCV","medium","yes",5,"moderate","2","no","0","0","97","40","0",NA,"no","no","no","no",417,"0.5","12",12
+"VCV",NA,NA,NA,NA,"2","no","0","0","98","67","8",NA,"no","no","no","no",350,"0.5",NA,12
+"PCV","weak","no",4,"moderate","4","no","0","0","99","46","5",NA,"no","no","no","no",430,"0.5","15",12
+"VCV","minimal (almost nil)","no",2,"mild","2","no","0","0","98","35","0",NA,"no","no","no","no",500,"0.5",NA,12
+"PCV","weak","no",4,"moderate","4","no","0","0","98","70","4",NA,"no","no","no","no",370,"1",NA,12
+"VCV","weak","no",4,"moderate","0","no","0","0","97","38","1",NA,"no","no","no","no",550,"0.5",NA,12
+"PCV","important and modifying the conduct of the surgical procedure","yes",7,"major","2","no","0","0","94","31",NA,NA,"no","no","no","no",550,"0.5","15",10
+"PCV","weak","no",4,"moderate","1","no","0","0","98","35",NA,NA,"no","no","no","no",430,"0.5","15",12
+"PCV","minimal (almost nil)","no",2,"mild","2","no","0","0","98","80",NA,NA,"no","no","no","no",468,"0.5","15",12
+"VCV","very weak","no",3,"mild","2","no","0","0","95","67","1",NA,"no","no","no","no",450,"0.5",NA,12
+"PCV","medium","yes",5,"moderate","3","no","0","0","98","39","4",NA,"no","no","no","no",354,"0.5","15",12
+"VCV","medium",NA,5,"moderate","1","no","0","0","98","36","0",NA,"no","no","no","no",435,"0.5",NA,12
+"PCV","weak","no",4,"moderate","1","no","0","0","98","45",NA,NA,"no","no","no","no",542,"0.5","15",12
+"VCV","important without modifying the conduct of the surgical procedure","yes",6,"major","0","no","0","0","96","42",NA,NA,"no","no","no","no",532,"0.5",NA,12
+"VCV","weak","no",4,"moderate","9","no","1","0","88","55","1",NA,"no","no","no","no",350,"1",NA,18
+"PCV","minimal (almost nil)","no",2,"mild","1","no","0","0","98","35",NA,NA,"no","no","no","no",335,"0.5","15",12
+"VCV",NA,NA,NA,NA,"1","no","0","0","96","36",NA,NA,"no","no","no","no",400,"0.5",NA,12
+"VCV","minimal (almost nil)","no",2,"mild","3","no","0","0","96","46","0",NA,"no","no","no","no",315,"0.5",NA,12
+"VCV","important without modifying the conduct of the surgical procedure","yes",6,"major",NA,"no","0","9","95","51","0",NA,"no","no","no","no",540,"0.59999999999999998",NA,12
+"PCV","weak","no",4,"moderate","14","no","0","0","98",NA,NA,NA,"no","no","no","no",487,"0.5","15",12
+"VCV","minimal (almost nil)","no",2,"mild","2","no","0","0","99","46",NA,NA,"no","no","no","no",475,"0.5",NA,12
+"PCV","minimal (almost nil)","no",2,"mild","5","no","0","0","98","52",NA,NA,"no","no","no","no",532,"0.5","15",12
+"VCV","medium","no",5,"moderate","2","no","0","1","94",NA,NA,NA,"no","no","no","no",450,"0.5",NA,12

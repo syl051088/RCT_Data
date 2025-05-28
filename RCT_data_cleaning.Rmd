@@ -81,41 +81,58 @@ df1_final = df1_combined %>%
     YS_delta_HbA1c_4m = as.numeric(`m4_HbA1c`) - as.numeric(HbA1c),
     YS_delta_LH_FSH_4m = as.numeric(`m4_LH/FSH`) - as.numeric(`LH/FSH`),
     YS_delta_TotalT_4m = as.numeric(`m4_Total T`) - as.numeric(`Total T`),
-    YS_delta_FAI_4m = as.numeric(`m4_FAI`) - as.numeric(FAI)
+    YS_delta_FAI_4m = as.numeric(`m4_FAI`) - as.numeric(FAI),
+    
+     # Post-secondary changes at 7 months
+    post_YS_delta_BMI_7m      = as.numeric(`m7_BMI`)      - as.numeric(BMI),
+    post_YS_delta_WHR_7m      = as.numeric(`m7_WHR`)      - as.numeric(WHR),
+    post_YS_delta_Acne_7m     = as.numeric(`m7_Acne`)     - as.numeric(Acne),
+    post_YS_delta_Hirsutism_7m= as.numeric(`m7_Hirsutism`)- as.numeric(Hirsutism),
+    post_YS_delta_FPG_7m      = as.numeric(`m7_FPG`)      - as.numeric(FPG),
+    post_YS_delta_FINS_7m     = as.numeric(`m7_FINS`)     - as.numeric(FINS),
+    post_YS_delta_GlucoseAUC_7m   = as.numeric(`m7_Glucose AUC`)   - as.numeric(`Glucose AUC`),
+    post_YS_delta_InsulinAUC_7m   = as.numeric(`m7_Insulin AUC`)   - as.numeric(`Insulin AUC`),
+    post_YS_delta_HOMA_beta_7m    = as.numeric(`m7_HOMA-β`)   - as.numeric(`HOMA-β`),
+    post_YS_delta_Cpeptide_7m     = as.numeric(`m7_C-Peptide`)- as.numeric(`C-Peptide`),
+    post_YS_delta_HbA1c_7m        = as.numeric(`m7_HbA1c`)    - as.numeric(HbA1c)
   ) %>%
   rename(
     # Baseline outcomes become covariates (prefix X_)
-    X_HOMA_IR = `HOMA-IR`,
-    X_BMI = BMI,
-    X_WHR = WHR,
-    X_Acne = Acne,
-    X_Hirsutism = Hirsutism,
-    X_FPG = FPG,
-    X_FINS = FINS,
-    X_GlucoseAUC = `Glucose AUC`,
-    X_InsulinAUC = `Insulin AUC`,
-    X_HOMA_beta = `HOMA-β`,
-    X_Cpeptide = `C-Peptide`,
-    X_HbA1c = HbA1c,
-    X_LH_FSH = `LH/FSH`,
-    X_TotalT = `Total T`,
-    X_FAI = FAI,
+    X_HOMA_IR_0m = `HOMA-IR`,
+    X_BMI_0m = BMI,
+    X_WHR_0m = WHR,
+    X_Acne_0m = Acne,
+    X_Hirsutism_0m = Hirsutism,
+    X_FPG_0m = FPG,
+    X_FINS_0m = FINS,
+    X_GlucoseAUC_0m = `Glucose AUC`,
+    X_InsulinAUC_0m = `Insulin AUC`,
+    X_HOMA_beta_0m = `HOMA-β`,
+    X_Cpeptide_0m = `C-Peptide`,
+    X_HbA1c_0m = HbA1c,
+    X_LH_FSH_0m = `LH/FSH`,
+    X_TotalT_0m = `Total T`,
+    X_FAI_0m = FAI,
     # Other covariates
-    X_Age = Age,
-    X_Weight = Weight,
-    X_Waist = Waist,
-    X_TG = TG,
-    X_HDL = HDL,
-    X_LDL = LDL,
-    X_CHOL = CHOL,
-    X_ApoA1 = `ApoA-1`,
-    X_ApoB = ApoB
+    X_Age_0m        = Age,
+    X_Weight_0m     = Weight,
+    X_Waist_0m      = Waist,
+    X_TG_0m         = TG,
+    X_HDL_0m        = HDL,
+    X_LDL_0m        = LDL,
+    X_CHOL_0m       = CHOL,
+    X_ApoA1_0m      = `ApoA-1`,
+    X_ApoB_0m       = ApoB,
+    
+    X_Weight_7m     = `m7_Weight`,
+    X_Waist_7m      = `m7_Waist`,
   ) %>%
   select(
     Treatment,
     YP_delta_HOMA_IR_4m,
     post_YP_delta_HOMA_IR_7m,
     starts_with("YS_"),
+    starts_with("post_YS"),
     starts_with("X_")
   )
 ```
@@ -191,278 +208,93 @@ write.csv(df2_final, "cleaned_data/trial2.csv", row.names = FALSE)
 ## Load Data
 ```{r}
 # trial 3
-df3_sm = read_rtf("raw_data/3/sputum__microbiology.rtf")
-df3_sn = read_rtf("raw_data/3/sputum_IL-8_and_NE.rtf")
-df3_demo = read_rtf("raw_data/3/demographics.rtf")
+df3 = read_csv("raw_data/3/3.csv")
 ```
 
 
 
 ## Cleaning
-### df3_sm
 ```{r}
-lines = unlist(str_split(df3_sm, "[\r\n]+"))
-lines = lines[lines != ""]    # drop empty
-
-raw_table = lines[str_detect(lines, "^\\*\\|")]
-
-drop_pattern = paste0(
-  "NovaBiotics",         # header
-  "|NBTCS02",            # header
-  "|Sputum Microbiology",# title
-  "|Patient ID",         # column names
-  "|Abbreviations",      # abbrev block
-  "|\\[1\\]",            # footnote 1
-  "|\\[2\\]"             # footnote 2
-)
-table_clean = raw_table %>%
-  discard(~ str_detect(.x, drop_pattern)) %>%       # drop H/F
-  keep   (~ str_detect(.x, "[A-Za-z0-9]"))           # only keep lines with some data
-
-table_stripped = table_clean %>%
-  str_remove("^\\*\\|\\s*") %>%
-  str_remove("\\s*\\|\\s*$")
-
-cols = c(
-  "Patient_ID","Treatment_Group","Visit","Date_Collected",
-  "Volume_mL","Weight_g","Total_Colony_CFU_mL","Final_Colony_CFU_mL",
-  "Total_GNR_CFU_mL","Log10_Total_GNR","Isolate","Organism"
-)
-fields = str_split(table_stripped, "\\s*\\|\\s*")
-df3_sm_cleaned = as_tibble(do.call(rbind, fields), .name_repair = "minimal")
-names(df3_sm_cleaned) = cols
-
-num_cols = c(
-  "Volume_mL","Weight_g",
-  "Total_Colony_CFU_mL","Final_Colony_CFU_mL",
-  "Total_GNR_CFU_mL","Log10_Total_GNR"
-)
-
-df3_sm_final = df3_sm_cleaned %>%
-  mutate(across(everything(), ~ na_if(.x, ""))) %>%
-  fill(Patient_ID, Treatment_Group, Visit, .direction = "down") %>%
-  mutate(across(
-    all_of(num_cols),
-    ~ as.numeric(str_remove_all(.x, "[^0-9.-]"))
-  ))
-
-df3_sm_final = df3_sm_final %>%
-  rename(
-    ID = Patient_ID,
-    Treatment = Treatment_Group
-  ) %>%
+df3_final = df3 %>% 
+  # 2. Recode treatment
+  rename(Treatment = alert) %>%
   mutate(
-    Visit = str_replace_all(Visit, "\\s+", "_")  # "Day 14" → "Day_14"
-  )
-
-df_wide = df3_sm_final %>%
-  select(ID, Treatment, Visit, Total_GNR_CFU_mL) %>%
-  distinct() %>%
-  pivot_wider(
-    names_from = Visit,
-    values_from = Total_GNR_CFU_mL,
-    names_prefix = "Total_GNR_CFU_mL_"
-  )
-
-# Step 3: Compute deltas
-df3_sm_final_spread = df_wide %>%
-  mutate(
-    YP_delta_Total_GNR_14d = if_else(
-      !is.na(Total_GNR_CFU_mL_Baseline) & !is.na(Total_GNR_CFU_mL_Day_14),
-      Total_GNR_CFU_mL_Day_14 - Total_GNR_CFU_mL_Baseline,
-      NA_real_
+    Treatment = case_when(
+      Treatment == 1 ~ "Alert",
+      Treatment == 0 ~ "Usual Care",
+      TRUE           ~ NA_character_
     ),
-    pre_YP_delta_Total_GNR_7d = if_else(
-      !is.na(Total_GNR_CFU_mL_Baseline) & !is.na(Total_GNR_CFU_mL_Day_7),
-      Total_GNR_CFU_mL_Day_7 - Total_GNR_CFU_mL_Baseline,
-      NA_real_
-    ),
-    post_YP_delta_Total_GNR_21d = if_else(
-      !is.na(Total_GNR_CFU_mL_Baseline) & !is.na(Total_GNR_CFU_mL_Day_21),
-      Total_GNR_CFU_mL_Day_21 - Total_GNR_CFU_mL_Baseline,
-      NA_real_
+    # derive the “inpatient or hospice” complement
+    YS_discharge_inpatient_hospice = case_when(
+      discharge_to_home == 0 ~ 1L,
+      discharge_to_home == 1 ~ 0L,
+      TRUE                  ~ NA_integer_
     )
   ) %>%
+  
+  # 3. Primary & secondary outcomes per the paper’s Table
   rename(
-    X_Total_GNR_Baseline = Total_GNR_CFU_mL_Baseline
-  ) %>% 
+    YP_composite_event       = composite_outcome,
+    YP_composite_time        = time_to_composite_outcome,
+    
+    YS_aki_progression_event = aki_progression14,
+    YS_dialysis_event        = dialysis14,
+    YS_death_event           = death14,
+    YS_discharge_home        = discharge_to_home,
+    YS_los_since_alert       = los_since_alert
+  ) %>%
+  
+  # 4. Baseline covariates (as in Table 1) → prefix X_ and suffix _0m,
+  #    stripping any “_at_rand” from the original name
+  rename_with(
+    ~ paste0("X_", sub("_at_rand$", "", .), "_0m"),
+    .cols = any_of(c(
+      # demographics & flags
+      "hospital",
+      "age", "age_over_90",
+      "sex",
+      "race",
+      # admission service & location
+      "admit_medical",
+      "admit_surgical",
+      "location_icu",
+      "location_ed",
+      "location_ward",
+      # labs & vitals at randomization
+      "creat_at_rand",
+      "bun_at_rand",
+      "wbcc_at_rand",
+      "egfr_at_rand",
+      "sodium_at_rand",
+      "potassium_at_rand",
+      "pulse_at_rand",
+      "resp_at_rand",
+      "systolic_at_rand",
+      "diastolic_at_rand",
+      # comorbidities & scores
+      "chf",
+      "hypertension",
+      "diabetes",
+      "malignancy",
+      "ckd",
+      "copd",
+      "depression",
+      "liver_disease",
+      "icu",
+      "sofa",
+      "elx_score"
+    ))
+  ) %>%
+  
+  # 6. Final column order: Treatment, YP_, pre_YP_, post_YP_, YS_, X_
   select(
-    ID, Treatment,
-    YP_delta_Total_GNR_14d,
-    pre_YP_delta_Total_GNR_7d,
-    post_YP_delta_Total_GNR_21d,
-    X_Total_GNR_Baseline
-  )
-```
-
-### df3_sn
-```{r}
-lines = unlist(str_split(df3_sn, "[\r\n]+"))
-
-# 2) Drop any truly blank lines
-lines = lines[lines != ""]
-
-# 3) Pull out all the “table” lines (they all begin "*|")
-raw_table = lines[str_detect(lines, "^\\*\\|")]
-
-# 4) Remove headers, column-titles, footers and any blank "*|  |" rows
-drop_pattern = paste0(
-  "NovaBiotics"        , "|" ,
-  "NBTCS02"            , "|" ,
-  "Sputum IL-8 and Neutrophil Elastase Levels" , "|" ,
-  "Patient ID"         , "|" ,
-  "IL-8"               , "|" ,
-  "Neutrophil Elastase", "|" ,
-  "Abbreviations"      , "|" ,
-  "\\[1\\]"            , "|" ,
-  "\\[2\\]"
-)
-table_clean = raw_table %>%
-  discard(~ str_detect(.x, drop_pattern)) %>%  # drop the junk
-  keep   (~ str_detect(.x, "[A-Za-z0-9]"))      # drop any remaining all-blank rows
-
-# 5) Strip off the leading "*| " and the trailing " |"
-table_stripped = table_clean %>%
-  str_remove("^\\*\\|\\s*") %>%
-  str_remove("\\s*\\|\\s*$")
-
-# 6) Split each line on “|” → a character matrix
-fields_list = str_split(table_stripped, "\\s*\\|\\s*")
-mat         = do.call(rbind, fields_list)
-
-# 7) Turn into a tibble and name the columns
-#    We know each data row has 12 fields:
-#       1 ID, 2 Tx, 3 Visit, 4 Date, 
-#       5 IL8_Result, 6 IL8_SD, 7 (empty), 
-#       8 NE_Result, 9 NE_SD, 10 (empty), 
-#       11 Comment, 12 (empty)
-df3_sn_cleaned = as_tibble(mat, .name_repair = "minimal")
-colnames(df3_sn_cleaned) = c(
-  "Patient_ID","Treatment_Group","Visit","Assessment_Date",
-  "IL8_Result","IL8_SD","_drop1",
-  "NE_Result","NE_SD","_drop2",
-  "Comment","_drop3"
-)
-
-# 8) Drop the dummy columns and turn "" → NA
-df3_sn_final = df3_sn_cleaned %>%
-  select(-starts_with("_drop")) %>%
-  mutate(across(everything(), ~ na_if(.x, "")))
-
-# 9) Carry only ID, Treatment, and Visit forward
-df3_sn_final = df3_sn_final %>%
-  fill(Patient_ID, Treatment_Group, Visit, .direction="down")
-
-# 10) Parse your numeric assay columns
-df3_sn_final = df3_sn_final %>%
-  mutate(
-    IL8_Result = as.numeric(str_remove_all(IL8_Result, "[^0-9\\.-]")),
-    IL8_SD     = as.numeric(str_remove_all(IL8_SD,     "[^0-9\\.-]")),
-    NE_Result  = as.numeric(str_remove_all(NE_Result,  "[^0-9\\.-]")),
-    NE_SD      = as.numeric(str_remove_all(NE_SD,      "[^0-9\\.-]"))
-  )
-
-df3_sn_final = df3_sn_final %>%
-  rename(
-    ID = Patient_ID,
-    Treatment = Treatment_Group
-  ) %>%
-  mutate(
-    Visit = str_replace_all(Visit, "\\s+", "_")
-  )
-
-# Step 2: Pivot to wide format (IL8 and NE only)
-df_wide = df3_sn_final %>%
-  select(ID, Treatment, Visit, IL8_Result, NE_Result) %>%
-  distinct() %>%
-  pivot_wider(
-    names_from = Visit,
-    values_from = c(IL8_Result, NE_Result),
-    names_sep = "_"
-  )
-
-# Step 3: Compute deltas and rename covariates
-df3_sn_spread = df_wide %>%
-  mutate(
-    YS_delta_IL8_14d = IL8_Result_Day_14 - IL8_Result_Baseline,
-    YS_delta_NE_14d  = NE_Result_Day_14  - NE_Result_Baseline
-  ) %>%
-  rename(
-    X_IL8_Baseline = IL8_Result_Baseline,
-    X_IL8_Day_7    = IL8_Result_Day_7,
-    X_IL8_Day_14   = IL8_Result_Day_14,
-    X_NE_Baseline  = NE_Result_Baseline,
-    X_NE_Day_7     = NE_Result_Day_7,
-    X_NE_Day_14    = NE_Result_Day_14
-  ) %>%
-  select(
-    ID, Treatment,
-    YS_delta_IL8_14d, YS_delta_NE_14d,
-    X_IL8_Baseline,
-    X_NE_Baseline
-  )
-```
-
-
-### df3_demo
-```{r}
-lines = unlist(str_split(df3_demo, "[\r\n]+"))
-lines = lines[lines != ""]  
-
-# 2) Keep only the “*| … |” rows and drop any without a digit  
-raw_table   = lines[str_detect(lines, "^\\*\\|")]  
-table_clean = raw_table[str_detect(raw_table, "\\d")]  
-
-# — new step: drop everything after the 441005 row —  
-end_idx = which(str_detect(table_clean, "\\*\\|\\s*441005\\s*\\|"))[1]  
-if (!is.na(end_idx)) {  
-  table_clean = table_clean[1:end_idx]  
-}  
-
-# 3) Strip off the leading "*| " and trailing " |"  
-table_stripped = table_clean %>%  
-  str_remove("^\\*\\|\\s*") %>%  
-  str_remove("\\s*\\|\\s*$")  
-
-# 4) Split on "|" into a matrix of fields  
-fields_list = str_split(table_stripped, "\\s*\\|\\s*")  
-mat         = do.call(rbind, fields_list)  
-
-# 5) Turn into a tibble, name the columns, then keep only ID & Sex  
-df3_demo_final = as_tibble(mat, .name_repair = "minimal")  
-colnames(df3_demo_final) = c("ID","Treatment_Group","Sex")  
-
-df3_demo_final = df3_demo_final %>%  
-  select(ID, Sex) %>%  
-  mutate(Sex = na_if(Sex, "")) %>% 
-  rename(X_Sex = Sex)
-```
-
-### Join dfs
-```{r}
-df3_final = full_join(df3_demo_final, df3_sm_final_spread, by = "ID")
-
-# Step 2: Join in IL-8 / NE data
-df3_final = full_join(df3_final, df3_sn_spread, by = "ID")
-
-# Step 3: Remove duplicated Treatment columns if needed
-# Assume: keep the Treatment from the first frame that contains it
-df3_final = df3_final %>%
-  select(-Treatment.y) %>%
-  rename(Treatment = Treatment.x) %>% 
-  select(-ID) %>% 
-  relocate(
     Treatment,
     starts_with("YP_"),
     starts_with("pre_YP_"),
     starts_with("post_YP_"),
     starts_with("YS_"),
     starts_with("X_")
-  ) %>% 
-  mutate(across(
-    where(is.numeric),
-    ~ if_else(.x == 0, NA_real_, .x)
-  ))
+  )
 ```
 
 ## Output Data
@@ -488,21 +320,21 @@ df4_final = df4 %>%
     treatment = group,
     
     # Baseline covariates
-    X_FIB4    = fib4,
-    X_APRI    = apri,
-    X_VD      = vd0,
-    X_AST     = ast0,
-    X_ALT     = alt0,
-    X_Plt     = plt0,
-    X_Age     = age,
-    X_Sex     = sex,
-    X_BMI     = bmi,
+    X_FIB4_0w    = fib4,
+    X_APRI_0w    = apri,
+    X_VD_0w      = vd0,
+    X_AST_0w     = ast0,
+    X_ALT_0w     = alt0,
+    X_Plt_0w     = plt0,
+    X_Age_0w     = age,
+    X_Sex_0w     = sex,
+    X_BMI_0w     = bmi,
     
     # Primary outcome baselines
-    X_TGF_baseline  = tgf0,
-    X_TIMP_baseline = timp0,
-    X_MMP_baseline  = mmp0,
-    X_P3NP_baseline = p3np0
+    X_TGF_0w  = tgf0,
+    X_TIMP_0w = timp0,
+    X_MMP_0w  = mmp0,
+    X_P3NP_0w = p3np0
   ) %>%
   mutate(
     Treatment = recode(treatment,
@@ -510,10 +342,10 @@ df4_final = df4 %>%
                        "B" = "Placebo"),
     
     # Primary outcome deltas (6-week − baseline)
-    YP_delta_TGF_6w   = as.numeric(tgf6) - as.numeric(X_TGF_baseline),
-    YP_delta_TIMP_6w  = as.numeric(timp6) - as.numeric(X_TIMP_baseline),
-    YP_delta_MMP_6w   = as.numeric(mmp6) - as.numeric(X_MMP_baseline),
-    YP_delta_P3NP_6w  = as.numeric(p3np6) - as.numeric(X_P3NP_baseline)
+    YP_delta_TGF_6w   = as.numeric(tgf6) - as.numeric(X_TGF_0w),
+    YP_delta_TIMP_6w  = as.numeric(timp6) - as.numeric(X_TIMP_0w),
+    YP_delta_MMP_6w   = as.numeric(mmp6) - as.numeric(X_MMP_0w),
+    YP_delta_P3NP_6w  = as.numeric(p3np6) - as.numeric(X_P3NP_0w)
   ) %>%
   select(
     Treatment,
@@ -532,88 +364,81 @@ write.csv(df4_final, "cleaned_data/trial4.csv", row.names = FALSE)
 # Trial 5
 ## Load Data
 ```{r}
-df5 = read_xlsx("raw_data/5/5.xlsx")
+df5 = read_csv("raw_data/5/5.csv", na = c("", "NaN"))
 ```
 
 ## Cleaning
 
 ```{r}
-df5_clean = df5 %>%
-  # Identify treatment and index cases
-  rename(Treatment = arm) %>%
+df5_final = df5 %>%
+  rename(Treatment = alert) %>%
   mutate(
-    # Convert Treatment to factor with descriptive labels
-    Treatment = factor(Treatment, 
-                     levels = c(1, 2, 3),
-                     labels = c("Control", "Household Prophylaxis", "Village-wide Prophylaxis"))
-  ) %>%
-  group_by(villcode) %>%
-  mutate(is_index_case = row_number() == 1) %>%
-  ungroup() %>%
-  
-  # Convert dates and necessary variables
-  mutate(
-    rdate = as.Date(as.character(rdate), format = "%Y-%m-%d", na.rm = TRUE),
-    idate = as.Date(as.character(idate), format = "%Y-%m-%d", na.rm = TRUE),
-    Total_numeric = as.numeric(as.character(Total))
+    Treatment = case_when(
+      Treatment == 1 ~ "Alert",
+      Treatment == 0 ~ "Usual Care",
+      TRUE           ~ NA_character_
+    )
   ) %>%
   
-  # Create primary outcome variables (YP prefix)
-  # YP_meningitis is the individual-level primary outcome
-  mutate(
-    YP_meningitis = if_else(is_index_case, 0L, 1L)
-  ) %>%
-  
-  # Secondary outcome variables (YS prefix)
+  # 3. Primary & secondary outcomes (with day/hour suffixes)
   rename(
-    YS_cipro_protection = priscpro,
-    X_villcode = villcode) %>%
-  mutate(
-    YS_pcr_positive = case_when(
-      grepl("positive", labresults, ignore.case = TRUE) ~ 1L,
-      grepl("negative", labresults, ignore.case = TRUE) ~ 0L,
-      TRUE ~ NA_integer_
-    )
+    YP_composite_14d           = composite_outcome,
+    
+    YS_death_14d               = death14,
+    YS_dialysis_14d            = dialysis14,
+    YS_aki_progression_14d     = aki_progression14,
+    YS_inpatient_mortality     = inpatient_mortality,
+    YS_inpatient_dialysis      = inpatient_dialysis,
+    YS_progression_stage2_14d  = progression2,
+    YS_progression_stage3_14d  = progression3,
+    YS_acearb_stopped_24h      = acearb_stopped24,
+    YS_nsaid_stopped_24h       = nsaid_stopped24,
+    YS_ppi_stopped_24h         = ppi_stopped24,
+    YS_no_nsaid_during_aki     = no_nsaid_during_aki,
+    YS_no_ppi_during_aki       = no_ppi_during_aki,
+    YS_no_acearb_during_aki    = no_acearb_during_aki,
+    YS_opioid_14d              = opioid,
+    YS_ventorder_14d           = ventorder,
+    YS_transfuserbc_14d        = transfuserbc,
+    YS_los_since_alert         = los_since_alert,
+    YS_readmit_30d             = readmit30,
+    YS_max_pain_score_14d      = max_pain_score14,
+    YS_duration_of_alert       = duration_of_alert,
+    YS_duration_of_aki         = duration_of_aki,
+    YS_aki_stage_14d           = aki_stage14
   ) %>%
   
-  # Create covariates (X prefix) - based on paper's analysis
-  mutate(
-    X_age_years = suppressWarnings(as.numeric(as.character(agey))),
-    X_sex = as.integer(sex),
-    X_days_to_intervention = ifelse(!is.na(rdate) & !is.na(idate), 
-                                  as.numeric(difftime(idate, rdate, units = "days")), 
-                                  NA_real_),
-    X_village_population = Total_numeric,
-    numcipro_numeric = suppressWarnings(as.numeric(as.character(numcipro))),
-    X_cipro_coverage = ifelse(
-      !is.na(numcipro_numeric) & !is.na(X_village_population) & X_village_population > 0,
-      numcipro_numeric / X_village_population,
-      NA_real_
-    )
-  )
-
-# Using explicit namespace for select to avoid MASS package conflict
-df5_final = df5_clean %>%
+  # 4. Baseline covariates → prefix X_, strip "_at_rand", suffix "_0m"
+  rename_with(
+    ~ paste0("X_", sub("_at_rand$", "", .), "_0m"),
+    .cols = any_of(c(
+      "hospital",
+      "age", "age_over_90",
+      "sex",
+      "race",
+      "icu_at_rand", "ward_at_rand", "er_at_rand",
+      "num_med", "on_acearb", "on_nsaid", "on_ppi",
+      "admit_medical", "admit_surgical",
+      "ckd_pmhx", "chf_elx_pmhx", "pulm_disease_elx_pmhx",
+      "diabetes_elx_pmhx", "htn_elx_pmhx", "malignancy_elx_pmhx",
+      "liverdisease_elx_pmhx", "elx_score_pmhx",
+      "creat_at_rand", "mincreat48_prior", "mincreat7_prior",
+      "admit_creatinine", "baseline_creat",
+      "aniongap_at_rand", "bicarbonate_at_rand", "bun_at_rand",
+      "chloride_at_rand", "egfr_at_admit", "hemoglobin_at_rand",
+      "plateletcount_at_rand", "potassium_at_rand", "sodium_at_rand",
+      "wbcc_at_rand", "systolic_at_rand", "diastolic_at_rand",
+      "pulse_at_rand", "resp_at_rand", "spo2_at_rand",
+      "temp_at_rand", "sofa_at_rand"
+    ))
+  ) %>%
   select(
-    # Treatment variable first
     Treatment,
-    
-    # Primary outcome variables (YP prefix)
-    YP_meningitis,
-    
-    # Secondary outcome variables (YS prefix)
-    YS_cipro_protection,
-    YS_pcr_positive,
-    
-    # Covariates (X prefix) - only key ones from paper
-    X_age_years,
-    X_sex,
-    X_days_to_intervention,
-    X_village_population,
-    X_cipro_coverage,
-    
-    # Include villcode for identification
-    X_villcode
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
   )
 ```
 
@@ -741,6 +566,10 @@ write.csv(df6_final, "cleaned_data/trial6.csv", row.names = FALSE)
 df7 = read_dta("raw_data/7/7.dta")
 ```
 
+```{r}
+write_csv(df7, "raw_data/7/7.csv")
+```
+
 ## Cleaning
 ```{r}
 df7_final = df7 %>%
@@ -753,12 +582,14 @@ df7_final = df7 %>%
     ),
     
     # Primary outcome (composite event)
-    YP_progression_binary = outcome_global,
+    YP_Progression_binary = outcome_global,
 
     # Secondary outcomes
-    YS_symptom_duration   = TotalDsympt,
-    YS_death_28d          = outcome1,
-    YS_hospital_28d       = outcome2,
+    YS_Symptom_duration_30d   = TotalDsympt,
+    YS_SymptomResolutionObserved = resolution,
+    YS_Death_14d          = outcome1,
+    YS_Hospital_14d       = outcome2,
+    YS_Oxygen_14d = outcome3,
 
     # Covariates
     X_variant             = variant,
@@ -1882,107 +1713,771 @@ write.csv(df21_final, "cleaned_data/trial21.csv", row.names = FALSE)
 # Trial 22
 ## Load Data
 ```{r}
-df22 = read_sav("raw_data/22/22.sav")
+df22_sheets = import_list("raw_data/22/22.xlsx")
+
+df22_1 = df22_sheets[[1]]
+df22_2 = df22_sheets[[2]]
+df22_2 = df22_2 %>% 
+  rename(
+    Packyr = packyear
+  )
+df22 = bind_rows(df22_1, df22_2)
 ```
+
+
 
 ## Cleaning
 ```{r}
-df22_final = df22 %>% 
-  rename(
-    Treatment = 1,    # Arm: 1=control, 2=treatment
-    X_sex     = 2,    # Sex: 0=male, 1=female
-    X_age     = 3     # Age (years)
+df22_final = df22 %>%
+  mutate(
+    Treatment = case_when(
+      row_number() <= 15 ~ "Placebo",
+      TRUE ~ "mYJ"
+    )
   ) %>%
-  # 3. ACQ‐6 items (rows 4–9) at baseline → X_acq_q*_0w
-  rename_with(.cols = 4:9,
-              .fn = ~ paste0("X_acq_q", seq_along(.), "_0w")) %>%
-  # 4. ACQ sum scores: pre (row 10), post (row 11)
-  rename_with(.cols = 10, .fn = ~ "X_acq_sum_0w") %>%
-  rename_with(.cols = 11, .fn = ~ "YS_acq_sum_32w") %>%
-  # 5. QoL items (rows 12–43) at baseline → X_qol_q*_0w
-  rename_with(.cols = 12:43,
-              .fn = ~ paste0("X_qol_q", seq_along(.), "_0w")) %>%
-  # 6. QoL total and mean scores (rows 44–46)
-  rename_with(.cols = 44, .fn = ~ "X_qol_total_0w") %>%
-  rename_with(.cols = 45, .fn = ~ "YS_qol_mean_32w") %>%
-  rename_with(.cols = 46, .fn = ~ "X_qol_mean_0w") %>%
-  # 7. Domain sums (rows 47–54): pre (_0w) vs post (_32w)
-  rename_with(.cols = 47:54, .fn = function(x) {
-    domains = rep(c("activity", "symptoms", "emotional", "environment"), each = 2)
-    times   = rep(c("0w", "32w"), times = 4)
-    paste0(ifelse(times=="0w", "X_", "YS_"),
-           "domain_", domains, "_", times)
-  }) %>%
-  # 8. Exacerbation questions (rows 55–59) at 32 weeks → YS_exacerbation_q*_32w
-  rename_with(.cols = 55:59,
-              .fn = ~ paste0("YS_exacerbation_q", seq_along(.), "_32w")) %>%
-  # 9. Select only the cleaned columns (wide format)
-  select(Treatment, starts_with("YP_"), starts_with("YS_"), starts_with("X_"))
+  rename(
+    ID = Subject,
+    X_age = Age,
+    X_sex = Gender,
+    X_smoke_year = `Smoke year`,
+    X_cigarette_per_day = `Cigarette/day`,
+    X_pack_year = Packyr,
+
+    # Baseline secondary outcomes
+    X_BOP_0m = `%BOP B`,
+    X_PI_0m = `%PI B`,
+    X_PPD_0m = `Mean PPD B`,
+    X_PAL_0m = `Mean PAL B`,
+
+    # Primary outcome: CADIA change at 12 months
+    YP_delta_CADIA_P1_12m = `P1 B/12M`,
+    YP_delta_CADIA_P2_12m = `P2 B/12M`,
+    YP_delta_CADIA_P3_12m = `P3 B/12M`,
+    YP_delta_CADIA_P4_12m = `P4 B/12M`,
+    YP_delta_CADIA_P5_12m = `P5 B/12M`,
+    YP_delta_CADIA_P6_12m = `P6 B/12M`,
+    YP_delta_CADIA_P7_12m = `P7 B/12M`,
+    YP_delta_CADIA_P8_12m = `P8 B/12M`,
+
+    # Pre-primary CADIA deltas
+    pre_YP_delta_CADIA_P1_3m = `P1 B/3M`,
+    pre_YP_delta_CADIA_P1_6m = `P1 B/6M`,
+    pre_YP_delta_CADIA_P1_9m = `P1 B/9M`,
+    pre_YP_delta_CADIA_P2_3m = `P2 B/3M`,
+    pre_YP_delta_CADIA_P2_6m = `P2 B/6M`,
+    pre_YP_delta_CADIA_P2_9m = `P2 B/9M`,
+    pre_YP_delta_CADIA_P3_3m = `P3 B/3M`,
+    pre_YP_delta_CADIA_P3_6m = `P3 B/6M`,
+    pre_YP_delta_CADIA_P3_9m = `P3 B/9M`,
+    pre_YP_delta_CADIA_P4_3m = `P4 B/3M`,
+    pre_YP_delta_CADIA_P4_6m = `P4 B/6M`,
+    pre_YP_delta_CADIA_P4_9m = `P4 B/9M`,
+    pre_YP_delta_CADIA_P5_3m = `P5 B/3M`,
+    pre_YP_delta_CADIA_P5_6m = `P5 B/6M`,
+    pre_YP_delta_CADIA_P5_9m = `P5 B/9M`,
+    pre_YP_delta_CADIA_P6_3m = `P6 B/3M`,
+    pre_YP_delta_CADIA_P6_6m = `P6 B/6M`,
+    pre_YP_delta_CADIA_P6_9m = `P6 B/9M`,
+    pre_YP_delta_CADIA_P7_3m = `P7 B/3M`,
+    pre_YP_delta_CADIA_P7_6m = `P7 B/6M`,
+    pre_YP_delta_CADIA_P7_9m = `P7 B/9M`,
+    pre_YP_delta_CADIA_P8_3m = `P8 B/3M`,
+    pre_YP_delta_CADIA_P8_6m = `P8 B/6M`,
+    pre_YP_delta_CADIA_P8_9m = `P8 B/9M`,
+
+    # Secondary outcome deltas
+    YS_delta_BOP_12m = `%BOP B/12M`,
+    YS_delta_PI_12m = `%PI B/12M`,
+    YS_delta_PPD_12m = `Mean PPD B/12M`,
+    YS_delta_PAL_12m = `Mean PAL B/12M`,
+
+    pre_YS_delta_BOP_3m = `%BOP B/3M`,
+    pre_YS_delta_BOP_6m = `%BOP B/6M`,
+    pre_YS_delta_BOP_9m = `%BOP B/9M`,
+    pre_YS_delta_PI_3m = `%PI B/3M`,
+    pre_YS_delta_PI_6m = `%PI B/6M`,
+    pre_YS_delta_PI_9m = `%PI B/9M`,
+    pre_YS_delta_PPD_3m = `Mean PPD B/3M`,
+    pre_YS_delta_PPD_6m = `Mean PPD B/6M`,
+    pre_YS_delta_PPD_9m = `Mean PPD B/9M`,
+    pre_YS_delta_PAL_3m = `Mean PAL B/3M`,
+    pre_YS_delta_PAL_6m = `Mean PAL B/6M`,
+    pre_YS_delta_PAL_9m = `Mean PAL B/9M`,
+
+  ) %>%
+  # Select and order columns
+  select(
+    Treatment,
+    starts_with("YP_delta_"),
+    starts_with("pre_YP_delta_"),
+    starts_with("YS_delta_"),
+    starts_with("pre_YS_delta_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
 ```
 
 ## Output Data
+```{r}
+# trial 22
+write.csv(df22_final, "cleaned_data/trial22.csv", row.names = FALSE)
+```
 
 
 # Trial 23
 ## Load Data
+```{r}
+df23 = read_xlsx("raw_data/23/23.xlsx")
+```
 
 ## Cleaning
+```{r}
+df23_final = df23 %>% 
+  mutate(
+    Treatment = case_when(
+       `Treatment rhTM (T) Control ?` == "T"~ "rhTM",
+       `Treatment rhTM (T) Control ?` == "C" ~ "No rhTM",
+       T ~ NA_character_
+    )
+  ) %>% 
+  rename(
+    # Primary outcomes (time-to-event)
+    YP_event_28d            = `Death =1 Alive = 0 28 day`,
+    YP_time_28d              = `Nonsurvive within 28 day Time`,
+    YP_event_90d            = `Death = 1   Alive = 0   90 day Cencer`,
+    YP_time_90d              = `Nonsurvive within 90 day Time`,
+
+    # D-dimer baseline and deltas
+    X_Ddimer_0d             = Ddimer0,
+    X_Ddimer_3d             = Ddimer3,
+    X_Ddimer_5d             = Ddimer5,
+    X_Ddimer_7d             = Ddimer7,
+    X_Ddimer_10d            = Ddimer10,
+    YS_delta_Ddimer_3d      = deltaD03,
+    YS_delta_Ddimer_5d      = deltaD05,
+    YS_delta_Ddimer_7d      = deltaD07,
+    YS_delta_Ddimer_10d     = deltaD10,
+
+    # Platelets
+    X_platelet_0d           = PLT0,
+    X_platelet_3d           = PLT3,
+    X_platelet_5d           = PLT5,
+    X_platelet_7d           = PLT7,
+    X_platelet_10d          = PLT10,
+    YS_delta_platelet_3d    = deltaPLT3,
+    YS_delta_platelet_5d    = deltaPLT5,
+    YS_delta_platelet_7d    = deltaPLT7,
+    YS_delta_platelet_10d   = deltaPLT10,
+
+    # SOFA total
+    X_SOFA_0d               = SOFAtotal0,
+    X_SOFA_3d               = SOFAtotal3,
+    X_SOFA_5d               = SOFAtotal5,
+    X_SOFA_7d               = SOFAtotal7,
+    X_SOFA_10d              = SOFAtotal10,
+    YS_delta_SOFA_3d        = deltaSOFAtotal_GCS03,
+    YS_delta_SOFA_5d        = deltaSOFAtotal_GCS05,
+    YS_delta_SOFA_7d        = deltaSOFAtotal_GCS07,
+    YS_delta_SOFA_10d       = deltaSOFAtotal_GCS10,
+
+    # Covariates
+    X_TM                    = TM,
+    X_SIRS_0d               = SIRS0
+  ) %>% 
+    select(
+    Treatment,
+    starts_with("YP"),    #
+    starts_with("YS"),
+    starts_with("X_")            # covariates and baseline values
+  )
+```
 
 ## Output Data
+```{r}
+# trial 23
+write.csv(df23_final, "cleaned_data/trial23.csv", row.names = FALSE)
+```
 
 
 # Trial 24
 ## Load Data
+```{r}
+df24 = read_xlsx("raw_data/24/24.xlsx")
+```
 
 ## Cleaning
+```{r}
+df24_final = df24 %>% 
+  mutate(
+    Treatment = case_when(
+      GR == 1 ~ "Auriculotherapy",
+      GR == 0 ~ "Sham Comparator",
+      TRUE ~ NA_character_
+    )
+  ) %>% 
+  rename(
+    YP_catheterized     = SONDES,
+    YS_anxiety_6h       = anxiete.6h,
+    YS_anxiety_1d       = anxiete.s,
+    YS_comfort_6h       = confort.6h,
+    YS_comfort_1d       = confort.s,
+    X_Age                 = Age,
+    X_Height              = Taille,
+    X_Weight              = Poids,
+    X_BMI                 = BMI,
+    X_Diabetes            = DIAB,
+    X_Sequelae_Stroke     = NEURO,
+    X_Alcoholism          = ALCOOL,
+    X_BetaBlocker         = BETAB,
+    X_Anesthesia_Duration  = DURANES,
+    X_CrystalloidVolume   = CRISTALOP,
+    X_NorepinephrineDose  = NORADOP,
+    X_PACU_duration       = DURPACU
+  ) %>%
+  select(
+    Treatment,
+    YP_catheterized,
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
+```{r}
+# trial 24
+write.csv(df24_final, "cleaned_data/trial24.csv", row.names = FALSE)
+```
 
 
 # Trial 25
 ## Load Data
+```{r}
+df25 = read_sav("raw_data/25/25.sav")
+```
 
 ## Cleaning
+```{r}
+df25_final = df25 %>% 
+  rename(Treatment = Group) %>%
+  mutate(
+    YP_delta_GQ1_8w   = GQ1_POST   - GQ1_PRE,
+    YP_delta_GQ2_8w   = GQ2_POS    - GQ2_PRE,
+    YP_delta_GQ3_8w   = GQ3_POST   - GQ3_PRE,
+    YP_delta_GQ4_8w   = Q4_POST    - GQ4_PRE,
+    YP_delta_GQ5_8w   = GQ5_POST   - GQ5_PRE,
+    YP_delta_GQ6_8w   = GQ6_POST   - GQ6_PRE,
+    YP_delta_GQ7_8w   = GQ7_POST   - GQ7_PRE,
+    YP_delta_GQ8_8w   = GQ8_POST   - GQ8_PRE,
+    YP_delta_GQ9_8w   = GQ9_POST   - GQ9_PRE,
+    YP_delta_BOF_8w   = BOF_POST   - BOF_PRE,
+    YP_delta_WGTT_8w  = WGTT_DIFF,
+    YS_DelayedGTT_8w  = ifelse(WGTT_POST >= 72, 1, 0),
+    YS_BM_less3_8w    = ifelse(BOF_POST   <  3, 1, 0)
+  ) %>%
+  rename(
+    X_Sex            = Sex,
+    X_Race           = Race,
+    X_Duration       = Duration,
+    X_Sedentary      = Sedentary,
+    X_Levodopa       = Levodopa,
+    X_Dopamine       = Dopamine,
+    X_Fibre          = Fibre,
+    X_PD_stage_HY    = PD_stage_HY,
+    X_GQ1_0w         = GQ1_PRE,
+    X_GQ2_0w         = GQ2_PRE,
+    X_GQ3_0w         = GQ3_PRE,
+    X_GQ4_0w         = GQ4_PRE,
+    X_GQ5_0w         = GQ5_PRE,
+    X_GQ6_0w         = GQ6_PRE,
+    X_GQ7_0w         = GQ7_PRE,
+    X_GQ8_0w         = GQ8_PRE,
+    X_GQ9_0w         = GQ9_PRE,
+    X_BOF_0w         = BOF_PRE,
+    X_WGTT_0w        = WGTT_PRE,
+    X_NMSS_0w        = NMSS_PRE,
+    X_PDQ39SI_0w     = PDQ39SI_PRE,
+    X_UPDRS11_0w     = UPDRS11_PRE,
+    X_UPDRS111_0w    = UPDRS111_PRE,
+    X_BMI_0w         = BMI_PRE
+  ) %>%
+  rename(
+    YS_NMSS_8w     = NMSS_POST,
+    YS_PDQ39SI_8w  = PDQ39SI_POST,
+    YS_UPDRS11_8w  = UPDRS11_POST,
+    YS_UPDRS111_8w = UPDRS111_POST,
+    YS_BMI_8w      = BMI_POST,
+    YS_DelayedGTT_0w  = Delayed_WGTT_PRE,
+    YS_BM_less3_0w    = BM_less3perweek_PRE
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  ) %>% 
+  mutate(
+    Treatment = case_when(
+      Treatment == 2 ~ "Probiotic with prebiotic",
+      Treatment == 1 ~ "Placebo",
+      T ~ NA_character_
+    )
+  )
+
+```
 
 ## Output Data
+```{r}
+# trial 25
+write.csv(df25_final, "cleaned_data/trial25.csv", row.names = FALSE)
+```
 
 
 # Trial 26
 ## Load Data
+```{r}
+df26 = read_sav("raw_data/26/26.sav")
+```
 
 ## Cleaning
+```{r}
+df26_final = df26 %>% 
+  rename(Treatment = Treatmentgroup) %>%
+  # 2. Baseline covariates and baseline primary outcome
+  rename(
+    X_Agecat         = Agecat,
+    X_Education      = Educationlevel2,
+    X_Ethnicity      = Ethnicity,
+    X_Socialsupport  = Socialsupport,
+    X_Adherence_0m   = Baselineadherencepercent,
+    X_CD4_0m         = BaselineCD4count,
+    X_viral_load_0m  = Baselineviralload,
+    X_weight_0m      = Baselineweight,
+    X_TB_status_0m   = BaselineTBStatus,
+    X_OI_index_0m    = BaselineOIindex
+  ) %>%
+
+  # 3. Follow-up primary outcomes and change scores
+  mutate(
+    YP_delta_Adherence_6m    = Adherenceindex6mthsstd - X_Adherence_0m,
+    pre_YP_delta_Adherence_3m = Adherenceindex3mthsstd - X_Adherence_0m,
+    YP_optimal_adherence_6m  = `Adherence@6mths_binary`,
+    YP_attendance_6m         = Hospatendancecat
+  ) %>%
+
+  # 4. Secondary outcomes at 6 months
+  mutate(
+    YS_delta_CD4_6m         = `CD4count@6months` - X_CD4_0m,
+    YS_delta_viral_load_6m  = `Viralload@6months` - X_viral_load_0m,
+    YS_delta_weight_6m      = `Weight@6months` - X_weight_0m,
+    YS_delta_TB_status_6m   = `TBStatus@6months` - X_TB_status_0m,
+    YS_delta_OI_index_6m    = `OIindex@6months` - X_OI_index_0m,
+    Treatment = case_when(
+      Treatment == 1 ~ "Standard Care",
+      Treatment == 2 ~ "Reminder module",
+      T ~ NA_character_
+    )
+  ) %>%
+
+  # 5. Select in the required order
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
-
+```{r}
+# trial 26
+write.csv(df26_final, "cleaned_data/trial26.csv", row.names = FALSE)
+```
 
 # Trial 27
 ## Load Data
+```{r}
+df27 = read_xls("raw_data/27/27.xls", skip = 1)
+```
+```{r}
+colnames(df27)
+```
 
 ## Cleaning
+```{r}
+df27 = df27 %>%
+  mutate(across(where(~ is.character(.) | is.factor(.)), 
+                ~ na_if(., "missing data")))
+df27_final = df27 %>%
+  rename(
+    Treatment                    = Randomisation,
+    YP_bleeding_text             = `Main Criterion  (GAILLARD, MD)`,
+    YP_surgical_problem_bleeding = `Surgical problem due to bleading`,
+    YS_surgery_duration_min      = `Surgery duration (min)`,
+    YS_vent_settings_changes     = `Nb of modificaton of ventilatory setting`,
+    YS_vent_mode_modification    = `Modification of ventilatory mode`,
+    YS_hypoxemia_episodes        = `Nb of episodes with SpO2<92%`,
+    YS_recruitment_maneuvers     = `Nb of recrutement maneuvers`,
+    YS_min_SpO2                  = `Minimal SpO2`,
+    YS_pain_PACU                 = `Tolerance PACU`,
+    YS_endocrine_status_3m       = `Endocrine healing`,
+    ## Guessed baseline covariates
+    `X_BMI>35`                        = `BMI>35`,
+    X_pregnancy                  = Pregnancy,
+    X_lung_disease               = `Lung disease`,
+    X_redo_surgery               = Redo,
+    X_Tv                         = Tv,
+    X_FiO2                       = Fio2,
+    X_AI                         = AI,
+    X_Rate                       = Rate
+  ) %>%
+  # 2. Recode treatment and bleeding scale
+  mutate(
+    Treatment = recode(Treatment, VVC = "VCV", VPC = "PCV"),
+
+    # 7-level score: 1=minimal, 3=low, 5=no change, 7=change; intermediates 2,4,6 for “very weak”, “medium”, etc. 
+    YP_bleeding_score = case_when(
+      YP_bleeding_text == "minimal (almost nil)"                                             ~ 2L,
+      YP_bleeding_text == "very weak"                                                        ~ 3L,
+      YP_bleeding_text == "weak"                                                             ~ 4L,
+      YP_bleeding_text == "medium"                                                           ~ 5L,
+      YP_bleeding_text == "important without modifying the conduct of the surgical procedure" ~ 6L,
+      YP_bleeding_text == "important and modifying the conduct of the surgical procedure"     ~ 7L,
+      TRUE                                                                                   ~ NA_integer_
+    ),
+
+    # 3-category grouping: 1–3=mild, 4–5=moderate, 6–7=major :contentReference[oaicite:2]{index=2}
+    YP_bleeding_category3 = case_when(
+      YP_bleeding_score %in% 1:3 ~ "mild",
+      YP_bleeding_score %in% 4:5 ~ "moderate",
+      YP_bleeding_score %in% 6:7 ~ "major",
+      TRUE                       ~ NA_character_
+    )
+  ) %>%
+  # 3. Keep only randomized patients
+  filter(!is.na(Treatment)) %>%
+  # 4. Select and order final columns
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
-
+```{r}
+# trial 27
+write.csv(df27_final, "cleaned_data/trial27.csv", row.names = FALSE)
+```
 
 # Trial 28
 ## Load Data
+```{r}
+df28 = read_sav("raw_data/28/28.sav")
+```
 
 ## Cleaning
+```{r}
+df28_final = df28 %>%
+  rename(
+    Treatment               = TrtContr,
+    
+    # Baseline covariates (X_)
+    X_SEX                   = SEX,
+    X_Age                   = Age,
+    X_RxHTN                 = RxHTN,
+    
+    # Secondary outcomes (YS_)
+    X_BMI_0d                = BMI,        
+    YS_BMI_6m               = FUBMI,      
+    YS_delta_BMI_6m         = DIfBMI,     
+    
+    X_WC_0d                 = WC,         
+    YS_WC_6m                = FUWC,       
+    YS_delta_WC_6m          = DIfWC,      
+    
+    X_MeanSBP_0d            = MeanSBP,    
+    YS_MeanSBP_6m           = FUMeanSBP,  
+    YS_delta_MeanSBP_6m     = DIfSBP,     
+    
+    X_MeanDBP_0d            = MeanDBP,    
+    YS_MeanDBP_6m           = FUMeanDBP,  
+    YS_delta_MeanDBP_6m     = DIfDBP,     
+    
+    # Primary outcome (YP_)
+    X_ContrSBP_0d           = ContrSBP,   
+    YP_ContrSBP_6m          = FUContrSBP, 
+    
+    # Other secondary binary outcomes
+    X_ContrDBP_0d           = ContrDBP,   
+    YS_ContrDBP_6m          = FUContrDBP,
+    
+    X_ControlledBP_0d       = ControlledBP,
+    YS_ControlledBP_6m      = FUControlledBP,
+    
+    X_TotalScoreA_0d        = TotalScoreA,
+    YS_TotalScoreA_6m       = FUTotalScoreA,
+    YS_delta_TotalScoreA_6m = Diftotalscore
+  ) %>%
+  mutate(
+    Treatment = case_when(
+      Treatment == 0 ~ "Usual Care",
+      Treatment == 1 ~ "Edu+Visit",
+      TRUE          ~ NA_character_
+    )
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("YS"),
+    starts_with("X")
+  )
+```
 
 ## Output Data
+```{r}
+# trial 28
+write.csv(df28_final, "cleaned_data/trial28.csv", row.names = FALSE)
+```
 
 
 # Trial 29
 ## Load Data
+```{r}
+df29 = read_csv(
+  "raw_data/29/29.csv",
+  na = c("", "NULL", "null", "-99")
+)
+```
+```{r}
+colnames(df29)
+```
 
 ## Cleaning
+```{r}
+df29_final = df29 %>%
+  rename(
+    Treatment             = treatment,
+    ClusterID             = clusterid,
+    X_Caregiver_Age       = bl_caregiver_age,
+    X_Caregiver_Matric    = bl_caregiver_matric,
+    X_Wealth_Z            = bl_wealth_z,
+    X_Wealth_Q            = bl_wealth_q,
+    X_ChildGrant          = bl_childgrant,
+    X_Siblings            = siblings,
+    pre_YP_SRT_9m         = lab1_srt,
+    pre_YP_AbsGamma_9m    = lab1_gamma,
+    pre_YP_TotalPower_9m  = lab1_total,
+    pre_YP_RelGamma_9m    = lab1_relgamma,
+    pre_YP_SRT_17m        = lab2_srt,
+    pre_YP_AbsGamma_17m   = lab2_gamma,
+    pre_YP_TotalPower_17m = lab2_total,
+    pre_YP_RelGamma_17m   = lab2_relgamma,
+    YP_HAZ_36m            = el_haz,
+    YP_Stunted_36m        = el_stunted,
+    YP_MDAT_GM_Z_36m      = el_mdat_gm_daz,
+    YP_MDAT_FM_Z_36m      = el_mdat_fm_daz,
+    YP_MDAT_LANG_Z_36m    = el_mdat_lang_daz,
+    YP_MDAT_SOC_Z_36m     = el_mdat_soc_daz,
+    YP_AbsGamma_36m       = lab3_gamma,
+    YP_TotalPower_36m     = lab3_total,
+    YP_RelGamma_36m       = lab3_relgamma,
+    YP_SRT_36m            = lab3_srt,
+    YS_DD_36m             = el_dd,
+    YS_MICS_36m           = el_mics,
+    X_Facilities          = cluster_facilities,
+    X_WBOTs               = cluster_wbots,
+    X_CHWs                = cluster_chws,
+    X_PHCU5               = cluster_phcu5,
+    X_CHW_Age             = cluster_chwage,
+    X_CHW_Educ            = cluster_chweduc,
+    X_CHW_Tenure          = cluster_chwworkyr
+  ) %>%
+  mutate(
+    Treatment = recode(
+      Treatment,
+      `0` = "Usual care",
+      `1` = "JobAid visit"
+    )
+  ) %>%
+  select(
+    Treatment,
+    ClusterID,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+# 3. Build cluster-level summary
+df29_cluster = df29_final %>%
+  group_by(ClusterID) %>%
+  summarise(
+    Treatment = first(Treatment),
+    n_participants = n(),
+    X_Facilities   = first(X_Facilities),
+    X_WBOTs        = first(X_WBOTs),
+    X_CHWs         = first(X_CHWs),
+    X_PHCU5        = first(X_PHCU5),
+    X_CHW_Age      = first(X_CHW_Age),
+    X_CHW_Educ     = first(X_CHW_Educ),
+    X_CHW_Tenure   = first(X_CHW_Tenure),
+    across(starts_with("pre_YP_"), ~ mean(.x, na.rm = TRUE)),
+    across(starts_with("YP_"),     ~ mean(.x, na.rm = TRUE)),
+    across(starts_with("YS_"),     ~ mean(.x, na.rm = TRUE)),
+    .groups = "drop"
+  ) %>%
+  select(
+    ClusterID,
+    Treatment,
+    n_participants,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
+```{r}
+# trial 29
+write.csv(df29_cluster, "cleaned_data/trial29.csv", row.names = FALSE)
 
+write.csv(df29_final, "cleaned_data/Clustered_RCT/cluster29.csv", row.names = FALSE)
+```
 
 
 # Trial 30
 ## Load Data
+```{r}
+df30_sheets = import_list("raw_data/30/30.xlsx")
+df30_sheets = lapply(df30_sheets, function(df) {
+  df %>%
+    # 1) only replace the literal string "NA" in character columns
+    mutate(across(where(is.character), ~ na_if(.,"NA"))) %>%
+    # 2) re-guess every column’s type, turning numeric-looking ones back to numeric
+    type_convert(na = "NA")
+})
+
+# then pull them back out as before
+df30_demo      = df30_sheets[[1]]
+df30_ceq       = df30_sheets[[2]]
+df30_ec        = df30_sheets[[3]]
+df30_sd        = df30_sheets[[4]]
+df30_adherence = df30_sheets[[5]]
+df30_dbs       = df30_sheets[[6]]
+```
 
 ## Cleaning
+```{r}
+df30_final = df30_demo %>%
+  # 1) recode Treatment and pick baseline covariates
+  mutate(Treatment = case_when(
+    Condition == "Pool"           ~ "Pool-REST",
+    Condition == "Pool Preferred" ~ "Pool-REST preferred",
+    Condition == "Control"        ~ "Chair-REST",
+    TRUE                          ~ NA_character_
+  )) %>%
+  select(ID, Treatment,
+         X_Sex            = Sex,
+         X_Psychotropics  = Psychotropics,
+         X_Education      = Education,
+         X_Age            = Age,
+         X_OASIS          = OASIS.Baseline,
+         X_PHQ9           = PHQ9.Baseline,
+         X_ASI            = ASI.Baseline) %>%
+  
+  # 2) primary YP_Adherence (with NA if any missing)
+  left_join(
+    df30_adherence %>%
+      mutate(Completed = case_when(
+        Completed_Visit == "Yes" ~ 1,
+        Completed_Visit == "No"  ~ 0,
+        TRUE                     ~ NA_real_
+      )) %>%
+      group_by(ID) %>%
+      summarise(
+        YP_Adherence = if (any(is.na(Completed))) NA_real_ else mean(Completed)
+      ) %>%
+      ungroup(),
+    by = "ID"
+  ) %>%
+  
+  # 3) CEQ secondary outcomes
+  left_join(
+    df30_ceq %>%
+      rename(
+        YS_Credibility1 = Credibility_1,
+        YS_Credibility2 = Credibility_2,
+        YS_Credibility3 = Credibility_3,
+        YS_Expectancy   = Expectancy
+      ),
+    by = "ID"
+  ) %>%
+  
+  # 4) Session‐duration secondary outcome
+  left_join(
+    df30_sd %>%
+      group_by(ID) %>%
+      summarise(YS_MeanDuration = mean(Duration)) %>%
+      ungroup(),
+    by = "ID"
+  ) %>%
+  
+  # 5) bring in raw days‐between data
+  left_join(
+    df30_dbs %>%
+      rename(
+        X_DaysSinceBaseline = DaysSinceBaselineFloat,
+        X_DaysSince1        = DaysSinceFloat1,
+        X_DaysSince2        = DaysSinceFloat2,
+        X_DaysSince3        = DaysSinceFloat3,
+        X_DaysSince4        = DaysSinceFloat4,
+        X_DaysSince5        = DaysSinceFloat5
+      ),
+    by = "ID"
+  ) %>%
+  
+  # 6) dropout & mean frequency from dbs
+  mutate(
+    # dropout if any NA in the 5 session‐intervals
+    YS_Dropout = if_else(
+      rowSums(is.na(select(., X_DaysSince1:X_DaysSince5))) > 0, 
+      1L, 
+      0L
+    ),
+    # mean days between sessions
+    YS_MeanDaysBetween = rowMeans(
+      select(., X_DaysSince1:X_DaysSince5)
+    )
+  ) %>%
+  
+  # 7) adverse‐event counts & overall event rating
+  left_join(
+    df30_ec %>%
+      group_by(ID) %>%
+      summarise(
+        YS_AdverseCount = sum(Response < 0),
+        YS_EventMean    = mean(Response)
+      ) %>%
+      ungroup(),
+    by = "ID"
+  ) %>%
+  
+  # 8) drop ID and order columns: Treatment → YP_ → YS_ → X_
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+```
 
 ## Output Data
+```{r}
+# trial 30
+write.csv(df30_final, "cleaned_data/trial30.csv", row.names = FALSE)
+```
+

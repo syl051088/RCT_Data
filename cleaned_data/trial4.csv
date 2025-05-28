@@ -1,4 +1,4 @@
-"Treatment","YP_delta_TGF_6w","YP_delta_TIMP_6w","YP_delta_MMP_6w","YP_delta_P3NP_6w","X_Sex","X_Age","X_BMI","X_FIB4","X_APRI","X_VD","X_AST","X_ALT","X_Plt","X_TGF_baseline","X_TIMP_baseline","X_MMP_baseline","X_P3NP_baseline"
+"Treatment","YP_delta_TGF_6w","YP_delta_TIMP_6w","YP_delta_MMP_6w","YP_delta_P3NP_6w","X_Sex_0w","X_Age_0w","X_BMI_0w","X_FIB4_0w","X_APRI_0w","X_VD_0w","X_AST_0w","X_ALT_0w","X_Plt_0w","X_TGF_0w","X_TIMP_0w","X_MMP_0w","X_P3NP_0w"
 "VD",3.54,14.6,-25.07,-4.78,2,"61-70",20.9,2.96,0.45,21.7,26,18,143,12.62,232.03,223.86,37.75
 "VD",2.01,43.18,75.0200000000001,-4.34,2,"51-60",28.16,0.98,0.24,11.3,24,26,250,23.12,212.85,802.05,29.83
 "Placebo",0.609999999999999,-24.4,-28.51,1.56,2,"61-70",26.61,7.29,1.35,13.8,42,26,78,7.16,234.67,111.7,27.78
