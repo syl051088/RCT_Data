@@ -17,6 +17,7 @@ library(tibble)
 library(tidyr)
 library(stringi)
 library(haven)
+library(purrr)
 ```
 
 
@@ -622,58 +623,78 @@ write.csv(df7_final, "cleaned_data/trial7.csv", row.names = FALSE)
 ## Load Data
 ```{r}
 # trial 8
-df8 = read_csv("raw_data/8/8.csv", locale = locale(encoding = "ISO-8859-1"))
+df8 = read_xlsx("raw_data/8/8.xlsx", na = c("Result N/A", "N/A", "EXCLUDED"))
 ```
 
 
 ## Cleaning
 ```{r}
+convert_to_days = function(x) {
+  if (is.na(x)) {
+    return(NA_real_)
+  }
+  x_lower = tolower(as.character(x))
+  # asymptomatic → 0 days
+  if (str_detect(x_lower, "asymptom")) {
+    return(0)
+  }
+  # pull out any numbers (handles “6-7”) 
+  nums = as.numeric(unlist(str_extract_all(x_lower, "\\d+\\.?\\d*")))
+  if (length(nums) == 0) {
+    return(NA_real_)
+  }
+  # months → average * 30
+  if (str_detect(x_lower, "month")) {
+    return(mean(nums) * 30)
+  }
+  # otherwise treat as days
+  return(nums[1])
+}
+```
+
+```{r}
 df8_final = df8 %>% 
-  clean_names()%>%
-  mutate(
-    # Treatment: which pacing condition came first
-    Treatment = case_when(
-      pacemaker_randomisering1_6080 == 60 ~ "DDD_60_first",
-      pacemaker_randomisering1_6080 == 80 ~ "DDD_80_first",
-      TRUE ~ NA_character_
-    ),
-
-    # Primary outcomes
-    X_msna_60 = as.numeric(bursts_100rr_60),
-    X_msna_80 = as.numeric(bursts_100rr_80),
-    YP_delta_msna = X_msna_80 - X_msna_60,
-
-    X_log_ntprobnp_60 = as.numeric(log_bnp_v_60_slag),
-    X_log_ntprobnp_80 = as.numeric(log_bnp_v_80_slag),
-    YP_delta_log_ntprobnp = X_log_ntprobnp_80 - X_log_ntprobnp_60,
-
-    # Secondary outcomes
-    X_vo2max_60 = as.numeric(vo2_max_kg_60),
-    X_vo2max_80 = as.numeric(vo2_max_kg_80),
-    YS_delta_vo2max = X_vo2max_80 - X_vo2max_60,
-
-    X_vevco2_60 = as.numeric(ve_co2_60),
-    X_vevco2_80 = as.numeric(ve_co2_80),
-    YS_delta_vevco2 = X_vevco2_80 - X_vevco2_60,
-
-    X_workload_60 = as.numeric(belastning_max_w_60),
-    X_workload_80 = as.numeric(belastning_max_w_80),
-    YS_delta_workload = X_workload_80 - X_workload_60,
-
-    X_vo2pulse_60 = as.numeric(vo2puls_ml_60),
-    X_vo2pulse_80 = as.numeric(vo2puls_ml_80),
-    YS_delta_vo2pulse = X_vo2pulse_80 - X_vo2pulse_60,
-    
-    # Covariates
-    X_nyha_class     = nyha_klasse,
-    X_creatinine     = kreatinin,
-    X_device_brand   = company
+  rename(
+    GroupAB      = `Group A/ B`,
+    RTPCR_day6   = `RT PCR result on day 6`,
+    Symptom_day6 = `Symptom on day 6`,
+    Disch_10d    = `Discharged on day 10 or not`,
+    Final_out    = `final outcome`,
+    Intub_MV     = `intubation  and MV`,
+    ICU          = `ICU`,
+    age          = age,
+    sex          = sex,
+    comorbidities= `comorbidities`,
+    severity_adm = `Severity on admission`
   ) %>%
+  # recode Treatment & outcomes
+  mutate(
+    Treatment = case_when(
+      GroupAB == "A" ~ "Ivermectin",
+      GroupAB == "B" ~ "Placebo",
+      TRUE           ~ NA_character_
+    ),
+    YP_RTPCR_negative_6d = if_else(RTPCR_day6 == "Negative", 1L, 0L),
+    YS_symptom_free_6d   = if_else(str_detect(tolower(Symptom_day6), "asy"), 1L, 0L),
+    YS_discharged_10d    = if_else(Disch_10d == "Discharged", 1L, 0L),
+    YS_final_discharge   = if_else(Final_out == "Discharged", 1L, 0L),
+    YS_ICU               = if_else(tolower(ICU) == "yes", 1L, 0L),
+    YS_intubation_mv     = if_else(tolower(Intub_MV) == "yes", 1L, 0L)
+  ) %>%
+  # now compute onset‐of‐symptoms in days
+  mutate(
+    X_onset_symptoms_days = map_dbl(`onset of symptoms`, convert_to_days),
+    X_Age                = age,
+    X_Sex                = sex,
+    X_comorbidities      = comorbidities,
+    X_severity_admission = severity_adm
+  ) %>%
+
   select(
     Treatment,
-    starts_with("YP_"),
-    starts_with("YS_"),
-    starts_with("X_")
+    starts_with("YP"),
+    starts_with("YS"),
+    starts_with("X")
   )
 ```
 
@@ -686,149 +707,62 @@ write.csv(df8_final, "cleaned_data/trial8.csv", row.names = FALSE)
 # Trial 9
 ## Load Data
 ```{r}
-df9_dm = read_csv("raw_data/9/TASK008_BCG-CORONA_DM.csv") %>% clean_names()
-df9_sv = read_csv("raw_data/9/TASK008_BCG-CORONA_SV.csv") %>% clean_names()
-df9_lb = read_csv("raw_data/9/TASK008_BCG-CORONA_LB.csv") %>% clean_names()
-df9_ae = read_csv("raw_data/9/TASK008_BCG-CORONA_AE.csv") %>% clean_names()
-df9_mh = read_csv("raw_data/9/TASK008_BCG-CORONA_MH.csv") %>% clean_names()
+df9 = read_sav("raw_data/9/9.sav")
 ```
-
-
-
 
 ## Cleaning
 ```{r}
-# ID + Treatment + Covariates
-dm_cleaned = df9_dm %>%
-  select(usubjid, trtgrp, sex, age, education) %>%
+df9_final = df9 %>% 
+    mutate(
+    # Primary outcome: need for manual removal of placenta
+    YP_manual_removal      = as.integer(pla.deliv == 3),
+    # Percent fall in haemoglobin from before to after delivery
+    YS_delta_hb_pct        = (hbb4deli - hbaftdel) / hbb4deli * 100,
+    # Flags for >10% and >20% falls
+    YS_hb_fall_over_10pct  = as.integer(YS_delta_hb_pct > 10),
+    YS_hb_fall_over_20pct  = as.integer(YS_delta_hb_pct > 20)
+  ) %>%
+  # 3. Rename treatment, selected baseline covariates, and all outcomes
   rename(
-    ID = usubjid,
-    Treatment = trtgrp,
-    X_sex = sex,
-    X_age = age,
-    X_education = education
-  )
-
-# ─────────────────────────────────────────────
-# Primary outcome: COVID-19 hospitalization
-yp_covid_hosp = df9_ae %>%
-  filter(aellt == "COVID-19", aesercrit == "Hospitalization_prolongation") %>%
-  distinct(usubjid) %>%
-  mutate(YP_covid_hospitalized = 1) %>%
-  rename(ID = usubjid)
-
-# ─────────────────────────────────────────────
-# YS_sarscov2_infection: any SARS-CoV-2 positive test
-ys_sarscov2 = df9_lb %>%
-  filter(lbtest == "SARS-CoV-2 Serology") %>%
-  mutate(
-    # Create time-based suffix
-    visit_suffix = case_when(
-      str_detect(visitnam, "Screening") ~ "_0w",
-      str_detect(visitnam, "Wk 10")     ~ "_10w",
-      str_detect(visitnam, "Wk 26")     ~ "_26w",
-      str_detect(visitnam, "Wk 52")     ~ "_52w",
-      TRUE ~ NA_character_
-    ),
-    value = ifelse(lborres == "Positive", 1L, 0L)
+    Treatment                       = tx.gp.code,
+    # Baseline covariates (at randomisation)
+    X_pulse_0d                      = pulse.b4,
+    X_bp_sys_0d                     = bp.b4.sys,
+    X_bp_dia_0d                     = bp.b4.dia,
+    X_hb_before_delivery            = hbb4deli,
+    X_country                   = Country,
+    X_age                       = agemod,
+    X_birth_weight               = birthwei,
+    X_GestationWeeks            = gest.wks,
+    # Secondary outcomes from the paper
+    YS_placental_delivery           = pla.deliv,
+    YS_time_to_delivery             = pd.time,
+    YS_blood_loss_ml                = bld.loss,
+    YS_blood_loss_over_500ml        = lossover500,
+    YS_blood_loss_over_1000ml       = lossover1000,
+    YS_blood_transfusion            = bld.tran,
+    YS_maternal_pyrexia             = mat.temp,
+    YS_return_to_theatre            = theatre,
+    YS_antibiotic_use               = antibiot,
+    YS_further_treatment            = furth.tx,
+    YS_side_effect                  = side.eff,
+    YS_side_effect_description      = side.eff.des,
+    YS_maternal_mortality           = mat.mort,
+    YS_baby_mortality               = bab.mort,
+    YS_pulse_after_30min            = pulse.after,
+    YS_bp_sys_after_30min           = bp.after.sys,
+    YS_bp_dia_after_30min           = bp.after.dia,
+    YS_hb_after_delivery            = hbaftdel,
+    # Newly requested outcomes
+    YS_general_anaesthetic          = mrop.ga,
+    YS_mother_sep_gt1h              = moth.sep
   ) %>%
-  filter(!is.na(visit_suffix)) %>%
-  select(usubjid, visit_suffix, value) %>%
-  pivot_wider(
-    names_from = visit_suffix,
-    values_from = value,
-    names_prefix = "YS_sarscov2_infection_",
-    values_fn = max   # resolve duplicates
-    # no values_fill → missing remains NA
-  ) %>%
-  rename(ID = usubjid)
-
-# ─────────────────────────────────────────────
-# YS_urti: URTI event
-ys_urti = df9_ae %>%
-  group_by(usubjid) %>% 
-  summarise(YS_urti = as.integer(any(aept == "Upper respiratory tract infection", 
-                                                 na.rm = TRUE))) %>%
-  rename(ID = usubjid)
-
-
-# ─────────────────────────────────────────────
-# YS_all_hospitalized: hospitalized for any reason
-ys_all_hosp = df9_sv %>%
-  group_by(usubjid) %>%
-  summarise(YS_all_hospitalized = as.integer(any(hayn == "Yes", na.rm = TRUE))) %>%
-  rename(ID = usubjid)
-
-# ─────────────────────────────────────────────
-# YS_death: death reported in AE
-ys_death = df9_ae %>%
-  group_by(usubjid) %>%
-  summarise(YS_death = as.integer(any(!is.na(aedeath)))) %>%
-  rename(ID = usubjid)
-
-
-# ─────────────────────────────────────────────
-# YS_latent_tb: 
-ys_latent_tb = df9_lb %>%
-  filter(lbtest == "Interferon-Gamma Release Assays (IGRAs)") %>%
-  mutate(
-    # Create time-based suffix
-    visit_suffix = case_when(
-      str_detect(visitnam, "Screening") ~ "_0w",
-      str_detect(visitnam, "Wk 52")     ~ "_52w",
-      TRUE ~ NA_character_
-    ),
-    value = ifelse(lborres == "Positive", 1L, 0L)
-  ) %>%
-  filter(!is.na(visit_suffix)) %>%
-  select(usubjid, visit_suffix, value) %>%
-  pivot_wider(
-    names_from = visit_suffix,
-    values_from = value,
-    names_prefix = "YS_latent_tb",
-  ) %>%
-  rename(ID = usubjid)
-
-# ─────────────────────────────────────────────
-# YS_ae_grade2plus: adverse events of Grade 2 or worse
-ys_ae_severe = df9_ae %>%
-  group_by(usubjid) %>% 
-  summarise(YS_ae_grade2plus = as.integer(any(aehs >= 2, na.rm = TRUE))) %>% 
-  rename(ID = usubjid)
-
-# ─────────────────────────────────────────────
-# Combine all cleaned data
-df9_final = dm_cleaned %>%
-  left_join(yp_covid_hosp, by = "ID") %>%
-  left_join(ys_sarscov2, by = "ID") %>%
-  left_join(ys_urti, by = "ID") %>%
-  left_join(ys_absent, by = "ID") %>%
-  left_join(ys_all_hosp, by = "ID") %>%
-  left_join(ys_icu, by = "ID") %>%
-  left_join(ys_death, by = "ID") %>%
-  left_join(ys_latent_tb, by = "ID") %>%
-  left_join(ys_active_tb, by = "ID") %>%
-  left_join(ys_ae_severe, by = "ID") %>%
-  mutate(across(starts_with("YP_"), ~replace_na(., 0))) %>%
-  mutate(across(starts_with("YS_"), ~replace_na(., 0)))
-
-extra_dm_covars = df9_dm %>%
-  select(usubjid, race, work_hours, patients_seen, expect_interact) %>%
-  rename(
-    ID = usubjid,
-    X_race = race,
-    X_work_hours = work_hours,
-    X_patient_load = patients_seen,
-    X_expected_exposure = expect_interact
-  )
-
-df9_final = df9_final %>%
-  left_join(extra_dm_covars, by = "ID") %>% 
+  # 5. Select in the desired order via starts_with()
   select(
     Treatment,
     starts_with("YP_"),
     starts_with("YS_"),
-    starts_with("X_"),
+    starts_with("X_")
   )
 ```
 
@@ -933,9 +867,9 @@ df11_final = df11 %>%
     X_pack_years = pack_years,
 
     # Baseline inflammatory markers
-    X_crp_baseline = crp,
-    X_fibrinogen_baseline = fibrinogen,
-    X_leukocyte_baseline = leukocyte,
+    X_crp_0w = crp,
+    X_fibrinogen_0w = fibrinogen,
+    X_leukocyte_0w = leukocyte,
 
     # Baseline microbiota composition
     X_biomass_raw_ow1 = biomass_raw_ow1,
@@ -965,124 +899,117 @@ write.csv(df11_final, "cleaned_data/trial11.csv", row.names = FALSE)
 # Trial 12
 ## Load Data
 ```{r}
-df12_f3 = read_excel("raw_data/12/12.xlsx", sheet = "Figure 3", skip = 1)
-df12_t1  = read_excel("raw_data/12/12.xlsx", sheet = "Table 1", skip = 1)
-df12_f4    = read_excel("raw_data/12/12.xlsx", sheet = "Figure 4", skip = 1)
-df12_f5    = read_excel("raw_data/12/12.xlsx", sheet = "Figure 5", skip = 1)
-df12_f6    = read_excel("raw_data/12/12.xlsx", sheet = "Figure 6", skip = 1)
-df12_t2      = read_excel("raw_data/12/12.xlsx", sheet = "Table 2", skip = 1)
-df12_t3     = read_excel("raw_data/12/12.xlsx", sheet = "Table 3", skip = 1)
+df12 = read_csv("raw_data/12/12.csv")
 ```
 
 
 ## Cleaning
 ```{r}
-# 1. Baseline covariates from Table 1 ----
-df12_cov = df12_t1 %>%
+df12_final = df12 %>%
   rename(
-    ID                   = IDexternal,
-    Treatment            = Arm,
-    X_age_years          = age_years,
-    X_cd4_baseline       = cd4,
-    X_vl_baseline        = vl,
-    X_bmi                = bmi,
-    X_gender             = gender,
-    X_ethnicgroup        = ethnicgroup,
-    X_bcg_selfreport     = bcg_selfreport
+    ClusterID               = cluster,
+    Treatment             = treatment,
+    
+    # Baseline covariates (0 months or 0 days)
+    X_age_0m              = age_months,
+    X_sex                 = sex,
+    X_bornearly           = bornearly,
+    X_mother_age_cat      = motherage_bl_cat,
+    X_hh_members_cat      = hhmembers_cat,
+    X_father_primary      = father_primary,
+    X_mother_primary      = mother_primary,
+    X_wealth_quintile     = aq,
+    X_distance         = km,
+    X_cluster_population  = pop,
+    X_haz_0m              = haz_bl,
+    X_waz_0m              = waz_bl,
+    X_whz_0m              = whz_bl,
+    X_SRQ_0m              = SRQ_bl
   ) %>%
-  select(ID, Treatment, starts_with("X_")) %>%
-  distinct(ID, Treatment, .keep_all = TRUE)
-
-# 2. Primary outcome at days 0, 14, 70 & 182 (Figure 5) ----
-df12_primary = df12_f5 %>%
-  rename(ID = IDexternal, Treatment = Arm) %>%
-  filter(day %in% c(0, 14, 56, 70, 182)) %>%
-  pivot_wider(
-    id_cols    = c(ID, Treatment),
-    names_from = day,
-    values_from = H1_cd4_ifng_tnfa_il2
+  mutate(
+    # Co-primary outcomes (YP_)
+    YP_stunting_24m       = as.integer(haz06 < -2),
+    YP_cog_composite_24m  = cog_composite,
+    YP_lang_composite_24m = lang_composite,
+    YP_motor_composite_24m = motor_composite,
+    YP_se_composite_24m   = se_composite,
+    YP_ab_composite_24m   = ab_composite,
+    # Secondary outcomes (YS_)
+    YS_haz06_24m                     = haz06,
+    YS_diet_diversity_24m            = rowSums(select(., matches("^e[1-7]$")), na.rm = TRUE),
+    YS_caregiver_depression_24m      = as.integer(SRQ > 7),
+    YS_caregiver_child_interaction_24m = rowMeans(select(., matches("^MICS_.*_sb2$")), na.rm = TRUE)
   ) %>%
-  rename(
-    X_H1_cd4_ifng_tnfa_il2_0d    = `0`,
-    pre_YP_H1_cd4_ifng_tnfa_il2_14d = `14`,
-    pre_YP_H1_cd4_ifng_tnfa_il2_56d = `56`,
-    YP_H1_cd4_ifng_tnfa_il2_70d     = `70`,
-    post_YP_H1_cd4_ifng_tnfa_il2_182d = `182`
+  mutate(
+    Treatment = factor(Treatment, levels = c(0, 1), labels = c("Usual Care", "Early Childhood Development"))
   ) %>%
-  distinct(ID, Treatment, .keep_all = TRUE)
-
-# 3. Secondary outcomes → only day 70 as YS + day 0 as baseline covariate ----
-
-## 3a. CD4 cytokines (Figure 4)
-df12_cyto_baseline = df12_f4 %>%
-  rename(ID = IDexternal, Treatment = Arm) %>%
-  filter(day == 0) %>%
-  select(ID, Treatment,
-         X_YS_ifn_g_cd4_0d  = ifn_g_cd4,
-         X_YS_tnf_a_cd4_0d  = tnf_a_cd4,
-         X_YS_il2_cd4_0d    = il2_cd4,
-         X_YS_il17_cd4_0d   = il17_cd4) %>%
-  distinct(ID, Treatment, .keep_all = TRUE)
-
-df12_cyto_ys = df12_f4 %>%
-  rename(ID = IDexternal, Treatment = Arm) %>%
-  filter(day == 70) %>%
-  select(ID, Treatment,
-         YS_ifn_g_cd4_70d  = ifn_g_cd4,
-         YS_tnf_a_cd4_70d  = tnf_a_cd4,
-         YS_il2_cd4_70d    = il2_cd4,
-         YS_il17_cd4_70d   = il17_cd4) %>%
-  distinct(ID, Treatment, .keep_all = TRUE)
-
-## 3b. CD8 proliferation (Figure 3)
-df12_cd8_baseline = df12_f3 %>%
-  rename(ID = IDexternal, Treatment = Arm) %>%
-  filter(Tcell == 2, day == 0) %>%
-  select(ID, Treatment,
-         X_prolif_cd8_0d = response) %>%
-  distinct(ID, Treatment, .keep_all = TRUE)
-
-df12_cd8_ys = df12_f3 %>%
-  rename(ID = IDexternal, Treatment = Arm) %>%
-  filter(Tcell == 2, day == 70) %>%
-  select(ID, Treatment,
-         YS_prolif_cd8_70d = response) %>%
-  distinct(ID, Treatment, .keep_all = TRUE)
-
-## 3c. QFT Gold (Table 3 — baseline already a covariate)
-df12_qgit = df12_t3 %>%
-  rename(
-    ID                     = IDexternal,
-    Treatment              = Arm,
-    X_QGIT_0d = QGIT_baseline,
-    YS_QGIT_182d         = QGIT_day182
-  ) %>%
-  select(ID, Treatment, starts_with("X_"), starts_with("YS_")) %>%
-  distinct(ID, Treatment, .keep_all = TRUE)
-
-# 4. Final join + NA‐cleanup ----
-df12_final = df12_cov %>%
-  full_join(df12_primary,       by = c("ID","Treatment")) %>%
-  full_join(df12_cyto_baseline, by = c("ID","Treatment")) %>%
-  full_join(df12_cyto_ys,       by = c("ID","Treatment")) %>%
-  full_join(df12_cd8_baseline,  by = c("ID","Treatment")) %>%
-  full_join(df12_cd8_ys,        by = c("ID","Treatment")) %>%
-  full_join(df12_qgit,          by = c("ID","Treatment")) %>% 
   select(
+    ClusterID,
     Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),  # none here but placeholder
+    starts_with("post_YP_"), # none here but placeholder
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+# 3. Cluster-level aggregation with same ordering and no 'mean_' prefixes
+df12_cluster = df12_final %>%
+  group_by(ClusterID, Treatment) %>%
+  summarise(
+    # Number of participants
+    n_participants = n(),
+    
+    # Co-primary outcomes
+    YP_stunting_24m       = mean(YP_stunting_24m, na.rm = TRUE),
+    YP_cog_composite_24m  = mean(YP_cog_composite_24m, na.rm = TRUE),
+    YP_lang_composite_24m = mean(YP_lang_composite_24m, na.rm = TRUE),
+    YP_motor_composite_24m = mean(YP_motor_composite_24m, na.rm = TRUE),
+    YP_se_composite_24m   = mean(YP_se_composite_24m, na.rm = TRUE),
+    YP_ab_composite_24m   = mean(YP_ab_composite_24m, na.rm = TRUE),
+    
+    # Secondary outcomes
+    YS_haz06_24m                     = mean(YS_haz06_24m, na.rm = TRUE),
+    YS_diet_diversity_24m            = mean(YS_diet_diversity_24m, na.rm = TRUE),
+    YS_caregiver_depression_24m      = mean(YS_caregiver_depression_24m, na.rm = TRUE),
+    YS_caregiver_child_interaction_24m = mean(YS_caregiver_child_interaction_24m, na.rm = TRUE),
+    
+    # Baseline covariates
+    X_age_0m              = first(X_age_0m),
+    X_sex                 = first(X_sex),
+    X_bornearly           = first(X_bornearly),
+    X_mother_age_cat      = first(X_mother_age_cat),
+    X_hh_members_cat      = first(X_hh_members_cat),
+    X_father_primary      = first(X_father_primary),
+    X_mother_primary      = first(X_mother_primary),
+    X_wealth_quintile     = first(X_wealth_quintile),
+    X_distance         = first(X_distance),
+    X_cluster_population  = first(X_cluster_population),
+    X_haz_0m              = first(X_haz_0m),
+    X_waz_0m              = first(X_waz_0m),
+    X_whz_0m              = first(X_whz_0m),
+    X_SRQ_0m              = first(X_SRQ_0m)
+  ) %>%
+  ungroup() %>%
+  select(
+    ClusterID,
+    Treatment,
+    n_participants,
     starts_with("YP_"),
     starts_with("pre_YP_"),
     starts_with("post_YP_"),
     starts_with("YS_"),
-    starts_with("X_"),
-    -ID
+    starts_with("X_")
   )
 ```
+
 
 ## Output Data
 ```{r}
 # trial 12
-write.csv(df12_final, "cleaned_data/trial12.csv", row.names = FALSE)
+write.csv(df12_cluster, "cleaned_data/trial12.csv", row.names = FALSE)
+
+write.csv(df12_final, "cleaned_data/Clustered_RCT/cluster12.csv", row.names = FALSE)
 ```
 
 
@@ -1141,7 +1068,8 @@ df13_final = df13 %>%
     starts_with("post_YP_"),  # (none here)
     starts_with("YS_"),
     starts_with("X_")
-  )
+  ) %>% 
+  filter(!is.na(Treatment))
 ```
 
 ## Output Data
