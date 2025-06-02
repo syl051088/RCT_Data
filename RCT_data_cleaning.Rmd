@@ -567,10 +567,6 @@ write.csv(df6_final, "cleaned_data/trial6.csv", row.names = FALSE)
 df7 = read_dta("raw_data/7/7.dta")
 ```
 
-```{r}
-write_csv(df7, "raw_data/7/7.csv")
-```
-
 ## Cleaning
 ```{r}
 df7_final = df7 %>%
@@ -777,43 +773,119 @@ write.csv(df9_final, "cleaned_data/trial9.csv", row.names = FALSE)
 ## Load Data
 ```{r}
 # trial 10
-df10 = read.delim("raw_data/10/10.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+df10_patients = read_xlsx("raw_data/31/10.xlsx", sheet = 2)
+df10_intubation = read_xlsx("raw_data/31/10.xlsx", sheet = 3)
+df10_anaes = read_xlsx("raw_data/31/10.xlsx", sheet = 4)
+df10_postop = read_xlsx("raw_data/31/10.xlsx", sheet = 5)
 ```
 
 
 ## Cleaning
 ```{r}
-df10_final = df10 %>%
-  clean_names() %>%
-  
-  # Label treatment
+df10_pat_clean = df10_patients %>%
+  rename(
+    # Keep ID so we can join; drop later if desired
+    ID         = ID,
+    X_center   = center,
+    Treatment  = arm,
+    X_sex_0d   = pre_sexe,
+    X_age_0d   = pre_age,
+    X_size_0d  = pre_size,
+    X_weight_0d= pre_weight,
+    X_surgery_type_0d   = pre_surgery,
+    X_arne_score_0d     = pre_arne_score,
+    X_known_DI_0d       = pre_known_DI,
+    X_pathology_0d      = pre_pathology,
+    X_fs_0d             = pre_fs,
+    X_oblm_0d           = pre_oblm,
+    X_dtm_0d            = pre_dtm,
+    X_spine_0d          = pre_spine,
+    X_mallampati_0d     = pre_mallampati
+  ) %>%
+  # Recode Treatment as factor
   mutate(
-    Treatment = case_when(
-      ttt == 1 ~ "Placebo",
-      ttt == 2 ~ "Sildenafil_40mg",
-      ttt == 3 ~ "Sildenafil_80mg"
-    )
-  ) %>%
-  
-  # Summarize per patient-treatment group
-  group_by(id_total, Treatment) %>%
-  summarise(
-    YP_mean_rcs = mean(rcs, na.rm = TRUE),
-    YP_total_attacks = sum(nb_crises, na.rm = TRUE),
-    YP_total_duration_min = sum(duree_tot, na.rm = TRUE),
+    Treatment = factor(Treatment, levels = c("video", "no-video"),
+                       labels = c("Video", "No Video"))
+  )
+
+# 3. Clean and rename the Intubation sheet
+df10_intub_clean = df10_intubation %>%
+  rename(
+    ID      = ID,
+    # Primary outcome: help needed during intubation 
+    YP_help_needed_intub   = nb_participants,
     
-    # Covariates (same across rows per patient)
-    X_age = first(age),
-    X_sex = first(homme),             # 1 = male
-    X_rp_type = first(second),        # 1 = secondary RP
-    X_ccb_use = first(inhib),         # 1 = on CCB
-    X_mean_temp = mean(temp, na.rm = TRUE),
-    X_mean_humidity = mean(humid, na.rm = TRUE),
-    
-    .groups = "drop"
+    # Secondary outcomes: IDS and its components (all during intubation)
+    YS_IDS_intub           = per_ids,
+    YS_nb_attempts_intub   = per_nb_attempts,
+    YS_burp_intub          = per_burp,
+    YS_railroading_intub   = per_railroading,
+    YS_cormack_grade_intub = per_cormack,
+    YS_pogo_intub          = per_pogo,
+    YS_vocal_cord_pos_intub= `per_vocal cord`,
+    YS_force_intub         = per_force,
+    YS_esophageal_intub    = pe_oesoph,
+    YS_removing_cover_intub= per_removing_cover,
+    YS_time_to_intubation_intub = per_delay,
+    YS_ease_intubation_intub  = per_eval,
+    YS_hemodynamic_comp_intub = haemod_compli
   ) %>%
-  rename(ID = id_total)
+  select(-center, -arm)  # drop redundant columns
+
+# 4. Clean and rename the Anaesthesia sheet
+df10_anaes_clean = df10_anaes %>%
+  rename(
+    ID                     = ID,
+    # Neuromuscular relaxant dose (not an outcome, but baseline anesthesia parameter)
+    X_relaxant_dose_0d         = per_tracrium,
+    
+  # Hemodynamic measures—label clearly as before/after intubation
+    YS_HR_before_induc        = video_fc_av_ind,
+    YS_HR_before_intub        = video_fc_av_int,
+    YS_HR_after_intub         = video_fc_apres_int,
+    
+    YS_MAP_before_induc       = video_pam_av_ind,
+    YS_MAP_before_intub       = video_pam_av_int,
+    YS_MAP_after_intub        = video_pam_apres_int,
+    
+    YS_BIS_before_induc       = vid_avind_bis,
+    YS_BIS_before_intub       = vid_avint_bis,
+    YS_BIS_after_intub        = vid_apint_bis,
+    
+    YS_NMT_before_intub       = vid_avint_nmt,
+    YS_NMT_after_intub        = vid_apint_nmt,
+    
+    YS_SpO2_before_intub      = vid_avind_spo,
+    YS_SpO2_during_intub      = vid_avint_spo,
+    YS_SpO2_after_intub       = vid_apint_spo
+  ) %>%
+  select(-center, -arm)
+
+# 5. Clean and rename the Postoperative sheet
+df10_postop_clean = df10_postop %>%
+  rename(
+    ID                    = ID,
+    YS_hoarseness_postop  = Hoarseness,
+    YS_sore_throat_postop = `Sore throat`
+  ) %>%
+  select(-center, -arm)
+
+# 6. Join all cleaned sheets by ID
+df10_all = df10_pat_clean %>%
+  left_join(df10_intub_clean, by = "ID") %>%
+  left_join(df10_anaes_clean,  by = "ID") %>%
+  left_join(df10_postop_clean, by = "ID")
+
+# 7. Drop any columns we no longer need (e.g., ID) if desired
+df10_final = df10_all %>%
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("YS"),
+    starts_with("X")
+  )
 ```
+
 
 ## Output Data
 ```{r}
