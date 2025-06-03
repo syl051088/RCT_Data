@@ -1,0 +1,318 @@
+---
+title: "RCT_analysis"
+author: "Yulin Shao"
+date: "2025-06-02"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rio)
+library(janitor)
+library(readxl)
+library(striprtf)
+library(stringr)
+library(tibble)
+library(tidyr)
+library(stringi)
+library(haven)
+library(purrr)
+library(DescTools)
+```
+
+# Trial 1
+## Load Data
+```{r}
+df1 = read.csv("cleaned_data/trial1.csv")
+```
+
+## Cleaning
+```{r}
+# 342 -> 291
+df1_cleaned = df1 %>% 
+  filter(!if_any(starts_with("YP"), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+  ) %>% 
+  mutate(Treatment = relevel(factor(Treatment), ref = "Sham Acupuncture + Placebo"))
+
+df1_final = df1_cleaned %>%
+  mutate(across(
+    where(is.numeric),  # Only numeric/integer columns
+    ~ if (is.integer(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      } else {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      }
+  ))
+```
+
+## ancova
+```{r}
+fit1 = lm(YP_delta_HOMA_IR_4m ~ ., data = df1_final)
+
+est1.1 = summary(fit1)$coefficients[2,1]
+se1.1 = summary(fit1)$coefficients[2,2]
+
+est1.2 = summary(fit1)$coefficients[3,1]
+se1.2 = summary(fit1)$coefficients[3,2]
+
+print(paste("The estimate ATE for Metformin is", round(est1.1,2),
+            "with se", round(se1.1,2)))
+
+print(paste("The estimate ATE for True Acupuncture is", round(est1.2,2),
+            "with se", round(se1.2,2)))
+
+```
+
+# Trial 2
+## Load Data
+```{r}
+df2 = read_csv("cleaned_data/trial2.csv")
+```
+
+# Trial 3
+## Load Data
+```{r}
+df3 = read_csv("cleaned_data/trial3.csv")
+```
+
+# Trial 4
+## Load Data
+```{r}
+df4 = read_csv("cleaned_data/trial4.csv")
+```
+## Cleaning
+```{r}
+anyNA(df4)
+
+lapply(df4, typeof)
+```
+
+```{r}
+unique(df4$X_Age_0w)
+
+df4$X_Age_0w = factor(df4$X_Age_0w, levels = c(
+  "31-40", "41-50", "51-60", "61-70", "71-80"
+), ordered = TRUE)
+
+df4 = df4 %>% 
+  mutate(Treatment = relevel(factor(Treatment), ref = "Placebo"))
+
+df4$X_Sex_0w = factor(df4$X_Sex_0w)
+```
+
+## ancova
+```{r}
+# Identify outcome and predictor variables
+outcomes = names(df4) %>% str_subset("^YP")
+predictors = setdiff(names(df4), outcomes)
+
+# Fit lm for each YP outcome using only X predictors
+fit4 = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula <- reformulate(predictors, response = .x)
+    lm(formula, data = df4)
+  })
+
+print(paste("The estimate ATE(change in TGF) for VD is", round(summary(fit4[[1]])$coefficients[2,1],2),
+            "with se", round(summary(fit4[[1]])$coefficients[2,2],2)))
+
+print(paste("The estimate ATE(change in TIMP) for VD is", round(summary(fit4[[2]])$coefficients[2,1],2),
+            "with se", round(summary(fit4[[2]])$coefficients[2,2],2)))
+
+print(paste("The estimate ATE(change in MMP) for VD is", round(summary(fit4[[3]])$coefficients[2,1],2),
+            "with se", round(summary(fit4[[3]])$coefficients[2,2],2)))
+
+print(paste("The estimate ATE(change in P3NP) for VD is", round(summary(fit4[[4]])$coefficients[2,1],2),
+            "with se", round(summary(fit4[[4]])$coefficients[2,2],2)))
+```
+
+# Trial 5
+## Load Data
+```{r}
+df5 = read_csv("cleaned_data/trial5.csv")
+```
+## Cleaninig
+```{r}
+df5_clean = df5 %>% 
+  mutate(Treatment = relevel(factor(Treatment), ref = "Usual Care")) %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+  ) %>% 
+  mutate(across(
+    where(~ is.numeric(.) && all(na.omit(unique(.)) %in% c(0, 1))),
+    ~ factor(., levels = c(0, 1))
+  )) %>% 
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>% 
+  mutate(X_hospital_0m = factor(X_hospital_0m))
+```
+
+```{r}
+str(df5_clean)
+```
+## ancova
+```{r}
+fit5 = lm(as.numeric(YP_composite_14d) ~ ., data = df5_clean)
+
+est5 = summary(fit5)$coefficients[2,1]
+se5 = summary(fit5)$coefficients[2,2]
+
+print(paste("The estimate ATE for Alert is", round(est5,2),
+            "with se", round(se5,2)))
+```
+# Trial 6
+## Load Data
+```{r}
+df6 = read_csv("cleaned_data/trial6.csv")
+```
+## Cleaning
+```{r}
+# 463 -> 345
+df6_clean = df6 %>% 
+  mutate(Treatment = relevel(factor(Treatment), ref = "Conventional")) %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+  )
+
+df6_clean = df6_clean %>% 
+  mutate(
+    across(c(X_sex, X_statin, X_dm_treatment), as.factor)
+  ) %>% 
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  ))
+```
+
+```{r}
+str(df6_clean)
+anyNA(df6_clean)
+```
+## ancova
+```{r}
+fit6 = lm(YP_delta_CCA_IMT_24m ~ ., data = df6_clean)
+
+est6 = summary(fit6)$coefficients[2,1]
+se6 = summary(fit6)$coefficients[2,2]
+
+print(paste("The estimate ATE for Sitagliptin is", round(est6,2),
+            "with se", round(se6,2)))
+```
+# Trial 7
+## Load Data
+```{r}
+df7 = read_csv("cleaned_data/trial7.csv")
+```
+## Cleaning
+```{r}
+df7_clean = df7 %>% 
+  mutate(Treatment = relevel(factor(Treatment), ref = "Casirivimab/Imdevimab")) %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+  ) %>% 
+  mutate(across(everything(), as.factor)) %>% 
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  ))
+```
+
+```{r}
+str(df7_clean)
+anyNA(df7_clean)
+```
+## ancova
+```{r}
+fit7 = lm(as.numeric(YP_Progression_binary)~., data = df7_clean)
+
+est7.1 = summary(fit7)$coefficients[2,1]
+se7.1 = summary(fit7)$coefficients[2,2]
+
+est7.2 = summary(fit7)$coefficients[3,1]
+se7.2 = summary(fit7)$coefficients[3,2]
+
+print(paste("The estimate ATE for Bamlanivimab/Etesevimab is", round(est7.1,2),
+            "with se", round(se7.1,2)))
+
+print(paste("The estimate ATE for Sotrovimab is", round(est7.2,2),
+            "with se", round(se7.2,2)))
+```
+# Trial 8
+## Load Data
+```{r}
+df8 = read_csv("cleaned_data/trial8.csv")
+```
+## Cleaning
+```{r}
+# 115 -> 103
+df8_clean = df8 %>% 
+  mutate(Treatment = relevel(factor(Treatment), ref = "Placebo")) %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+  ) %>% 
+  mutate(X_Sex = factor(X_Sex)) %>% 
+  mutate(
+    X_severity_admission = factor(X_severity_admission, levels = c("mild", "moderate"), ordered = T)
+  ) %>% 
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  ))
+```
+
+```{r}
+str(df8_clean)
+```
+## ancova
+```{r}
+fit8 = lm(YP_RTPCR_negative_6d ~ ., data = df8_clean)
+
+est8 = summary(fit8)$coefficients[2,1]
+se8 = summary(fit8)$coefficients[2,2]
+
+print(paste("The estimate ATE for Ivermectin is", round(est8,2),
+            "with se", round(se8,2)))
+```
+
+# Trial 9
+## Load Data
+```{r}
+
+```
+

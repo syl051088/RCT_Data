@@ -124,9 +124,6 @@ df1_final = df1_combined %>%
     X_CHOL_0m       = CHOL,
     X_ApoA1_0m      = `ApoA-1`,
     X_ApoB_0m       = ApoB,
-    
-    X_Weight_7m     = `m7_Weight`,
-    X_Waist_7m      = `m7_Waist`,
   ) %>%
   select(
     Treatment,
@@ -683,7 +680,7 @@ df8_final = df8 %>%
     X_Age                = age,
     X_Sex                = sex,
     X_comorbidities      = comorbidities,
-    X_severity_admission = severity_adm
+    X_severity_admission = tolower(severity_adm)
   ) %>%
 
   select(
