@@ -97,34 +97,37 @@ df1_final = df1_combined %>%
     post_YS_delta_Cpeptide_7m     = as.numeric(`m7_C-Peptide`)- as.numeric(`C-Peptide`),
     post_YS_delta_HbA1c_7m        = as.numeric(`m7_HbA1c`)    - as.numeric(HbA1c)
   ) %>%
-  rename(
-    # Baseline outcomes become covariates (prefix X_)
-    X_HOMA_IR_0m = `HOMA-IR`,
-    X_BMI_0m = BMI,
-    X_WHR_0m = WHR,
-    X_Acne_0m = Acne,
-    X_Hirsutism_0m = Hirsutism,
-    X_FPG_0m = FPG,
-    X_FINS_0m = FINS,
-    X_GlucoseAUC_0m = `Glucose AUC`,
-    X_InsulinAUC_0m = `Insulin AUC`,
-    X_HOMA_beta_0m = `HOMA-β`,
-    X_Cpeptide_0m = `C-Peptide`,
-    X_HbA1c_0m = HbA1c,
-    X_LH_FSH_0m = `LH/FSH`,
-    X_TotalT_0m = `Total T`,
-    X_FAI_0m = FAI,
+  mutate(
+    # Baseline outcomes become covariates
+    X_HOMA_IR_0m      = as.numeric(`HOMA-IR`),
+    X_BMI_0m          = as.numeric(BMI),
+    X_WHR_0m          = as.numeric(WHR),
+    X_Acne_0m         = as.numeric(Acne),
+    X_Hirsutism_0m    = as.numeric(Hirsutism),
+    X_FPG_0m          = as.numeric(FPG),
+    X_FINS_0m         = as.numeric(FINS),
+    X_GlucoseAUC_0m   = as.numeric(`Glucose AUC`),
+    X_InsulinAUC_0m   = as.numeric(`Insulin AUC`),
+    X_HOMA_beta_0m    = as.numeric(`HOMA-β`),
+    X_Cpeptide_0m     = as.numeric(`C-Peptide`),
+    X_HbA1c_0m        = as.numeric(HbA1c),
+    X_LH_FSH_0m       = as.numeric(`LH/FSH`),
+    X_TotalT_0m       = as.numeric(`Total T`),
+    X_FAI_0m          = as.numeric(FAI),
+
     # Other covariates
-    X_Age_0m        = Age,
-    X_Weight_0m     = Weight,
-    X_Waist_0m      = Waist,
-    X_TG_0m         = TG,
-    X_HDL_0m        = HDL,
-    X_LDL_0m        = LDL,
-    X_CHOL_0m       = CHOL,
-    X_ApoA1_0m      = `ApoA-1`,
-    X_ApoB_0m       = ApoB,
+    X_Age_0m          = as.numeric(Age),
+    X_Weight_0m       = as.numeric(Weight),
+    X_Waist_0m        = as.numeric(Waist),
+    X_TG_0m           = as.numeric(TG),
+    X_HDL_0m          = as.numeric(HDL),
+    X_LDL_0m          = as.numeric(LDL),
+    X_CHOL_0m         = as.numeric(CHOL),
+    X_ApoA1_0m        = as.numeric(`ApoA-1`),
+    X_ApoB_0m         = as.numeric(ApoB)
   ) %>%
+  mutate(Treatment = relevel(factor(Treatment), ref = "Sham Acupuncture + Placebo")) %>% 
+  
   select(
     Treatment,
     YP_delta_HOMA_IR_4m,
@@ -138,7 +141,8 @@ df1_final = df1_combined %>%
 ## Output Data
 ```{r}
 # write trial 1
-write.csv(df1_final, "cleaned_data/trial1.csv", row.names = FALSE)
+write_csv(df1_final, "cleaned_data/trial1.csv")
+write_rds(df1_final, "cleaned_data/trial1.rds")
 ```
 
 # Trial 2
@@ -151,7 +155,6 @@ df2 = read_sav("raw_data/2/2.sav")
 
 ## Cleaning
 ```{r}
-
 df2_final = df2 %>%
   # Set treatment labels
   mutate(
@@ -173,19 +176,27 @@ df2_final = df2 %>%
     YS_pos_14d             = Pers_positiv,
 
     # Covariates
-    X_agegrp               = Age_group,
-    X_sex                  = Sex,
-    X_fever                = Fever,
-    X_cough                = Cough,
-    X_respdiff             = Resp_dist,
-    X_diabetes             = Diabete,
-    X_hyperten             = Hypertension,
-    X_comorb               = Co_mor,
-    X_onset_to_treat_7d    = Interval
+    X_agegrp_0d               = Age_group,
+    X_sex_0d                  = Sex,
+    X_fever_0d                = Fever,
+    X_cough_0d                = Cough,
+    X_respdiff_0d             = Resp_dist,
+    X_diabetes_0d             = Diabete,
+    X_hyperten_0d             = Hypertension,
+    X_comorb_0d               = Co_mor,
   ) %>%
 
   # Replace placeholder missing values with NA
   mutate(across(where(~is.numeric(.) || is.integer(.) || is.logical(.)), ~na_if(., 99))) %>%
+  
+  mutate(Treatment = relevel(factor(Treatment), ref = "Placebo")) %>%
+  
+  mutate(
+        X_agegrp_0d = factor(X_agegrp_0d,
+                         levels = c(1, 2, 3),
+                         labels = c("less than 40", "40-60", ">60"),
+                         ordered = TRUE)
+    ) %>% 
 
   # Select and reorder columns
   select(
@@ -196,10 +207,12 @@ df2_final = df2 %>%
   )
 ```
 
+
 ## Output Data
 ```{r}
 # write trial 2
-write.csv(df2_final, "cleaned_data/trial2.csv", row.names = FALSE)
+write_csv(df2_final, "cleaned_data/trial2.csv")
+write_rds(df2_final, "cleaned_data/trial2.rds")
 ```
 
 # Trial 3
@@ -283,6 +296,11 @@ df3_final = df3 %>%
       "elx_score"
     ))
   ) %>%
+  mutate(Treatment = relevel(factor(Treatment), ref = "Usual Care")) %>%
+  mutate(across(
+    where(~ is.numeric(.) && all(na.omit(unique(.)) %in% c(0, 1))),
+    ~ factor(., levels = c(0, 1))
+  )) %>%
   
   # 6. Final column order: Treatment, YP_, pre_YP_, post_YP_, YS_, X_
   select(
@@ -293,12 +311,14 @@ df3_final = df3 %>%
     starts_with("YS_"),
     starts_with("X_")
   )
+  
 ```
 
 ## Output Data
 ```{r}
 # wrtie trial 3
-write.csv(df3_final, "cleaned_data/trial3.csv", row.names = FALSE)
+write_csv(df3_final, "cleaned_data/trial3.csv")
+write_rds(df3_final, "cleaned_data/trial3.rds")
 ```
 
 
@@ -345,6 +365,14 @@ df4_final = df4 %>%
     YP_delta_MMP_6w   = as.numeric(mmp6) - as.numeric(X_MMP_0w),
     YP_delta_P3NP_6w  = as.numeric(p3np6) - as.numeric(X_P3NP_0w)
   ) %>%
+  mutate(
+    Treatment = relevel(factor(Treatment), ref = "Placebo"),
+    X_Age_0w = factor(X_Age_0w, levels = c(
+      "31-40", "41-50", "51-60", "61-70", "71-80"
+    ), ordered = TRUE),
+    X_Sex_0w = factor(X_Sex_0w)
+  ) %>%
+
   select(
     Treatment,
     starts_with("YP_"),
@@ -353,10 +381,12 @@ df4_final = df4 %>%
 
 ```
 
+
 ## Output Data
 ```{r}
 # write trial 4
-write.csv(df4_final, "cleaned_data/trial4.csv", row.names = FALSE)
+write_csv(df4_final, "cleaned_data/trial4.csv")
+write_rds(df4_final, "cleaned_data/trial4.rds")
 ```
 
 # Trial 5
@@ -430,6 +460,14 @@ df5_final = df5 %>%
       "temp_at_rand", "sofa_at_rand"
     ))
   ) %>%
+  mutate(
+    Treatment = relevel(factor(Treatment), ref = "Usual Care"),
+    across(
+      where(~ is.numeric(.) && all(na.omit(unique(.)) %in% c(0, 1))),
+      ~ factor(., levels = c(0, 1))
+    ),
+    X_hospital_0m = factor(X_hospital_0m)
+  ) %>% 
   select(
     Treatment,
     starts_with("YP_"),
@@ -440,11 +478,11 @@ df5_final = df5 %>%
   )
 ```
 
-
 ## Output Data
 ```{r}
 # write trial 5
-write.csv(df5_final, "cleaned_data/trial5.csv", row.names = FALSE)
+write_csv(df5_final, "cleaned_data/trial5.csv")
+write_rds(df5_final, "cleaned_data/trial5.rds")
 ```
 
 # Trial 6
@@ -694,7 +732,7 @@ df8_final = df8 %>%
 ## Output Data
 ```{r}
 # write trial 8
-write.csv(df8_final, "cleaned_data/trial8.csv", row.names = FALSE)
+write.csv(df8_final, "cleaned_data/ cleaned_data/trial8.csv", row.names = FALSE)
 ```
 
 # Trial 9

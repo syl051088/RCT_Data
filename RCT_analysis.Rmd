@@ -19,12 +19,13 @@ library(stringi)
 library(haven)
 library(purrr)
 library(DescTools)
+library(RobinCar)
 ```
 
 # Trial 1
 ## Load Data
 ```{r}
-df1 = read.csv("cleaned_data/trial1.csv")
+df1 = read_rds("cleaned_data/trial1.rds")
 ```
 
 ## Cleaning
@@ -36,8 +37,7 @@ df1_cleaned = df1 %>%
     Treatment,
     starts_with("YP"),
     starts_with("X")
-  ) %>% 
-  mutate(Treatment = relevel(factor(Treatment), ref = "Sham Acupuncture + Placebo"))
+  )
 
 df1_final = df1_cleaned %>%
   mutate(across(
@@ -50,62 +50,128 @@ df1_final = df1_cleaned %>%
   ))
 ```
 
+## unadjusted
+```{r}
+fit1 = lm(YP_delta_HOMA_IR_4m ~ Treatment, data = df1_final)
+
+est1.1_un = round(summary(fit1)$coefficients[2,1], 3)
+se1.1_un = round(summary(fit1)$coefficients[2,2], 3)
+
+est1.2_un = round(summary(fit1)$coefficients[3,1], 3)
+se1.2_un = round(summary(fit1)$coefficients[3,2], 3)
+
+print(paste("The estimate ATE for Metformin is", est1.1_un,
+            "with se", se1.1_un))
+
+print(paste("The estimate ATE for True Acupuncture is", est1.2_un,
+            "with se", se1.2_un))
+```
+
 ## ancova
 ```{r}
 fit1 = lm(YP_delta_HOMA_IR_4m ~ ., data = df1_final)
 
-est1.1 = summary(fit1)$coefficients[2,1]
-se1.1 = summary(fit1)$coefficients[2,2]
+est1.1_mod = round(summary(fit1)$coefficients[2,1], 3)
+se1.1_mod = round(summary(fit1)$coefficients[2,2], 3)
 
-est1.2 = summary(fit1)$coefficients[3,1]
-se1.2 = summary(fit1)$coefficients[3,2]
+est1.2_mod = round(summary(fit1)$coefficients[3,1], 3)
+se1.2_mod = round(summary(fit1)$coefficients[3,2], 3)
 
-print(paste("The estimate ATE for Metformin is", round(est1.1,2),
-            "with se", round(se1.1,2)))
+print(paste("The estimate ATE for Metformin is", est1.1_mod,
+            "with se", se1.1_mod))
 
-print(paste("The estimate ATE for True Acupuncture is", round(est1.2,2),
-            "with se", round(se1.2,2)))
+print(paste("The estimate ATE for True Acupuncture is", est1.2_mod,
+            "with se", se1.2_mod))
 
+```
+## robincar
+```{r}
+covariates = df1_final %>%
+  select(starts_with("X_")) %>%
+  names()
+
+# Create formula string
+form_str = paste("YP_delta_HOMA_IR_4m ~ Treatment + ", paste(covariates, collapse = " + "))
+
+fit1 = robincar_glm(
+  df = df1_final, 
+  treat_col = "Treatment",
+  response_col = "YP_delta_HOMA_IR_4m",
+  formula = as.formula(form_str),
+  contrast_h = "diff"
+)
+
+fit1$contrast$result
+se1.1_rob = as.numeric(round(fit1$contrast$result[1,3], 3))
+
+se1.2_rob = as.numeric(round(fit1$contrast$result[2,3], 3))
 ```
 
 # Trial 2
 ## Load Data
 ```{r}
-df2 = read_csv("cleaned_data/trial2.csv")
+df2 = read_rds("cleaned_data/trial2.rds")
 ```
+
+## Cleaning
+```{r}
+# 400 -> 368
+df2_clean = df2 %>% 
+  filter(!if_any(starts_with("YP"), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+  )
+```
+
+## unadjusted
+```{r}
+covariates = df2_clean %>%
+  select(starts_with("X_")) %>%
+  names()
+
+# Create formula string
+form_str = paste("YP_recovery_time ~ Treatment + ", paste(covariates, collapse = " + "))
+
+fit2 = lm(as.formula(form_str), data=df2_clean)
+
+summary(fit2)
+```
+
+## ancova
+```{r}
+
+```
+
+## robincar
+```{r}
+robincar_glm(
+  df = df2_clean, 
+  treat_col = "Treatment",
+  response_col = "YP_recovery_time",
+  formula = as.formula(form_str),
+  contrast_h = "diff"
+)
+```
+
 
 # Trial 3
 ## Load Data
 ```{r}
-df3 = read_csv("cleaned_data/trial3.csv")
+df3 = read_rds("cleaned_data/trial3.rds")
 ```
 
 # Trial 4
 ## Load Data
 ```{r}
-df4 = read_csv("cleaned_data/trial4.csv")
+df4 = read_rds("cleaned_data/trial4.rds")
 ```
 ## Cleaning
 ```{r}
 anyNA(df4)
-
-lapply(df4, typeof)
 ```
-
-```{r}
-unique(df4$X_Age_0w)
-
-df4$X_Age_0w = factor(df4$X_Age_0w, levels = c(
-  "31-40", "41-50", "51-60", "61-70", "71-80"
-), ordered = TRUE)
-
-df4 = df4 %>% 
-  mutate(Treatment = relevel(factor(Treatment), ref = "Placebo"))
-
-df4$X_Sex_0w = factor(df4$X_Sex_0w)
-```
-
-## ancova
+## unadjusted
 ```{r}
 # Identify outcome and predictor variables
 outcomes = names(df4) %>% str_subset("^YP")
@@ -115,42 +181,81 @@ predictors = setdiff(names(df4), outcomes)
 fit4 = outcomes %>%
   set_names() %>%  # names the list by outcomes
   map(~ {
-    formula <- reformulate(predictors, response = .x)
+    formula = reformulate("Treatment", response = .x)
     lm(formula, data = df4)
   })
 
-print(paste("The estimate ATE(change in TGF) for VD is", round(summary(fit4[[1]])$coefficients[2,1],2),
-            "with se", round(summary(fit4[[1]])$coefficients[2,2],2)))
+print(paste("The estimate ATE(change in TGF) for VD is", round(summary(fit4[[1]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[1]])$coefficients[2,2],3)))
 
-print(paste("The estimate ATE(change in TIMP) for VD is", round(summary(fit4[[2]])$coefficients[2,1],2),
-            "with se", round(summary(fit4[[2]])$coefficients[2,2],2)))
+print(paste("The estimate ATE(change in TIMP) for VD is", round(summary(fit4[[2]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[2]])$coefficients[2,2],3)))
 
-print(paste("The estimate ATE(change in MMP) for VD is", round(summary(fit4[[3]])$coefficients[2,1],2),
-            "with se", round(summary(fit4[[3]])$coefficients[2,2],2)))
+print(paste("The estimate ATE(change in MMP) for VD is", round(summary(fit4[[3]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[3]])$coefficients[2,2],3)))
 
-print(paste("The estimate ATE(change in P3NP) for VD is", round(summary(fit4[[4]])$coefficients[2,1],2),
-            "with se", round(summary(fit4[[4]])$coefficients[2,2],2)))
+print(paste("The estimate ATE(change in P3NP) for VD is", round(summary(fit4[[4]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[4]])$coefficients[2,2],3)))
 ```
+
+## ancova
+```{r}
+# Fit lm for each YP outcome using only X predictors
+fit4 = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula = reformulate(predictors, response = .x)
+    lm(formula, data = df4)
+  })
+
+print(paste("The estimate ATE(change in TGF) for VD is", round(summary(fit4[[1]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[1]])$coefficients[2,2],3)))
+
+print(paste("The estimate ATE(change in TIMP) for VD is", round(summary(fit4[[2]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[2]])$coefficients[2,2],3)))
+
+print(paste("The estimate ATE(change in MMP) for VD is", round(summary(fit4[[3]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[3]])$coefficients[2,2],3)))
+
+print(paste("The estimate ATE(change in P3NP) for VD is", round(summary(fit4[[4]])$coefficients[2,1],3),
+            "with se", round(summary(fit4[[4]])$coefficients[2,2],3)))
+```
+## robincar
+```{r}
+covariates = names(df4) %>% str_subset("^X_")
+
+fit4 = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~
+    robincar_linear(
+      df = df4, 
+      treat_col = "Treatment",
+      response_col = .x,
+      covariate_cols = covariates,
+      adj_method = "ANCOVA",
+      contrast_h = "diff"))
+fit4[[1]]$contrast
+fit4[[2]]$contrast
+fit4[[3]]$contrast
+fit4[[4]]$contrast
+```
+
 
 # Trial 5
 ## Load Data
 ```{r}
-df5 = read_csv("cleaned_data/trial5.csv")
+df5 = read_rds("cleaned_data/trial5.rds")
 ```
+
 ## Cleaninig
 ```{r}
 df5_clean = df5 %>% 
-  mutate(Treatment = relevel(factor(Treatment), ref = "Usual Care")) %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>% 
   select(
     Treatment,
     starts_with("YP"),
     starts_with("X")
   ) %>% 
-  mutate(across(
-    where(~ is.numeric(.) && all(na.omit(unique(.)) %in% c(0, 1))),
-    ~ factor(., levels = c(0, 1))
-  )) %>% 
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -159,12 +264,23 @@ df5_clean = df5 %>%
         replace(., is.na(.), Mode(., na.rm = TRUE)[1])
       }
   )) %>% 
-  mutate(X_hospital_0m = factor(X_hospital_0m))
+  mutate(
+    YP_composite_14d = as.numeric(YP_composite_14d)
+  )
 ```
 
+
+## unadjusted
 ```{r}
-str(df5_clean)
+fit5 = lm(as.numeric(YP_composite_14d) ~ Treatment, data = df5_clean)
+
+est5 = summary(fit5)$coefficients[2,1]
+se5 = summary(fit5)$coefficients[2,2]
+
+print(paste("The estimate ATE for Alert is", round(est5,3),
+            "with se", round(se5,3)))
 ```
+
 ## ancova
 ```{r}
 fit5 = lm(as.numeric(YP_composite_14d) ~ ., data = df5_clean)
@@ -172,9 +288,24 @@ fit5 = lm(as.numeric(YP_composite_14d) ~ ., data = df5_clean)
 est5 = summary(fit5)$coefficients[2,1]
 se5 = summary(fit5)$coefficients[2,2]
 
-print(paste("The estimate ATE for Alert is", round(est5,2),
-            "with se", round(se5,2)))
+print(paste("The estimate ATE for Alert is", round(est5,3),
+            "with se", round(se5,3)))
 ```
+
+## robincar
+```{r}
+
+covariates = names(df5_clean) %>% str_subset("^X_")
+
+robincar_linear(
+      df = df5_clean, 
+      treat_col = "Treatment",
+      response_col = "YP_composite_14d",
+      covariate_cols = covariates,
+      adj_method = "ANCOVA",
+      contrast_h = "diff")
+```
+
 # Trial 6
 ## Load Data
 ```{r}
@@ -309,6 +440,16 @@ se8 = summary(fit8)$coefficients[2,2]
 print(paste("The estimate ATE for Ivermectin is", round(est8,2),
             "with se", round(se8,2)))
 ```
+
+```{r}
+covariates = df8_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+# Create formula string
+form_str = paste("YP_RTPCR_negative_6d ~ Treatment + ", paste(covariates, collapse = " + "))
+```
+
 
 # Trial 9
 ## Load Data
