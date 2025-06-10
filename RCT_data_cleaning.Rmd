@@ -578,6 +578,10 @@ df6_final = df6 %>%
     X_sbp                    = as.numeric(al_sbp),
     X_max_imt                = as.numeric(al_max_imt)
   ) %>%
+  mutate(
+    across(c(X_sex, X_statin, X_dm_treatment), as.factor),
+    Treatment = relevel(factor(Treatment), ref = "Conventional")
+  ) %>% 
   select(
     Treatment,
     YP_delta_CCA_IMT_24m,
@@ -591,7 +595,8 @@ df6_final = df6 %>%
 ## Output Data
 ```{r}
 # write trial 6
-write.csv(df6_final, "cleaned_data/trial6.csv", row.names = FALSE)
+write_csv(df6_final, "cleaned_data/trial6.csv")
+write_rds(df6_final, "cleaned_data/trial6.rds")
 ```
 
 
@@ -635,6 +640,10 @@ df7_final = df7 %>%
     X_bpco                = bpco,
     X_liver               = liver
   ) %>%
+  mutate(
+    Treatment = relevel(factor(Treatment), ref = "Casirivimab/Imdevimab"),
+    
+  ) %>% 
   select(
     Treatment,
     starts_with("YP_"),
@@ -644,10 +653,12 @@ df7_final = df7 %>%
 ```
 
 
+
 ## Output Data
 ```{r}
 # write trial 7
-write.csv(df7_final, "cleaned_data/trial7.csv", row.names = FALSE)
+write_csv(df7_final, "cleaned_data/trial7.csv")
+write_rds(df7_final, "cleaned_data/trial7.rds")
 ```
 
 # Trial 8
@@ -714,11 +725,12 @@ df8_final = df8 %>%
   ) %>%
   # now compute onset‐of‐symptoms in days
   mutate(
-    X_onset_symptoms_days = map_dbl(`onset of symptoms`, convert_to_days),
-    X_Age                = age,
-    X_Sex                = sex,
-    X_comorbidities      = comorbidities,
-    X_severity_admission = tolower(severity_adm)
+    X_Age_0d                = age,
+    X_Sex_0d                = factor(tolower(sex)),
+    X_comorbidities_0d      = comorbidities,
+    X_severity_admission_0d = factor(tolower(severity_adm), levels = c("mild", "moderate"), ordered = T),
+    Treatment = relevel(factor(Treatment), ref = "Placebo"),
+    across(c(starts_with("YS"), YP_RTPCR_negative_6d), as.factor)
   ) %>%
 
   select(
@@ -729,10 +741,12 @@ df8_final = df8 %>%
   )
 ```
 
+
 ## Output Data
 ```{r}
 # write trial 8
-write.csv(df8_final, "cleaned_data/ cleaned_data/trial8.csv", row.names = FALSE)
+write_csv(df8_final, "cleaned_data/trial8.csv")
+write_rds(df8_final, "cleaned_data/trial8.rds")
 ```
 
 # Trial 9
@@ -744,6 +758,7 @@ df9 = read_sav("raw_data/9/9.sav")
 ## Cleaning
 ```{r}
 df9_final = df9 %>% 
+  zap_missing() %>%
     mutate(
     # Primary outcome: need for manual removal of placenta
     YP_manual_removal      = as.integer(pla.deliv == 3),
@@ -760,11 +775,11 @@ df9_final = df9 %>%
     X_pulse_0d                      = pulse.b4,
     X_bp_sys_0d                     = bp.b4.sys,
     X_bp_dia_0d                     = bp.b4.dia,
-    X_hb_before_delivery            = hbb4deli,
-    X_country                   = Country,
-    X_age                       = agemod,
-    X_birth_weight               = birthwei,
-    X_GestationWeeks            = gest.wks,
+    X_hb_before_delivery_0d           = hbb4deli,
+    X_country_0d                   = Country,
+    X_age_0d                       = agemod,
+    X_birth_weight_0d               = birthwei,
+    X_GestationWeeks_0d            = gest.wks,
     # Secondary outcomes from the paper
     YS_placental_delivery           = pla.deliv,
     YS_time_to_delivery             = pd.time,
@@ -788,6 +803,81 @@ df9_final = df9 %>%
     YS_general_anaesthetic          = mrop.ga,
     YS_mother_sep_gt1h              = moth.sep
   ) %>%
+  mutate(
+    Treatment = relevel(factor(Treatment), ref = "Placebo"),
+    # across(c(YP_manual_removal, YS_placental_delivery, YS_blood_loss_over_500ml,
+    #          YS_blood_loss_over_1000ml, YS_blood_transfusion, YS_maternal_pyrexia,
+    #          ))
+    
+    # Convert multi-category variables to factors
+    YS_placental_delivery = factor(YS_placental_delivery,
+                                 levels = c(1, 2, 3, 4),
+                                 labels = c("Spontaneous", "Controlled_cord_traction", 
+                                          "Manual_removal", "Other")),
+    
+    # Convert binary variables to factors (for consistency and clarity)
+    YS_blood_transfusion = factor(YS_blood_transfusion,
+                                levels = c(1, 2),
+                                labels = c("No", "Yes")),
+    
+    YS_mother_sep_gt1h = factor(YS_mother_sep_gt1h,
+                              levels = c(1, 2),
+                              labels = c("No", "Yes")),
+    
+    YS_general_anaesthetic = factor(YS_general_anaesthetic,
+                                  levels = c(1, 2, 3),
+                                  labels = c("No", "Yes", "Not_applicable")),
+    
+    YS_side_effect = factor(YS_side_effect,
+                          levels = c(1, 2),
+                          labels = c("No", "Yes")),
+    
+    YS_maternal_pyrexia = factor(YS_maternal_pyrexia,
+                               levels = c(1, 2),
+                               labels = c("No", "Yes")),
+    
+    YS_return_to_theatre = factor(YS_return_to_theatre,
+                                levels = c(1, 2),
+                                labels = c("No", "Yes")),
+    
+    YS_antibiotic_use = factor(YS_antibiotic_use,
+                             levels = c(1, 2),
+                             labels = c("No", "Yes")),
+    
+    YS_further_treatment = factor(YS_further_treatment,
+                                levels = c(1, 2),
+                                labels = c("No", "Yes")),
+    
+    YS_maternal_mortality = factor(YS_maternal_mortality,
+                                 levels = c(1, 2),
+                                 labels = c("No", "Yes")),
+    
+    YS_baby_mortality = factor(YS_baby_mortality,
+                             levels = c(1, 2),
+                             labels = c("No", "Yes")),
+    
+    # Convert binary 0/1 variables to factors for consistency
+    YP_manual_removal = factor(YP_manual_removal,
+                             levels = c(0, 1),
+                             labels = c("No", "Yes")),
+    
+    YS_blood_loss_over_500ml = factor(YS_blood_loss_over_500ml,
+                                    levels = c(0, 1),
+                                    labels = c("No", "Yes")),
+    
+    YS_blood_loss_over_1000ml = factor(YS_blood_loss_over_1000ml,
+                                     levels = c(0, 1),
+                                     labels = c("No", "Yes")),
+    
+    YS_hb_fall_over_10pct = factor(YS_hb_fall_over_10pct,
+                                 levels = c(0, 1),
+                                 labels = c("No", "Yes")),
+    
+    YS_hb_fall_over_20pct = factor(YS_hb_fall_over_20pct,
+                                 levels = c(0, 1),
+                                 labels = c("No", "Yes")),
+    X_country_0d = as_factor(X_country_0d)
+  ) %>% 
   # 5. Select in the desired order via starts_with()
   select(
     Treatment,
@@ -797,10 +887,12 @@ df9_final = df9 %>%
   )
 ```
 
+
 ## Output Data
 ```{r}
 # trial 9
-write.csv(df9_final, "cleaned_data/trial9.csv", row.names = FALSE)
+write_csv(df9_final, "cleaned_data/trial9.csv")
+write_rds(df9_final, "cleaned_data/trial9.rds")
 ```
 
 
@@ -808,10 +900,10 @@ write.csv(df9_final, "cleaned_data/trial9.csv", row.names = FALSE)
 ## Load Data
 ```{r}
 # trial 10
-df10_patients = read_xlsx("raw_data/31/10.xlsx", sheet = 2)
-df10_intubation = read_xlsx("raw_data/31/10.xlsx", sheet = 3)
-df10_anaes = read_xlsx("raw_data/31/10.xlsx", sheet = 4)
-df10_postop = read_xlsx("raw_data/31/10.xlsx", sheet = 5)
+df10_patients = read_xlsx("raw_data/10/10.xlsx", sheet = 2)
+df10_intubation = read_xlsx("raw_data/10/10.xlsx", sheet = 3)
+df10_anaes = read_xlsx("raw_data/10/10.xlsx", sheet = 4)
+df10_postop = read_xlsx("raw_data/10/10.xlsx", sheet = 5)
 ```
 
 
@@ -821,13 +913,13 @@ df10_pat_clean = df10_patients %>%
   rename(
     # Keep ID so we can join; drop later if desired
     ID         = ID,
-    X_center   = center,
+    X_center_0d   = center,
     Treatment  = arm,
     X_sex_0d   = pre_sexe,
     X_age_0d   = pre_age,
     X_size_0d  = pre_size,
     X_weight_0d= pre_weight,
-    X_surgery_type_0d   = pre_surgery,
+    X_surgery_0d   = pre_surgery,
     X_arne_score_0d     = pre_arne_score,
     X_known_DI_0d       = pre_known_DI,
     X_pathology_0d      = pre_pathology,
@@ -913,6 +1005,11 @@ df10_all = df10_pat_clean %>%
 
 # 7. Drop any columns we no longer need (e.g., ID) if desired
 df10_final = df10_all %>%
+  mutate(
+    across(c(YP_help_needed_intub, X_center_0d, X_sex_0d, X_age_0d), as_factor),
+    Treatment = relevel(factor(Treatment), ref = "No Video"),
+    X_size_0d = factor(X_size_0d, levels = c("< 160", "160 < < 180", "> 180"), ordered = TRUE)
+  ) %>% 
   select(
     Treatment,
     starts_with("YP"),
@@ -925,7 +1022,8 @@ df10_final = df10_all %>%
 ## Output Data
 ```{r}
 # trial 10
-write.csv(df10_final, "cleaned_data/trial10.csv", row.names = FALSE)
+write_csv(df10_final, "cleaned_data/trial10.csv")
+write_rds(df10_final, "cleaned_data/trial10.rds")
 ```
 
 
@@ -951,40 +1049,44 @@ df11_final = df11 %>%
 
     # ───── SECONDARY OUTCOMES ─────
     # Alpha diversity
-    YS_delta_shannon_oral_8w = shannon_ow_chg,
-    YS_delta_shannon_sputum_8w = shannon_spt_chg,
-    YS_delta_simpson_oral_8w = simpson_ow_chg,
-    YS_delta_simpson_sputum_8w = simpson_spt_chg,
+    YS_delta_shannon_oral_8w = as.numeric(shannon_ow_chg),
+    YS_delta_shannon_sputum_8w = as.numeric(shannon_spt_chg),
+    YS_delta_simpson_oral_8w = as.numeric(simpson_ow_chg),
+    YS_delta_simpson_sputum_8w = as.numeric(simpson_spt_chg),
 
     # Inflammatory markers
-    YS_delta_crp_8w = crp_changew8,
-    YS_delta_fibrinogen_8w = fibrinogen_changew8,
-    YS_delta_leukocyte_8w = leukocyte_changew8,
+    YS_delta_crp_8w = as.numeric(crp_changew8),
+    YS_delta_fibrinogen_8w = as.numeric(fibrinogen_changew8),
+    YS_delta_leukocyte_8w = as.numeric(leukocyte_changew8),
 
     # Symptom scores
-    YS_delta_sgrq_total_8w = sgrq_total_changew8,
-    YS_delta_bcss_8w = bcss_changew8,
+    YS_delta_sgrq_total_8w = as.numeric(sgrq_total_changew8),
+    YS_delta_bcss_8w = as.numeric(bcss_changew8),
 
     # ───── COVARIATES ─────
-    X_age = age_range,
-    X_sex = sex,
-    X_smoked = smoked,
-    X_current_smoker = current_smoker,
-    X_years_smoke = years_smoke,
-    X_pack_years = pack_years,
+    X_age_0w = age_range,
+    X_sex_0w = sex,
+    X_smoked_0w = smoked,
+    X_current_smoker_0w = current_smoker,
+    X_years_smoke_0w = years_smoke,
+    X_pack_years_0w = pack_years,
 
     # Baseline inflammatory markers
     X_crp_0w = crp,
-    X_fibrinogen_0w = fibrinogen,
+    X_fibrinogen_0w = as.numeric(fibrinogen),
     X_leukocyte_0w = leukocyte,
 
     # Baseline microbiota composition
-    X_biomass_raw_ow1 = biomass_raw_ow1,
-    X_biomass_raw_spt1 = biomass_raw_spt1,
-    X_shannon_ow1 = shannon_ow1,
-    X_shannon_spt1 = shannon_spt1,
-    X_simpson_ow1 = simpson_ow1,
-    X_simpson_spt1 = simpson_spt1
+    X_biomass_log10_raw_ow1_0w = log10(biomass_raw_ow1),
+    X_biomass_log10_raw_spt1_0w = log10(as.numeric(biomass_raw_spt1)),
+    X_shannon_ow1_0w = shannon_ow1,
+    X_shannon_spt1_0w = as.numeric(shannon_spt1),
+    X_simpson_ow1_0w = simpson_ow1,
+    X_simpson_spt1_0w = as.numeric(simpson_spt1),
+    
+    Treatment = relevel(factor(Treatment), ref = "placebo"),
+    across(c(X_sex_0w, X_current_smoker_0w), as_factor),
+    X_age_0w = factor(X_age_0w, levels = c("40-49", "50-59", "60-69", "70-79", "80-84"), ordered = T)
   ) %>%
   select(
     Treatment,
@@ -996,10 +1098,12 @@ df11_final = df11 %>%
   )
 ```
 
+
 ## Output Data
 ```{r}
 # trial 11
-write.csv(df11_final, "cleaned_data/trial11.csv", row.names = FALSE)
+write_csv(df11_final, "cleaned_data/trial11.csv")
+write_rds(df11_final, "cleaned_data/trial11.rds")
 ```
 
 
@@ -1141,32 +1245,36 @@ df13_final = df13 %>%
     YP_TOTALBLOOD       = totalbld_ARGoxy,  # total measured blood loss
 
     # --- Secondary outcomes ---
-    YS_BLD_30MIN         = sangre_30,         # blood loss at 30 min
-    YS_BLD_60MIN         = sangre_60,         # blood loss at 60 min
-    YS_SI_15MIN         = SI_15min,          # shock index at 15 min
-    YS_SI_30MIN         = SI_30min,          # shock index at 30 min
-    YS_SI_45MIN         = SI_45min,          # shock index at 45 min
-    YS_SI_60MIN         = SI_60min,          # shock index at 60 min
+    YS_BLD_30min         = sangre_30,         # blood loss at 30 min
+    YS_BLD_60min         = sangre_60,         # blood loss at 60 min
+    YS_SI_15min         = SI_15min,          # shock index at 15 min
+    YS_SI_30min         = SI_30min,          # shock index at 30 min
+    YS_SI_45min         = SI_45min,          # shock index at 45 min
+    YS_SI_60min         = SI_60min,          # shock index at 60 min
     YS_PPH1000          = totalbld1000,      # PPH ≥ 1 000 mL (yes/no)
     YS_UTEROTONICOS     = uterotonicos,      # any additional uterotonics
     YS_HB_CHG           = Hbdiff,            # Δ hemoglobin pre→post
 
     # Optional vitals (if you want them as secondary, otherwise drop these)
-    YS_SYSBP_30MIN      = presion_sist_30,   # systolic BP @ 30 min
-    YS_DIASBP_30MIN     = presion_diast_30,  # diastolic BP @ 30 min
-    YS_HR_30MIN         = frecuencia_30,      # HR @ 30 min
-    YS_SYSBP_60MIN      = presion_sist_60,   # systolic BP @ 60 min
-    YS_DIASBP_60MIN     = presion_diast_60,  # diastolic BP @ 60 min
-    YS_HR_60MIN         = frecuencia_60,      # HR @ 60 min
+    YS_SYSBP_30min      = presion_sist_30,   # systolic BP @ 30 min
+    YS_DIASBP_30min     = presion_diast_30,  # diastolic BP @ 30 min
+    YS_HR_30min         = frecuencia_30,      # HR @ 30 min
+    YS_SYSBP_60min      = presion_sist_60,   # systolic BP @ 60 min
+    YS_DIASBP_60min     = presion_diast_60,  # diastolic BP @ 60 min
+    YS_HR_60min         = frecuencia_60,      # HR @ 60 min
 
     # --- Baseline covariates ---
-    X_AGE               = edad,              # maternal age (years)
-    X_PARITY            = numembarazos,      # number of pregnancies
-    X_HB_BASELINE       = Nivel_hb,          # hemoglobin on admission
-    X_INDUCTION         = induccion,         # labor induction (yes/no)
-    X_SI_BASELINE       = SI_baseline        # baseline shock index
+    X_AGE_0min               = edad,              # maternal age (years)
+    X_PARITY_0min            = numembarazos,      # number of pregnancies
+    X_HB_BASELINE_0min       = Nivel_hb,          # hemoglobin on admission
+    X_INDUCTION_0min         = induccion,         # labor induction (yes/no)
+    X_SI_BASELINE_0min       = SI_baseline        # baseline shock index
   ) %>%
-
+  mutate(
+    YP_PPH500 = factor(YP_PPH500),
+    Treatment = relevel(factor(Treatment), ref = "IM injection"),
+    X_INDUCTION_0min = factor(X_INDUCTION_0min)
+  ) %>% 
   # 3. Reorder columns as requested
   select(
     Treatment,
@@ -1178,6 +1286,7 @@ df13_final = df13 %>%
   ) %>% 
   filter(!is.na(Treatment))
 ```
+
 
 ## Output Data
 ```{r}
