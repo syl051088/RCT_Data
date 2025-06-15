@@ -1542,9 +1542,157 @@ robincar_linear(
 ```
 
 # Trial 21
+## Load Data
+```{r}
+df21 = read_rds("cleaned_data/trial21.rds")
+```
 
+## Cleaning
+```{r}
+df21_clean = df21 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X"))
+```
+
+```{r}
+anyNA(df21_clean)
+```   
+
+## unadjusted
+```{r}
+covariates = df21_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+predictors = c("Treatment", covariates)
+
+fit = lm(YP_days_to_tb_initiation ~ Treatment, data = df21_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+
+est = summary(fit)$coefficients[3,1]
+se = summary(fit)$coefficients[3,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+
+## ancova
+```{r}
+formula = reformulate(predictors, response = "YP_days_to_tb_initiation")
+fit = lm(formula, data = df21_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+
+est = summary(fit)$coefficients[3,1]
+se = summary(fit)$coefficients[3,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+## robincar
+```{r}
+covariates = df21_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+robincar_linear(
+  df = df21_clean,
+  response_col = "YP_days_to_tb_initiation",
+  treat_col = "Treatment",
+  covariate_cols = predictors,
+  adj_method = "ANCOVA",
+  contrast_h = "diff"
+  )
+```
 # Trial 22
+## Load Data
+```{r}
+df22 = read_rds("cleaned_data/trial22.rds")
+```
 
+## Cleaning
+```{r}
+df22_clean = df22 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment, ClusterID), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  select(
+    Treatment,
+    n_participants,
+    starts_with("YP"),
+    starts_with("X"))
+```
+
+```{r}
+anyNA(df22_clean)
+```
+
+## unadjusted
+```{r}
+covariates = df22_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+covariates = c(covariates, "n_participants")
+
+predictors = c("Treatment", covariates)
+
+fit = lm(YP_Birthwgt ~ Treatment, data = df22_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+
+## ancova
+```{r}
+formula = reformulate(predictors, response = "YP_Birthwgt")
+
+fit = lm(formula, data = df22_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+## robincar
+```{r}
+robincar_linear(
+  df = df22_clean,
+  response_col = "YP_Birthwgt",
+  treat_col = "Treatment",
+  covariate_cols = covariates,
+  adj_method = "ANCOVA",
+  contrast_h = "diff"
+  )
+```
 # Trial 23
 ## Load Data
 ```{r}
@@ -1711,6 +1859,110 @@ robincar_linear(
   )
 ```
 # Trial 25
+## Load Data
+```{r}
+df25 = read_rds("cleaned_data/trial25.rds")
+```
+
+## Cleaning
+```{r}
+# 55 -> 48
+df25_clean = df25 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+    )
+```
+
+```{r}
+anyNA(df25_clean)
+```
+
+## unadjusted
+```{r}
+outcomes = df25_clean %>% 
+  select(YP_delta_GQ1_8w, YP_delta_GQ2_8w, YP_delta_GQ3_8w, YP_delta_GQ4_8w,
+         YP_delta_GQ5_8w, YP_delta_GQ6_8w, YP_delta_GQ7_8w, YP_delta_GQ8_8w, 
+         YP_delta_GQ9_8w, YP_delta_BOF_8w, YP_delta_WGTT_8w) %>%
+  names()
+
+covariates = df25_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+predictors = c("Treatment", covariates)
+
+# Fit lm for each YP outcome using only X predictors
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula = reformulate("Treatment", response = .x)
+    lm(formula, data = df25_clean)
+  })
+
+results = sapply(fit, function(m) {
+  c(Estimate = round(summary(m)$coefficients[2, 1], 3),
+    SE       = round(summary(m)$coefficients[2, 2], 3))
+})
+
+# Transpose to get estimates and SE as columns
+t(results)
+```
+
+## ancova
+```{r}
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula = reformulate(predictors, response = .x)
+    lm(formula, data = df25_clean)
+  })
+
+results = sapply(fit, function(m) {
+  c(Estimate = round(summary(m)$coefficients[2, 1], 3),
+    SE       = round(summary(m)$coefficients[2, 2], 3))
+})
+
+# Transpose to get estimates and SE as columns
+t(results)
+```
+
+
+## robincar
+```{r}
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~
+    robincar_linear(
+      df = df25_clean, 
+      treat_col = "Treatment",
+      response_col = .x,
+      covariate_cols = covariates,
+      adj_method = "ANCOVA",
+      contrast_h = "diff"))
+fit[[1]]$contrast
+fit[[2]]$contrast
+fit[[3]]$contrast
+fit[[4]]$contrast
+fit[[5]]$contrast
+fit[[6]]$contrast
+fit[[7]]$contrast
+fit[[8]]$contrast
+fit[[9]]$contrast
+fit[[10]]$contrast
+fit[[11]]$contrast
+```
+
 
 # Trial 26
 ## Load Data
@@ -1822,4 +2074,358 @@ fit = outcomes %>%
 fit[[1]]$contrast
 fit[[2]]$contrast
 fit[[3]]$contrast
+```
+
+# Trial 27
+## Load Data
+```{r}
+df27 = read_rds("cleaned_data/trial27.rds")
+```
+
+## Cleaning
+```{r}
+# 101 -> 87
+df27_clean = df27 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  mutate(
+    YP_bleeding_category3 = as.numeric(YP_bleeding_category3),
+    YP_surgical_problem_bleeding = as.numeric(YP_surgical_problem_bleeding),
+    YP_bleeding_score = as.numeric(YP_bleeding_score)
+  ) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X")
+    )
+```
+
+```{r}
+anyNA(df27_clean)
+```
+
+## unadjusted
+```{r}
+outcomes = df27_clean %>% 
+  select(YP_bleeding_score, YP_bleeding_category3, YP_surgical_problem_bleeding) %>%
+  names()
+
+covariates = df27_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+predictors = c("Treatment", covariates)
+
+# Fit lm for each YP outcome using only X predictors
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula = reformulate("Treatment", response = .x)
+    lm(formula, data = df27_clean)
+  })
+
+results = sapply(fit, function(m) {
+  c(Estimate = round(summary(m)$coefficients[2, 1], 3),
+    SE       = round(summary(m)$coefficients[2, 2], 3))
+})
+
+# Transpose to get estimates and SE as columns
+t(results)
+```
+
+## ancova
+```{r}
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula = reformulate(predictors, response = .x)
+    lm(formula, data = df27_clean)
+  })
+
+results = sapply(fit, function(m) {
+  c(Estimate = round(summary(m)$coefficients[2, 1], 3),
+    SE       = round(summary(m)$coefficients[2, 2], 3))
+})
+
+# Transpose to get estimates and SE as columns
+t(results)
+```
+
+
+## robincar
+```{r}
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~
+    robincar_linear(
+      df = df27_clean, 
+      treat_col = "Treatment",
+      response_col = .x,
+      covariate_cols = covariates,
+      adj_method = "ANCOVA",
+      contrast_h = "diff"))
+fit[[1]]$contrast
+fit[[2]]$contrast
+fit[[3]]$contrast
+```
+
+# Trial 28
+## Load Data
+```{r}
+df28 = read_rds("cleaned_data/trial28.rds")
+```
+
+## Cleaning
+```{r}
+df28_clean = df28 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  mutate(
+    YP_ContrSBP_6m = as.numeric(YP_ContrSBP_6m)
+  ) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X"))
+```
+
+```{r}
+anyNA(df28_clean)
+```
+
+## unadjusted
+```{r}
+fit = lm(YP_ContrSBP_6m ~ Treatment, data = df28_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+
+## ancova
+```{r}
+fit = lm(YP_ContrSBP_6m ~ ., data = df28_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+## robincar
+```{r}
+covariates = df28_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+robincar_linear(
+  df = df28_clean,
+  response_col = "YP_ContrSBP_6m",
+  treat_col = "Treatment",
+  covariate_cols = covariates,
+  adj_method = "ANCOVA",
+  contrast_h = "diff"
+  )
+```
+
+# Trial 29
+## Load Data
+```{r}
+df29 = read_rds("cleaned_data/trial29.rds")
+```
+
+## Cleaning
+```{r}
+# 101 -> 87
+df29_clean = df29 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment, n_participants), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  mutate(
+    YP_Stunted_36m = as.numeric(YP_Stunted_36m)
+  ) %>% 
+  select(
+    Treatment,
+    n_participants,
+    starts_with("YP"),
+    starts_with("X")
+    )
+```
+
+```{r}
+anyNA(df29_clean)
+```
+
+## unadjusted
+```{r}
+outcomes = df29_clean %>% 
+  select(YP_HAZ_36m, YP_Stunted_36m, YP_MDAT_GM_Z_36m, YP_MDAT_FM_Z_36m, YP_MDAT_LANG_Z_36m,
+         YP_MDAT_SOC_Z_36m, YP_AbsGamma_36m, YP_TotalPower_36m, YP_RelGamma_36m, YP_SRT_36m) %>%
+  names()
+
+covariates = df29_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+covariates = c(covariates, "n_participants")
+predictors = c("Treatment", covariates)
+
+# Fit lm for each YP outcome using only X predictors
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula = reformulate("Treatment", response = .x)
+    lm(formula, data = df29_clean)
+  })
+
+results = sapply(fit, function(m) {
+  c(Estimate = round(summary(m)$coefficients[2, 1], 3),
+    SE       = round(summary(m)$coefficients[2, 2], 3))
+})
+
+# Transpose to get estimates and SE as columns
+t(results)
+```
+
+## ancova
+```{r}
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~ {
+    formula = reformulate(predictors, response = .x)
+    lm(formula, data = df29_clean)
+  })
+
+results = sapply(fit, function(m) {
+  c(Estimate = round(summary(m)$coefficients[2, 1], 3),
+    SE       = round(summary(m)$coefficients[2, 2], 3))
+})
+
+# Transpose to get estimates and SE as columns
+t(results)
+```
+
+
+## robincar
+```{r}
+fit = outcomes %>%
+  set_names() %>%  # names the list by outcomes
+  map(~
+    robincar_linear(
+      df = df29_clean, 
+      treat_col = "Treatment",
+      response_col = .x,
+      covariate_cols = covariates,
+      adj_method = "ANCOVA",
+      contrast_h = "diff"))
+fit[[1]]$contrast
+fit[[2]]$contrast
+fit[[3]]$contrast
+fit[[4]]$contrast
+fit[[5]]$contrast
+fit[[6]]$contrast
+fit[[7]]$contrast
+fit[[8]]$contrast
+fit[[9]]$contrast
+fit[[10]]$contrast
+```
+
+# Trial 30
+## Load Data
+```{r}
+df30 = read_rds("cleaned_data/trial30.rds")
+```
+
+## Cleaning
+```{r}
+df30_clean = df30 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  mutate(
+    YP_Adherence = as.numeric(YP_Adherence)
+  ) %>% 
+  select(
+    Treatment,
+    starts_with("YP"),
+    starts_with("X"))
+```
+
+```{r}
+anyNA(df30_clean)
+```
+
+## unadjusted
+```{r}
+fit = lm(YP_Adherence ~ Treatment, data = df30_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+
+est = summary(fit)$coefficients[3,1]
+se = summary(fit)$coefficients[3,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+
+## ancova
+```{r}
+fit = lm(YP_Adherence ~ ., data = df30_clean)
+
+est = summary(fit)$coefficients[2,1]
+se = summary(fit)$coefficients[2,2]
+
+c(round(est, 3), round(se, 3))
+
+est = summary(fit)$coefficients[3,1]
+se = summary(fit)$coefficients[3,2]
+
+c(round(est, 3), round(se, 3))
+```
+
+## robincar
+```{r}
+covariates = df30_clean %>% 
+  select(starts_with("X_")) %>%
+  names()
+
+robincar_linear(
+  df = df30_clean,
+  response_col = "YP_Adherence",
+  treat_col = "Treatment",
+  covariate_cols = covariates,
+  adj_method = "ANCOVA",
+  contrast_h = "diff"
+  )
 ```

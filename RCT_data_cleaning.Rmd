@@ -1906,19 +1906,19 @@ df21_final = df21%>%
     Treatment                         = group,
     
     # Baseline covariates (prefix X_)
-    X_cough                           = cough,
-    X_duration_of_cough_weeks            = duration_of_cough_weeks,
-    X_night_sweats                    = night_sweats,
-    X_weight_loss                     = weight_loss,
-    X_fever                           = fever,
-    X_reported_hiv_status             = reported_hiv_status,
-    X_antiretroviral_therapy          = taking_antiretoviral_therapy,
+    X_cough_0d                           = cough,
+    X_duration_of_cough_weeks_0d            = duration_of_cough_weeks,
+    X_night_sweats_0d                    = night_sweats,
+    X_weight_loss_0d                     = weight_loss,
+    X_fever_0d                           = fever,
+    X_reported_hiv_status_0d             = reported_hiv_status,
+    X_antiretroviral_therapy_0d          = taking_antiretoviral_therapy,
     X_eq5d_0d                         = euro_qol_5q_5d_3l_zimbabwe_tariff,
-    X_cxr_done                        = cxr_done,
-    X_cad4tbv5_score                  = cad4t_bv5_score,
-    X_cad4tbv5_above_threshold        = cad4t_bv5_above_threshold,
-    X_sputum_xpert_done               = sputum_xpert_done,
-    X_sputum_xpert_result             = sputum_xpert_result,
+    X_cxr_done_0d                        = cxr_done,
+    X_cad4tbv5_score_0d                  = cad4t_bv5_score,
+    X_cad4tbv5_above_threshold_0d        = cad4t_bv5_above_threshold,
+    X_sputum_xpert_done_0d               = sputum_xpert_done,
+    X_sputum_xpert_result_0d             = sputum_xpert_result,
     
     # Primary outcomes (prefix YP_)
     YP_tb_treatment_initiation        = primary_outcome_tb_treatment_initiation,
@@ -1931,6 +1931,12 @@ df21_final = df21%>%
     YS_mortality                      = secondary_outcome_mortality,
     YS_eq5d_56d                       = secondary_outcome_eq5d
   ) %>%
+  mutate(
+    Treatment = relevel(factor(Treatment), ref="SOC"),
+    across(c(YP_tb_treatment_initiation, YS_undiagnosed_tb, YS_same_day_tb_treatment, 
+             YS_undiagnosed_hiv, YS_mortality, X_night_sweats_0d, X_weight_loss_0d,
+             X_fever_0d, X_reported_hiv_status_0d, X_cad4tbv5_above_threshold_0d, X_sputum_xpert_done_0d), as_factor)
+  ) %>% 
   select(
     Treatment,
     starts_with("YP_"),
@@ -1940,10 +1946,12 @@ df21_final = df21%>%
 
 ```
 
+
 ## Output Data
 ```{r}
 # trial 21
-write.csv(df21_final, "cleaned_data/trial21.csv", row.names = FALSE)
+write_csv(df21_final, "cleaned_data/trial21.csv")
+write_rds(df21_final, "cleaned_data/trial21.rds")
 ```
 
 # Trial 22
@@ -1959,7 +1967,7 @@ df22_final = df22 %>%
   # 2a. Derive Treatment and keep Cluster ID
   mutate(
     Treatment = Type_HC,
-    Cluster   = Code_HC,
+    ClusterID   = Code_HC,
     Treatment = case_when(
       Locat_HC == 1 ~ "GDM Intervention",
       Locat_HC == 2 ~ "Usual Care",
@@ -1969,8 +1977,8 @@ df22_final = df22 %>%
     X_Age_0w       = Age,        # baseline age
     X_Gest_0w      = Gest,       # baseline gestity
     X_Resid_0w     = Resid,      # baseline residence
-    X_GDM_ACDT     = GDM_ACDT,   # history of GDM
-    X_MACRO_ACDT   = MACRO_ACDT, # history of macrosomia
+    X_GDM_ACDT_0w     = GDM_ACDT,   # history of GDM
+    X_MACRO_ACDT_0w   = MACRO_ACDT, # history of macrosomia
     X_Weight_0w    = Weight,     # baseline weight
     YP_Birthwgt    = Birthwgt    # primary outcome
   )
@@ -1998,7 +2006,7 @@ df22_final = df22_final %>%
 
 # 6. Rename one-off secondary outcomes
 df22_final = df22_final %>%
-  rename(
+  mutate(
     YS_GW_fin         = GW_fin,
     YS_Term           = Term,
     YS_Mode_del       = Mode_del,
@@ -2007,46 +2015,79 @@ df22_final = df22_final %>%
     YS_Comp_NN        = Comp_NN,
     YS_Comp_Cat_NN    = Comp_Cat_NN,
     YS_APGAR1         = APGAR1,
-    YS_APGAR2         = APGAR2
+    YS_APGAR2         = APGAR2,
+    Treatment = relevel(factor(Treatment), ref ="Usual Care")
   )
 
 # 7. Reorder columns: Treatment, Cluster, then YP_, pre_YS_, post_YS_, X_
 df22_final = df22_final %>%
   select(
-    Treatment, Cluster,
+    Treatment, ClusterID,
     starts_with("YP_"),
     starts_with("pre_YS_"),
     starts_with("post_YS_"),
     starts_with("X_")
   )
 
+mode_vars = c("X_Resid_0w", "X_GDM_ACDT_0w", "X_MACRO_ACDT_0w")
+
 # 8. Create cluster-level summary: mean of each YP_/pre_YS_/post_YS_/X_, plus cluster size
 df22_cluster = df22_final %>%
-  group_by(Cluster) %>%
+  group_by(ClusterID) %>%
   summarise(
-    cluster_size = n(),
+    n_participants = n(),
+    Treatment = first(Treatment),
     across(
-      starts_with(c("YP_","pre_YS_","post_YS_","X_")),
-      ~ mean(.x, na.rm = TRUE),
-      .names = "Mean_{.col}"
+      starts_with(c("YP_", "pre_YS_", "post_YS_", "X_")),
+      ~ if (cur_column() %in% mode_vars) {
+          Mode(.x, na.rm = TRUE)
+        } else {
+          mean(.x, na.rm = TRUE)
+        }
     )
+  ) %>% 
+  select(
+    ClusterID,
+    Treatment,
+    n_participants,
+    starts_with("YP_"),
+    starts_with("pre_YS_"),
+    starts_with("post_YS_"),
+    starts_with("X_")
+  )
+
+df22_final = df22_final %>% 
+  mutate(
+    X_Resid_0w     = factor(X_Resid_0w),      # baseline residence
+    X_GDM_ACDT_0w     = factor(X_GDM_ACDT_0w),   # history of GDM
+    X_MACRO_ACDT_0w   = factor(X_MACRO_ACDT_0w), # history of macrosomia
+  )
+
+df22_cluster = df22_cluster %>% 
+    mutate(
+    X_Resid_0w     = factor(X_Resid_0w),      # baseline residence
+    X_GDM_ACDT_0w     = factor(X_GDM_ACDT_0w),   # history of GDM
+    X_MACRO_ACDT_0w   = factor(X_MACRO_ACDT_0w), # history of macrosomia
   )
 ```
+
 
 
 ## Output Data
 ```{r}
 # trial 22
 write_csv(df22_cluster, "cleaned_data/trial22.csv")
+write_rds(df22_cluster, "cleaned_data/trial22.rds")
 
 write_csv(df22_final, "cleaned_data/Clustered_RCT/cluster22.csv")
+write_rds(df22_final, "cleaned_data/Clustered_RCT/cluster22.rds")
 ```
 
 
 # Trial 23
 ## Load Data
 ```{r}
-df23 = read_xlsx("raw_data/23/23.xlsx", na = )
+df23 = read_xlsx("raw_data/23/23.xlsx")
 ```
 
 ## Cleaning
@@ -2331,26 +2372,26 @@ df27 = df27 %>%
   mutate(across(where(~ is.character(.) | is.factor(.)), 
                 ~ na_if(., "missing data")))
 df27_final = df27 %>%
-  rename(
+  mutate(
     Treatment                    = Randomisation,
     YP_bleeding_text             = `Main Criterion  (GAILLARD, MD)`,
     YP_surgical_problem_bleeding = `Surgical problem due to bleading`,
-    YS_surgery_duration_min      = `Surgery duration (min)`,
-    YS_vent_settings_changes     = `Nb of modificaton of ventilatory setting`,
+    YS_surgery_duration_min      = as.numeric(`Surgery duration (min)`),
+    YS_vent_settings_changes     = as.numeric(`Nb of modificaton of ventilatory setting`),
     YS_vent_mode_modification    = `Modification of ventilatory mode`,
     YS_hypoxemia_episodes        = `Nb of episodes with SpO2<92%`,
     YS_recruitment_maneuvers     = `Nb of recrutement maneuvers`,
-    YS_min_SpO2                  = `Minimal SpO2`,
-    YS_pain_PACU                 = `Tolerance PACU`,
-    YS_endocrine_status_3m       = `Endocrine healing`,
+    YS_min_SpO2                  = as.numeric(`Minimal SpO2`),
+    YS_pain_PACU                 = as.numeric(`Tolerance PACU`),
+    YS_endocrine_status_3m       = as.numeric(`Endocrine healing`),
     ## Guessed baseline covariates
     `X_BMI>35_0d`                        = `BMI>35`,
     X_pregnancy_0d                  = Pregnancy,
     X_lung_disease_0d               = `Lung disease`,
     X_redo_surgery_0d               = Redo,
     X_Tv_0d                         = Tv,
-    X_FiO2_0d                       = Fio2,
-    X_AI_0d                         = AI,
+    X_FiO2_0d                       = as.numeric(Fio2),
+    X_AI_0d                         = as.numeric(AI),
     X_Rate_0d                       = Rate
   ) %>%
   # 2. Recode treatment and bleeding scale
@@ -2374,7 +2415,12 @@ df27_final = df27 %>%
       YP_bleeding_score %in% 4:5 ~ "moderate",
       YP_bleeding_score %in% 6:7 ~ "major",
       TRUE                       ~ NA_character_
-    )
+    ),
+    Treatment = relevel(factor(Treatment), ref="VCV"),
+    across(c(YP_surgical_problem_bleeding, YP_bleeding_text, YP_bleeding_category3, 
+             YS_vent_mode_modification, YS_hypoxemia_episodes, YS_recruitment_maneuvers,
+             X_redo_surgery_0d), as_factor),
+    X_redo_surgery_0d = as.numeric(X_redo_surgery_0d)
   ) %>%
   # 3. Keep only randomized patients
   filter(!is.na(Treatment)) %>%
@@ -2390,7 +2436,8 @@ df27_final = df27 %>%
 ## Output Data
 ```{r}
 # trial 27
-write.csv(df27_final, "cleaned_data/trial27.csv", row.names = FALSE)
+write_csv(df27_final, "cleaned_data/trial27.csv")
+write_rds(df27_final, "cleaned_data/trial27.rds")
 ```
 
 # Trial 28
@@ -2406,39 +2453,39 @@ df28_final = df28 %>%
     Treatment               = TrtContr,
     
     # Baseline covariates (X_)
-    X_SEX                   = SEX,
-    X_Age                   = Age,
-    X_RxHTN                 = RxHTN,
+    X_SEX_0m                   = SEX,
+    X_Age_0m                   = Age,
+    X_RxHTN_0m                 = RxHTN,
     
     # Secondary outcomes (YS_)
-    X_BMI_0d                = BMI,        
+    X_BMI_0m                = BMI,        
     YS_BMI_6m               = FUBMI,      
     YS_delta_BMI_6m         = DIfBMI,     
     
-    X_WC_0d                 = WC,         
+    X_WC_0m                 = WC,         
     YS_WC_6m                = FUWC,       
     YS_delta_WC_6m          = DIfWC,      
     
-    X_MeanSBP_0d            = MeanSBP,    
+    X_MeanSBP_0m            = MeanSBP,    
     YS_MeanSBP_6m           = FUMeanSBP,  
     YS_delta_MeanSBP_6m     = DIfSBP,     
     
-    X_MeanDBP_0d            = MeanDBP,    
+    X_MeanDBP_0m            = MeanDBP,    
     YS_MeanDBP_6m           = FUMeanDBP,  
     YS_delta_MeanDBP_6m     = DIfDBP,     
     
     # Primary outcome (YP_)
-    X_ContrSBP_0d           = ContrSBP,   
+    X_ContrSBP_0m           = ContrSBP,   
     YP_ContrSBP_6m          = FUContrSBP, 
     
     # Other secondary binary outcomes
-    X_ContrDBP_0d           = ContrDBP,   
+    X_ContrDBP_0m           = ContrDBP,   
     YS_ContrDBP_6m          = FUContrDBP,
     
-    X_ControlledBP_0d       = ControlledBP,
+    X_ControlledBP_0m       = ControlledBP,
     YS_ControlledBP_6m      = FUControlledBP,
     
-    X_TotalScoreA_0d        = TotalScoreA,
+    X_TotalScoreA_0m        = TotalScoreA,
     YS_TotalScoreA_6m       = FUTotalScoreA,
     YS_delta_TotalScoreA_6m = Diftotalscore
   ) %>%
@@ -2447,7 +2494,10 @@ df28_final = df28 %>%
       Treatment == 0 ~ "Usual Care",
       Treatment == 1 ~ "Edu+Visit",
       TRUE          ~ NA_character_
-    )
+    ),
+    Treatment = relevel(factor(Treatment), ref="Usual Care"),
+    across(c(YP_ContrSBP_6m, YS_ContrDBP_6m, YS_ControlledBP_6m, X_SEX_0m, X_Age_0m, 
+             X_RxHTN_0m, X_ContrSBP_0m, X_ContrDBP_0m, X_ControlledBP_0m))
   ) %>%
   select(
     Treatment,
@@ -2457,10 +2507,12 @@ df28_final = df28 %>%
   )
 ```
 
+
 ## Output Data
 ```{r}
 # trial 28
-write.csv(df28_final, "cleaned_data/trial28.csv", row.names = FALSE)
+write_csv(df28_final, "cleaned_data/trial28.csv")
+write_rds(df28_final, "cleaned_data/trial28.rds")
 ```
 
 
@@ -2472,9 +2524,6 @@ df29 = read_csv(
   na = c("", "NULL", "null", "-99")
 )
 ```
-```{r}
-colnames(df29)
-```
 
 ## Cleaning
 ```{r}
@@ -2482,12 +2531,12 @@ df29_final = df29 %>%
   rename(
     Treatment             = treatment,
     ClusterID             = clusterid,
-    X_Caregiver_Age       = bl_caregiver_age,
-    X_Caregiver_Matric    = bl_caregiver_matric,
-    X_Wealth_Z            = bl_wealth_z,
-    X_Wealth_Q            = bl_wealth_q,
-    X_ChildGrant          = bl_childgrant,
-    X_Siblings            = siblings,
+    X_Caregiver_Age_0m       = bl_caregiver_age,
+    X_Caregiver_Matric_0m    = bl_caregiver_matric,
+    X_Wealth_Z_0m            = bl_wealth_z,
+    X_Wealth_Q_0m            = bl_wealth_q,
+    X_ChildGrant_0m          = bl_childgrant,
+    X_Siblings_0m            = siblings,
     pre_YP_SRT_9m         = lab1_srt,
     pre_YP_AbsGamma_9m    = lab1_gamma,
     pre_YP_TotalPower_9m  = lab1_total,
@@ -2508,20 +2557,21 @@ df29_final = df29 %>%
     YP_SRT_36m            = lab3_srt,
     YS_DD_36m             = el_dd,
     YS_MICS_36m           = el_mics,
-    X_Facilities          = cluster_facilities,
-    X_WBOTs               = cluster_wbots,
-    X_CHWs                = cluster_chws,
-    X_PHCU5               = cluster_phcu5,
-    X_CHW_Age             = cluster_chwage,
-    X_CHW_Educ            = cluster_chweduc,
-    X_CHW_Tenure          = cluster_chwworkyr
+    X_Facilities_0m          = cluster_facilities,
+    X_WBOTs_0m               = cluster_wbots,
+    X_CHWs_0m                = cluster_chws,
+    X_PHCU5_0m               = cluster_phcu5,
+    X_CHW_Age_0m             = cluster_chwage,
+    X_CHW_Educ_0m            = cluster_chweduc,
+    X_CHW_Tenure_0m          = cluster_chwworkyr
   ) %>%
   mutate(
     Treatment = recode(
       Treatment,
       `0` = "Usual care",
       `1` = "JobAid visit"
-    )
+    ),
+    Treatment = relevel(factor(Treatment), ref="Usual care")
   ) %>%
   select(
     Treatment,
@@ -2533,23 +2583,24 @@ df29_final = df29 %>%
   )
 
 # 3. Build cluster-level summary
+mode_vars = c("YP_Stunted_36m", "X_Caregiver_Matric_0m", "X_ChildGrant_0m", "X_Siblings_0m",
+              "X_Facilities_0m", "X_WBOTs_0m")
+
 df29_cluster = df29_final %>%
   group_by(ClusterID) %>%
   summarise(
-    Treatment = first(Treatment),
     n_participants = n(),
-    X_Facilities   = first(X_Facilities),
-    X_WBOTs        = first(X_WBOTs),
-    X_CHWs         = first(X_CHWs),
-    X_PHCU5        = first(X_PHCU5),
-    X_CHW_Age      = first(X_CHW_Age),
-    X_CHW_Educ     = first(X_CHW_Educ),
-    X_CHW_Tenure   = first(X_CHW_Tenure),
-    across(starts_with("pre_YP_"), ~ mean(.x, na.rm = TRUE)),
-    across(starts_with("YP_"),     ~ mean(.x, na.rm = TRUE)),
-    across(starts_with("YS_"),     ~ mean(.x, na.rm = TRUE)),
-    .groups = "drop"
-  ) %>%
+    Treatment = first(Treatment),
+    across(
+      starts_with(c("YP_", "pre_YP_", "YS_", "X_")),
+      ~ if (cur_column() %in% mode_vars) {
+          Mode(.x, na.rm = TRUE)
+        } else {
+          mean(.x, na.rm = TRUE)
+        }
+    )
+  ) %>% 
+  ungroup(ClusterID)%>% 
   select(
     ClusterID,
     Treatment,
@@ -2559,14 +2610,30 @@ df29_cluster = df29_final %>%
     starts_with("YS_"),
     starts_with("X_")
   )
+
+df29_final = df29_final %>% 
+  mutate(
+    across(c(YP_Stunted_36m, X_Caregiver_Matric_0m, X_ChildGrant_0m, X_Siblings_0m,
+             X_Facilities_0m, X_WBOTs_0m), as_factor)
+  )
+  
+
+df29_cluster = df29_cluster %>% 
+  mutate(
+    across(c(YP_Stunted_36m, X_Caregiver_Matric_0m, X_ChildGrant_0m, X_Siblings_0m,
+             X_Facilities_0m, X_WBOTs_0m), as_factor)
+  )
 ```
+
 
 ## Output Data
 ```{r}
 # trial 29
-write.csv(df29_cluster, "cleaned_data/trial29.csv", row.names = FALSE)
+write_csv(df29_cluster, "cleaned_data/trial29.csv")
+write_rds(df29_cluster, "cleaned_data/trial29.rds")
 
-write.csv(df29_final, "cleaned_data/Clustered_RCT/cluster29.csv", row.names = FALSE)
+write_csv(df29_final, "cleaned_data/Clustered_RCT/cluster29.csv")
+write_rds(df29_final, "cleaned_data/Clustered_RCT/cluster29.rds")
 ```
 
 
@@ -2602,13 +2669,13 @@ df30_final = df30_demo %>%
     TRUE                          ~ NA_character_
   )) %>%
   select(ID, Treatment,
-         X_Sex            = Sex,
-         X_Psychotropics  = Psychotropics,
-         X_Education      = Education,
-         X_Age            = Age,
-         X_OASIS          = OASIS.Baseline,
-         X_PHQ9           = PHQ9.Baseline,
-         X_ASI            = ASI.Baseline) %>%
+         X_Sex_0d            = Sex,
+         X_Psychotropics_0d  = Psychotropics,
+         X_Education_0d      = Education,
+         X_Age_0d            = Age,
+         X_OASIS_0d          = OASIS.Baseline,
+         X_PHQ9_0d           = PHQ9.Baseline,
+         X_ASI_0d            = ASI.Baseline) %>%
   
   # 2) primary YP_Adherence (with NA if any missing)
   left_join(
@@ -2686,6 +2753,10 @@ df30_final = df30_demo %>%
       ungroup(),
     by = "ID"
   ) %>%
+  mutate(
+    Treatment = relevel(factor(Treatment), ref="Chair-REST"),
+    across(c(YP_Adherence, X_Sex_0d, X_Psychotropics_0d, X_Age_0d), as_factor)
+  ) %>% 
   
   # 8) drop ID and order columns: Treatment → YP_ → YS_ → X_
   select(
@@ -2697,9 +2768,11 @@ df30_final = df30_demo %>%
 
 ```
 
+
 ## Output Data
 ```{r}
 # trial 30
-write.csv(df30_final, "cleaned_data/trial30.csv", row.names = FALSE)
+write_csv(df30_final, "cleaned_data/trial30.csv")
+write_rds(df30_final, "cleaned_data/trial30.rds")
 ```
 
