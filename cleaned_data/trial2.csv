@@ -1,401 +1,401 @@
 Treatment,YP_recovery_time,YP_early_7d,YP_late_12d,YS_severity_worsen,YS_pos_14d,X_agegrp_0d,X_sex_0d,X_fever_0d,X_cough_0d,X_respdiff_0d,X_comorb_0d,X_diabetes_0d,X_hyperten_0d
-Placebo,13,0,1,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,2,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,8,0,0,0,0,less than 40,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,40-60,0,1,1,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,13,0,1,1,1,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,10,0,0,0,0,40-60,1,1,0,0,1,0,1
-Ivermectin+Doxycycline,2,1,0,0,1,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Placebo,10,0,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,5,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,9,0,0,1,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,21,0,1,1,0,less than 40,0,1,1,1,0,0,0
-Placebo,13,0,1,0,1,less than 40,1,1,1,0,0,0,0
-Placebo,18,0,1,0,1,less than 40,0,0,1,1,0,0,0
-Placebo,9,0,0,1,1,40-60,0,1,0,1,2,1,1
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,5,1,0,0,0,40-60,1,0,0,1,0,0,0
-Placebo,8,0,0,1,0,less than 40,1,1,1,1,0,0,0
-Placebo,12,0,1,1,1,40-60,1,1,0,1,0,0,0
-Placebo,2,1,0,0,0,>60,0,1,0,0,0,0,0
-Placebo,7,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,4,1,0,0,0,40-60,1,1,0,1,0,0,0
-Placebo,1,1,0,0,0,40-60,0,1,1,0,1,0,1
-Placebo,2,1,0,0,0,>60,1,1,1,0,2,1,1
-Placebo,7,1,0,0,0,less than 40,0,0,0,1,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,1,0,0,1,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,16,0,1,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,15,0,1,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,14,0,1,0,0,40-60,0,0,1,0,0,0,0
-Placebo,10,0,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,7,1,0,0,0,40-60,1,1,0,1,0,0,0
-Placebo,14,0,1,0,0,less than 40,0,0,1,0,0,0,0
-Placebo,7,1,0,1,0,40-60,0,1,0,1,1,1,0
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,0,0,1,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,1,less than 40,0,1,1,1,0,0,0
-Placebo,8,0,0,0,0,less than 40,1,1,1,1,0,0,0
-Placebo,6,1,0,0,0,less than 40,1,1,1,0,1,0,0
-Placebo,5,1,0,0,0,less than 40,1,1,1,1,0,0,0
-Placebo,28,0,1,1,0,>60,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,0,0,1,1,0,0,0
-Placebo,13,0,1,0,0,40-60,0,1,1,1,0,0,0
-Placebo,6,1,0,0,0,40-60,1,0,1,0,1,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,1,1,0,2,1,1
-Ivermectin+Doxycycline,3,1,0,0,0,40-60,0,0,0,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,12,0,1,0,0,less than 40,1,0,0,1,0,0,0
-Placebo,12,0,1,0,0,40-60,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,13,0,1,0,1,less than 40,1,1,0,0,0,0,0
-Placebo,22,0,1,1,1,>60,1,1,1,1,0,0,0
-Placebo,11,0,0,0,1,less than 40,0,0,0,0,0,0,0
-Ivermectin+Doxycycline,11,0,0,0,0,less than 40,1,1,1,1,0,0,0
-Placebo,2,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,9,0,0,0,0,less than 40,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,40-60,1,1,1,0,0,0,0
-Placebo,5,1,0,0,0,less than 40,0,0,1,0,0,0,0
-Placebo,20,0,1,1,0,40-60,1,1,1,1,0,0,0
-Placebo,9,0,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,15,0,1,0,1,less than 40,1,0,1,1,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,16,0,1,0,0,less than 40,0,0,1,1,0,0,0
-Placebo,26,0,1,1,0,40-60,1,1,1,1,0,0,0
-Placebo,9,0,0,0,0,less than 40,1,1,1,1,0,0,0
-Placebo,10,0,0,0,0,less than 40,1,0,1,0,0,0,0
-Placebo,20,0,1,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,7,1,0,0,0,less than 40,0,0,1,1,0,0,0
-Placebo,10,0,0,0,0,less than 40,1,1,1,1,1,0,1
-Placebo,5,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Placebo,7,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,26,0,1,1,0,less than 40,0,1,0,1,1,0,0
-Placebo,7,1,0,0,0,40-60,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,8,0,0,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,14,0,1,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,3,1,0,0,1,40-60,1,1,0,0,1,0,1
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,0,1,1,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Placebo,10,0,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,12,0,1,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Placebo,9,0,0,0,0,less than 40,0,1,1,1,0,0,0
-Placebo,13,0,1,0,1,40-60,0,1,1,0,2,1,1
-Placebo,12,0,1,0,1,less than 40,1,1,0,0,0,0,0
-Placebo,10,0,0,0,1,less than 40,1,1,1,0,0,0,0
-Placebo,7,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Placebo,15,0,1,0,1,less than 40,1,1,1,1,0,0,0
-Placebo,8,0,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,0,0,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,15,0,1,0,1,less than 40,1,0,1,1,1,1,0
-Placebo,9,0,0,0,0,40-60,1,1,0,1,1,0,0
-Placebo,12,0,1,1,0,>60,1,1,1,1,2,1,0
-Placebo,4,1,0,0,0,>60,1,0,0,1,2,1,1
-Ivermectin+Doxycycline,2,1,0,0,0,40-60,1,1,1,0,1,0,1
-Placebo,3,1,0,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,20,0,1,1,1,less than 40,0,1,1,1,1,1,0
-Placebo,10,0,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,23,0,1,1,1,>60,1,1,0,1,2,0,1
-Ivermectin+Doxycycline,8,0,0,1,0,less than 40,1,1,0,1,1,0,1
-Placebo,5,1,0,0,0,40-60,1,0,1,0,1,0,0
-Placebo,6,1,0,0,0,40-60,1,0,0,1,1,0,1
-Placebo,20,0,1,1,1,40-60,1,1,1,1,1,0,1
-Placebo,25,0,1,0,1,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,12,0,1,1,0,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,23,0,1,0,0,less than 40,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,13,0,1,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,12,0,1,0,0,40-60,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,40-60,1,1,1,0,0,0,0
-Placebo,13,0,1,1,1,40-60,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,8,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,16,0,1,0,1,less than 40,0,0,1,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Placebo,9,0,1,1,0,40-60,0,1,0,1,2,1,1
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,1,1,1,1,0,0,0
-Placebo,8,0,0,0,0,less than 40,0,0,1,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Placebo,5,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,12,0,1,0,0,40-60,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,40-60,1,0,0,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,40-60,1,1,0,0,2,1,1
-Placebo,3,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,2,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,9,0,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,9,0,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,11,0,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,28,0,1,0,0,less than 40,0,0,1,1,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,10,0,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,7,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,12,0,1,1,0,less than 40,0,0,1,1,0,0,0
-Placebo,12,0,1,0,0,less than 40,0,1,1,0,1,0,0
-Placebo,12,0,1,1,0,>60,1,1,0,1,1,1,0
-Ivermectin+Doxycycline,10,0,0,0,0,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,14,0,1,0,1,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,40-60,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,12,0,1,0,0,less than 40,1,1,1,0,1,0,0
-Placebo,13,0,1,0,0,less than 40,0,1,0,0,0,0,0
-Placebo,9,0,0,0,0,40-60,1,1,0,0,1,0,0
-Ivermectin+Doxycycline,12,0,1,0,0,40-60,1,1,1,0,1,0,1
-Placebo,7,1,0,0,0,less than 40,1,1,0,1,0,0,0
-Placebo,13,0,1,0,0,>60,0,1,1,0,0,0,0
-Placebo,8,0,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,0,1,0,1,0,0,0
-Ivermectin+Doxycycline,16,0,1,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,0,0,1,0,0,0
-Placebo,12,0,1,1,0,40-60,1,1,0,1,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,9,0,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,13,0,1,0,1,>60,1,1,1,1,0,0,0
-Placebo,3,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Placebo,10,1,0,1,1,40-60,1,1,1,1,2,1,1
-Placebo,12,0,1,1,0,40-60,0,1,1,1,2,1,1
-Ivermectin+Doxycycline,7,1,0,0,0,>60,0,1,1,0,1,1,0
-Ivermectin+Doxycycline,13,0,1,0,1,less than 40,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,8,0,0,0,0,>60,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,40-60,0,1,1,0,1,1,0
-Ivermectin+Doxycycline,7,0,0,0,0,less than 40,0,0,0,0,1,0,1
-Ivermectin+Doxycycline,5,1,0,0,1,40-60,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,1,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,8,1,0,0,0,less than 40,0,0,1,0,0,0,0
-Ivermectin+Doxycycline,7,0,0,0,0,less than 40,1,0,1,1,0,0,0
-Placebo,16,0,1,0,1,less than 40,1,1,1,1,0,0,0
-Placebo,2,1,0,0,0,40-60,0,1,0,0,0,0,0
-Placebo,9,0,0,0,0,40-60,0,1,1,0,0,0,0
-Placebo,8,0,0,1,0,40-60,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,22,0,1,0,0,40-60,1,1,1,1,0,0,0
-Placebo,7,1,0,0,0,less than 40,0,1,1,0,2,0,0
-Placebo,8,0,0,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,23,0,1,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,10,0,0,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,1,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,40-60,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,1,1,0,0,0,less than 40,1,0,0,0,0,0,0
-Placebo,14,0,1,0,0,less than 40,1,1,1,0,1,0,1
-Placebo,9,0,0,0,0,less than 40,0,0,1,0,0,0,0
-Placebo,8,0,0,0,0,less than 40,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,40-60,0,0,1,0,0,0,0
-Ivermectin+Doxycycline,14,0,1,1,0,>60,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,14,0,1,0,0,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,15,0,1,0,0,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,40-60,1,1,1,0,1,0,1
-Ivermectin+Doxycycline,9,0,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,10,0,0,0,0,>60,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,11,0,0,0,0,40-60,0,1,0,0,1,0,1
-Ivermectin+Doxycycline,12,0,1,0,0,40-60,0,1,1,0,2,1,1
-Ivermectin+Doxycycline,14,0,1,0,0,40-60,1,1,1,1,2,1,1
-Ivermectin+Doxycycline,10,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,4,1,0,0,1,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,0,0,1,0,0,0,0
-Placebo,4,1,0,0,0,>60,1,1,1,0,2,1,1
-Placebo,3,1,0,0,0,40-60,0,1,0,0,2,1,1
-Placebo,4,1,0,0,0,40-60,0,1,1,0,0,0,0
-Placebo,6,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,4,1,0,0,0,40-60,1,1,1,1,1,1,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,0,1,1,1,1,1,0
-Ivermectin+Doxycycline,6,1,0,0,0,40-60,0,1,0,0,2,1,1
-Placebo,8,1,0,0,0,40-60,1,1,1,0,0,0,0
-Placebo,4,1,0,0,1,>60,1,1,1,1,1,0,1
-Ivermectin+Doxycycline,12,0,1,1,0,less than 40,0,1,1,1,0,0,0
-Placebo,12,0,1,0,1,>60,1,1,1,1,0,0,0
-Placebo,12,0,1,1,0,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,9,0,0,1,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,13,0,1,0,0,>60,1,0,1,0,2,1,1
-Ivermectin+Doxycycline,17,0,1,0,0,40-60,0,0,0,0,2,1,1
-Ivermectin+Doxycycline,16,0,1,0,0,less than 40,1,0,0,0,0,0,0
-Ivermectin+Doxycycline,6,0,0,0,0,40-60,1,1,0,0,0,0,0
-Placebo,5,1,0,0,1,40-60,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,6,1,0,1,0,less than 40,1,1,1,1,1,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,4,1,0,0,1,>60,1,0,1,1,0,0,0
-Placebo,3,1,0,0,0,40-60,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,40-60,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,40-60,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,0,1,1,0,1,1,0
-Placebo,20,0,1,1,0,>60,1,1,1,1,2,1,1
-Ivermectin+Doxycycline,13,0,1,0,0,40-60,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,14,0,1,1,0,40-60,1,1,1,1,2,1,1
-Placebo,12,0,1,0,0,>60,0,1,1,1,2,1,1
-Placebo,6,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,15,0,1,0,0,40-60,1,1,0,1,0,0,0
-Placebo,5,0,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,40-60,1,1,0,0,1,0,1
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,1,1,0,1,1,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,6,1,0,0,1,40-60,1,1,0,0,0,0,0
-Placebo,3,1,0,0,1,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,12,0,1,1,0,40-60,0,1,1,1,2,1,1
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,8,0,0,0,0,40-60,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,6,0,0,0,0,40-60,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Placebo,6,1,0,0,1,40-60,1,1,0,0,1,1,0
-Ivermectin+Doxycycline,9,0,0,0,0,less than 40,1,1,1,1,0,0,0
-Placebo,14,0,1,0,0,40-60,1,1,1,1,2,1,1
-Placebo,18,0,1,0,1,less than 40,1,1,1,1,1,0,0
-Placebo,7,0,0,0,0,less than 40,1,1,1,1,0,0,0
-Placebo,4,1,0,0,0,>60,1,0,0,0,2,1,1
-Ivermectin+Doxycycline,10,0,0,0,0,40-60,1,1,1,0,1,1,0
-Ivermectin+Doxycycline,5,1,0,0,0,40-60,0,0,0,0,1,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,>60,0,1,0,0,2,1,1
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,4,1,0,0,0,40-60,1,1,0,0,0,0,0
-Placebo,4,1,0,0,0,40-60,0,1,0,0,0,0,0
-Placebo,14,0,1,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,10,0,0,0,0,40-60,0,0,0,0,1,0,0
-Placebo,4,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,40-60,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,1,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,1,0,40-60,1,1,1,1,2,1,1
-Ivermectin+Doxycycline,13,0,1,0,0,40-60,1,1,1,1,1,0,0
-Ivermectin+Doxycycline,9,0,0,0,0,less than 40,0,1,0,1,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,40-60,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Placebo,2,1,0,0,0,40-60,1,0,0,0,1,0,0
-Ivermectin+Doxycycline,4,1,0,0,1,40-60,1,1,0,0,2,1,1
-Ivermectin+Doxycycline,17,0,1,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,6,1,0,0,0,less than 40,1,1,1,1,1,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,>60,0,1,1,1,2,1,1
-Ivermectin+Doxycycline,10,1,0,0,0,less than 40,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,1,0,0,1,0,0,0
-Ivermectin+Doxycycline,17,0,1,0,0,40-60,1,1,1,1,1,0,1
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,8,0,0,0,0,40-60,0,1,0,1,1,0,0
-Placebo,4,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,22,0,1,0,1,less than 40,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,40-60,1,0,0,1,1,0,0
-Ivermectin+Doxycycline,8,0,0,1,0,40-60,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Placebo,2,1,0,0,0,40-60,0,1,0,1,1,0,0
-Placebo,3,1,0,0,0,less than 40,0,0,0,0,1,0,0
-Ivermectin+Doxycycline,1,1,0,0,0,less than 40,1,0,0,0,1,0,1
-Ivermectin+Doxycycline,4,1,0,1,0,>60,1,1,1,0,1,0,1
-Placebo,16,0,1,0,0,40-60,0,1,0,1,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,0,0,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,40-60,0,1,0,0,0,0,0
-Placebo,3,1,0,0,0,>60,0,0,0,0,2,1,1
-Ivermectin+Doxycycline,9,0,0,0,0,40-60,1,1,1,1,1,0,0
-Placebo,13,0,1,1,0,>60,1,1,1,1,2,1,1
-Placebo,6,1,0,0,0,>60,1,1,1,0,2,0,1
-Placebo,6,1,0,0,0,40-60,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,0,1,0,1,2,1,0
-Placebo,7,1,0,0,0,less than 40,1,1,0,1,1,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,0,0,0,1,0,1
-Placebo,45,0,1,1,0,40-60,1,0,0,1,1,0,1
-Placebo,4,1,0,0,0,less than 40,0,1,0,0,0,0,0
-Placebo,37,0,1,0,1,less than 40,1,1,1,0,1,1,0
-Placebo,17,0,1,0,0,>60,1,1,1,1,0,0,0
-Placebo,10,1,0,0,0,40-60,1,1,1,1,2,1,1
-Placebo,7,1,0,0,0,less than 40,0,0,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,0,0,0,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,1,1,1,1,1,0
-Placebo,10,0,0,0,1,less than 40,0,1,1,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,1,1,0,1,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,1,less than 40,0,0,0,0,0,0,0
-Placebo,9,0,0,1,0,less than 40,0,1,1,1,0,0,0
-Placebo,4,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,19,0,1,0,0,less than 40,1,1,0,1,0,0,0
-Ivermectin+Doxycycline,13,0,1,0,0,less than 40,0,1,1,1,0,0,0
-Placebo,9,0,0,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,14,0,1,0,0,40-60,0,1,1,1,0,0,0
-Placebo,12,0,1,0,0,40-60,0,1,1,0,0,0,0
-Placebo,18,0,1,1,1,40-60,0,1,1,0,1,0,0
-Ivermectin+Doxycycline,15,0,1,0,0,less than 40,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,15,0,1,0,0,less than 40,0,1,0,1,0,0,0
-Placebo,17,0,1,1,1,40-60,1,1,1,1,2,1,1
-Ivermectin+Doxycycline,15,0,1,0,0,less than 40,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,15,0,1,0,0,less than 40,0,1,1,0,0,0,0
-Placebo,3,1,0,0,0,40-60,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,2,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,3,0,0,0,0,less than 40,0,0,0,0,0,0,0
-Placebo,7,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,9,0,0,0,0,40-60,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,11,0,1,1,0,40-60,0,1,1,1,2,1,1
-Ivermectin+Doxycycline,5,1,0,0,0,40-60,1,1,1,0,1,0,1
-Ivermectin+Doxycycline,5,1,0,0,0,40-60,1,1,1,0,0,0,0
-Placebo,9,0,1,0,1,less than 40,1,0,0,0,0,0,0
-Placebo,25,0,1,1,1,40-60,0,1,1,1,1,1,0
-Ivermectin+Doxycycline,5,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Placebo,4,1,0,0,0,less than 40,0,0,0,1,1,0,0
-Placebo,16,0,1,1,0,>60,1,1,1,1,0,0,0
-Placebo,12,0,1,1,0,less than 40,0,1,1,1,0,1,0
-Ivermectin+Doxycycline,10,0,0,0,0,>60,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,15,0,1,0,0,less than 40,0,1,1,1,0,0,0
-Ivermectin+Doxycycline,4,0,0,0,0,40-60,1,1,1,1,0,0,0
-Placebo,12,0,1,0,0,less than 40,0,0,0,0,1,0,0
-Placebo,6,1,0,0,0,>60,1,0,1,1,0,0,0
-Placebo,8,1,0,0,0,40-60,1,1,1,0,1,1,0
-Ivermectin+Doxycycline,14,0,0,0,0,less than 40,0,1,0,1,0,0,0
-Ivermectin+Doxycycline,3,1,0,0,0,less than 40,1,1,1,0,1,0,0
-Ivermectin+Doxycycline,4,1,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,5,1,0,0,0,40-60,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,7,1,0,0,0,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,10,0,0,0,0,>60,1,1,0,1,0,0,0
-Ivermectin+Doxycycline,7,0,0,0,0,40-60,1,1,1,0,0,0,0
-Placebo,12,0,1,1,1,less than 40,1,1,1,0,0,0,0
-Placebo,12,0,1,0,0,40-60,1,1,1,0,0,0,0
-Placebo,10,0,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,15,0,1,1,0,40-60,0,1,1,1,2,1,1
-Ivermectin+Doxycycline,6,1,0,0,0,40-60,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,5,0,0,0,0,less than 40,1,1,1,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,1,1,0,0,0,0,0
-Ivermectin+Doxycycline,2,NA,NA,NA,NA,40-60,1,0,1,0,2,1,1
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,0,1,0,1,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,0,0,0,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,40-60,1,0,0,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,3,NA,NA,NA,NA,>60,1,1,0,1,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,1,1,0,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,1,1,1,1,0,0,0
-Placebo,3,NA,NA,NA,NA,less than 40,1,0,0,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,1,1,1,0,0,0,0
-Placebo,1,NA,NA,NA,NA,40-60,0,0,1,1,1,1,0
-Placebo,1,NA,NA,NA,NA,40-60,0,0,0,0,2,1,1
-Placebo,2,NA,NA,NA,NA,less than 40,0,1,1,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,1,1,0,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,0,1,0,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,1,0,1,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,40-60,1,0,0,0,2,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,40-60,0,0,0,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,1,0,0,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,1,0,0,0,0,0,0
-Placebo,1,NA,NA,NA,NA,40-60,1,1,1,1,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,0,1,1,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,1,1,0,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,0,1,1,0,0,0,0
-Placebo,1,NA,NA,NA,NA,less than 40,0,0,1,1,0,0,0
-Placebo,1,NA,NA,NA,NA,40-60,0,1,1,0,0,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,0,1,0,0,2,0,0
-Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,1,1,0,1,0,0,0
+Placebo,13,0,1,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,2,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,8,0,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,13,0,1,1,1,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,10,0,0,0,0,40-60,Male,present,Absent,Absent,single,Absent,Present
+Ivermectin+Doxycycline,2,1,0,0,1,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,10,0,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,5,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,9,0,0,1,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,21,0,1,1,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Placebo,13,0,1,0,1,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,18,0,1,0,1,less than 40,Female,absent,present,Present,Absent,Absent,Absent
+Placebo,9,0,0,1,1,40-60,Female,present,Absent,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,5,1,0,0,0,40-60,Male,absent,Absent,Present,Absent,Absent,Absent
+Placebo,8,0,0,1,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,12,0,1,1,1,40-60,Male,present,Absent,Present,Absent,Absent,Absent
+Placebo,2,1,0,0,0,>60,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,7,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,40-60,Male,present,Absent,Present,Absent,Absent,Absent
+Placebo,1,1,0,0,0,40-60,Female,present,present,Absent,single,Absent,Present
+Placebo,2,1,0,0,0,>60,Male,present,present,Absent,Multiple,Present,Present
+Placebo,7,1,0,0,0,less than 40,Female,absent,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Male,absent,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,16,0,1,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,15,0,1,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,14,0,1,0,0,40-60,Female,absent,present,Absent,Absent,Absent,Absent
+Placebo,10,0,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,7,1,0,0,0,40-60,Male,present,Absent,Present,Absent,Absent,Absent
+Placebo,14,0,1,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Placebo,7,1,0,1,0,40-60,Female,present,Absent,Present,single,Present,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,1,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Placebo,8,0,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,6,1,0,0,0,less than 40,Male,present,present,Absent,single,Absent,Absent
+Placebo,5,1,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,28,0,1,1,0,>60,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Female,absent,present,Present,Absent,Absent,Absent
+Placebo,13,0,1,0,0,40-60,Female,present,present,Present,Absent,Absent,Absent
+Placebo,6,1,0,0,0,40-60,Male,absent,present,Absent,single,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,present,present,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,3,1,0,0,0,40-60,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,12,0,1,0,0,less than 40,Male,absent,Absent,Present,Absent,Absent,Absent
+Placebo,12,0,1,0,0,40-60,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,13,0,1,0,1,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,22,0,1,1,1,>60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,11,0,0,0,1,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,11,0,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,2,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,9,0,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,5,1,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Placebo,20,0,1,1,0,40-60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,9,0,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,15,0,1,0,1,less than 40,Male,absent,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,16,0,1,0,0,less than 40,Female,absent,present,Present,Absent,Absent,Absent
+Placebo,26,0,1,1,0,40-60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,9,0,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,10,0,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Placebo,20,0,1,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,7,1,0,0,0,less than 40,Female,absent,present,Present,Absent,Absent,Absent
+Placebo,10,0,0,0,0,less than 40,Male,present,present,Present,single,Absent,Present
+Placebo,5,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Placebo,7,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,26,0,1,1,0,less than 40,Female,present,Absent,Present,single,Absent,Absent
+Placebo,7,1,0,0,0,40-60,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,8,0,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,14,0,1,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,3,1,0,0,1,40-60,Male,present,Absent,Absent,single,Absent,Present
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,absent,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Placebo,10,0,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,12,0,1,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Placebo,9,0,0,0,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Placebo,13,0,1,0,1,40-60,Female,present,present,Absent,Multiple,Present,Present
+Placebo,12,0,1,0,1,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,10,0,0,0,1,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,7,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,15,0,1,0,1,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,8,0,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,15,0,1,0,1,less than 40,Male,absent,present,Present,single,Present,Absent
+Placebo,9,0,0,0,0,40-60,Male,present,Absent,Present,single,Absent,Absent
+Placebo,12,0,1,1,0,>60,Male,present,present,Present,Multiple,Present,Absent
+Placebo,4,1,0,0,0,>60,Male,absent,Absent,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,2,1,0,0,0,40-60,Male,present,present,Absent,single,Absent,Present
+Placebo,3,1,0,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,20,0,1,1,1,less than 40,Female,present,present,Present,single,Present,Absent
+Placebo,10,0,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,23,0,1,1,1,>60,Male,present,Absent,Present,Multiple,Absent,Present
+Ivermectin+Doxycycline,8,0,0,1,0,less than 40,Male,present,Absent,Present,single,Absent,Present
+Placebo,5,1,0,0,0,40-60,Male,absent,present,Absent,single,Absent,Absent
+Placebo,6,1,0,0,0,40-60,Male,absent,Absent,Present,single,Absent,Present
+Placebo,20,0,1,1,1,40-60,Male,present,present,Present,single,Absent,Present
+Placebo,25,0,1,0,1,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,12,0,1,1,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,23,0,1,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,13,0,1,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,12,0,1,0,0,40-60,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,13,0,1,1,1,40-60,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,8,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,16,0,1,0,1,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Placebo,9,0,1,1,0,40-60,Female,present,Absent,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,8,0,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Placebo,5,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,12,0,1,0,0,40-60,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,40-60,Male,absent,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,40-60,Male,present,Absent,Absent,Multiple,Present,Present
+Placebo,3,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,2,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,9,0,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,9,0,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,11,0,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,28,0,1,0,0,less than 40,Female,absent,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,10,0,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,7,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,12,0,1,1,0,less than 40,Female,absent,present,Present,Absent,Absent,Absent
+Placebo,12,0,1,0,0,less than 40,Female,present,present,Absent,single,Absent,Absent
+Placebo,12,0,1,1,0,>60,Male,present,Absent,Present,single,Present,Absent
+Ivermectin+Doxycycline,10,0,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,14,0,1,0,1,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,12,0,1,0,0,less than 40,Male,present,present,Absent,single,Absent,Absent
+Placebo,13,0,1,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,9,0,0,0,0,40-60,Male,present,Absent,Absent,single,Absent,Absent
+Ivermectin+Doxycycline,12,0,1,0,0,40-60,Male,present,present,Absent,single,Absent,Present
+Placebo,7,1,0,0,0,less than 40,Male,present,Absent,Present,Absent,Absent,Absent
+Placebo,13,0,1,0,0,>60,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,8,0,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Female,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,16,0,1,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,absent,Absent,Present,Absent,Absent,Absent
+Placebo,12,0,1,1,0,40-60,Male,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,9,0,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,13,0,1,0,1,>60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,3,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,10,1,0,1,1,40-60,Male,present,present,Present,Multiple,Present,Present
+Placebo,12,0,1,1,0,40-60,Female,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,7,1,0,0,0,>60,Female,present,present,Absent,single,Present,Absent
+Ivermectin+Doxycycline,13,0,1,0,1,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,8,0,0,0,0,>60,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,40-60,Female,present,present,Absent,single,Present,Absent
+Ivermectin+Doxycycline,7,0,0,0,0,less than 40,Female,absent,Absent,Absent,single,Absent,Present
+Ivermectin+Doxycycline,5,1,0,0,1,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,1,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,8,1,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,0,0,0,0,less than 40,Male,absent,present,Present,Absent,Absent,Absent
+Placebo,16,0,1,0,1,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,2,1,0,0,0,40-60,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,9,0,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,8,0,0,1,0,40-60,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,22,0,1,0,0,40-60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,7,1,0,0,0,less than 40,Female,present,present,Absent,Multiple,Absent,Absent
+Placebo,8,0,0,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,23,0,1,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,10,0,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,1,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,40-60,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,1,0,0,0,less than 40,Male,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,14,0,1,0,0,less than 40,Male,present,present,Absent,single,Absent,Present
+Placebo,9,0,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Placebo,8,0,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,40-60,Female,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,14,0,1,1,0,>60,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,14,0,1,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,15,0,1,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,40-60,Male,present,present,Absent,single,Absent,Present
+Ivermectin+Doxycycline,9,0,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,10,0,0,0,0,>60,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,11,0,0,0,0,40-60,Female,present,Absent,Absent,single,Absent,Present
+Ivermectin+Doxycycline,12,0,1,0,0,40-60,Female,present,present,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,14,0,1,0,0,40-60,Male,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,10,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,1,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,>60,Male,present,present,Absent,Multiple,Present,Present
+Placebo,3,1,0,0,0,40-60,Female,present,Absent,Absent,Multiple,Present,Present
+Placebo,4,1,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,6,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,40-60,Male,present,present,Present,single,Present,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Female,present,present,Present,single,Present,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,40-60,Female,present,Absent,Absent,Multiple,Present,Present
+Placebo,8,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,1,>60,Male,present,present,Present,single,Absent,Present
+Ivermectin+Doxycycline,12,0,1,1,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Placebo,12,0,1,0,1,>60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,12,0,1,1,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,9,0,0,1,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,13,0,1,0,0,>60,Male,absent,present,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,17,0,1,0,0,40-60,Female,absent,Absent,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,16,0,1,0,0,less than 40,Male,absent,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,0,0,0,0,40-60,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,5,1,0,0,1,40-60,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,1,0,less than 40,Male,present,present,Present,single,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,1,>60,Male,absent,present,Present,Absent,Absent,Absent
+Placebo,3,1,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Female,present,present,Absent,single,Present,Absent
+Placebo,20,0,1,1,0,>60,Male,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,13,0,1,0,0,40-60,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,14,0,1,1,0,40-60,Male,present,present,Present,Multiple,Present,Present
+Placebo,12,0,1,0,0,>60,Female,present,present,Present,Multiple,Present,Present
+Placebo,6,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,15,0,1,0,0,40-60,Male,present,Absent,Present,Absent,Absent,Absent
+Placebo,5,0,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,40-60,Male,present,Absent,Absent,single,Absent,Present
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Male,present,Absent,Present,single,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,6,1,0,0,1,40-60,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,3,1,0,0,1,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,12,0,1,1,0,40-60,Female,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,8,0,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,0,0,0,0,40-60,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,6,1,0,0,1,40-60,Male,present,Absent,Absent,single,Present,Absent
+Ivermectin+Doxycycline,9,0,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,14,0,1,0,0,40-60,Male,present,present,Present,Multiple,Present,Present
+Placebo,18,0,1,0,1,less than 40,Male,present,present,Present,single,Absent,Absent
+Placebo,7,0,0,0,0,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,4,1,0,0,0,>60,Male,absent,Absent,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,10,0,0,0,0,40-60,Male,present,present,Absent,single,Present,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,40-60,Female,absent,Absent,Absent,single,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,>60,Female,present,Absent,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,40-60,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,40-60,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,14,0,1,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,10,0,0,0,0,40-60,Female,absent,Absent,Absent,single,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,1,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,1,0,40-60,Male,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,13,0,1,0,0,40-60,Male,present,present,Present,single,Absent,Absent
+Ivermectin+Doxycycline,9,0,0,0,0,less than 40,Female,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,2,1,0,0,0,40-60,Male,absent,Absent,Absent,single,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,1,40-60,Male,present,Absent,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,17,0,1,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,6,1,0,0,0,less than 40,Male,present,present,Present,single,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,>60,Female,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,10,1,0,0,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Male,absent,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,17,0,1,0,0,40-60,Male,present,present,Present,single,Absent,Present
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,8,0,0,0,0,40-60,Female,present,Absent,Present,single,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,22,0,1,0,1,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,40-60,Male,absent,Absent,Present,single,Absent,Absent
+Ivermectin+Doxycycline,8,0,0,1,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,2,1,0,0,0,40-60,Female,present,Absent,Present,single,Absent,Absent
+Placebo,3,1,0,0,0,less than 40,Female,absent,Absent,Absent,single,Absent,Absent
+Ivermectin+Doxycycline,1,1,0,0,0,less than 40,Male,absent,Absent,Absent,single,Absent,Present
+Ivermectin+Doxycycline,4,1,0,1,0,>60,Male,present,present,Absent,single,Absent,Present
+Placebo,16,0,1,0,0,40-60,Female,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,absent,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,40-60,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,3,1,0,0,0,>60,Female,absent,Absent,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,9,0,0,0,0,40-60,Male,present,present,Present,single,Absent,Absent
+Placebo,13,0,1,1,0,>60,Male,present,present,Present,Multiple,Present,Present
+Placebo,6,1,0,0,0,>60,Male,present,present,Absent,Multiple,Absent,Present
+Placebo,6,1,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Female,present,Absent,Present,Multiple,Present,Absent
+Placebo,7,1,0,0,0,less than 40,Male,present,Absent,Present,single,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,absent,Absent,Absent,single,Absent,Present
+Placebo,45,0,1,1,0,40-60,Male,absent,Absent,Present,single,Absent,Present
+Placebo,4,1,0,0,0,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Placebo,37,0,1,0,1,less than 40,Male,present,present,Absent,single,Present,Absent
+Placebo,17,0,1,0,0,>60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,10,1,0,0,0,40-60,Male,present,present,Present,Multiple,Present,Present
+Placebo,7,1,0,0,0,less than 40,Female,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,present,present,Present,single,Present,Absent
+Placebo,10,0,0,0,1,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Male,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,1,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,9,0,0,1,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,19,0,1,0,0,less than 40,Male,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,13,0,1,0,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Placebo,9,0,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,14,0,1,0,0,40-60,Female,present,present,Present,Absent,Absent,Absent
+Placebo,12,0,1,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,18,0,1,1,1,40-60,Female,present,present,Absent,single,Absent,Absent
+Ivermectin+Doxycycline,15,0,1,0,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,15,0,1,0,0,less than 40,Female,present,Absent,Present,Absent,Absent,Absent
+Placebo,17,0,1,1,1,40-60,Male,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,15,0,1,0,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,15,0,1,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,3,1,0,0,0,40-60,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,0,0,0,0,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,7,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,9,0,0,0,0,40-60,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,11,0,1,1,0,40-60,Female,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,5,1,0,0,0,40-60,Male,present,present,Absent,single,Absent,Present
+Ivermectin+Doxycycline,5,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,9,0,1,0,1,less than 40,Male,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,25,0,1,1,1,40-60,Female,present,present,Present,single,Present,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,4,1,0,0,0,less than 40,Female,absent,Absent,Present,single,Absent,Absent
+Placebo,16,0,1,1,0,>60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,12,0,1,1,0,less than 40,Female,present,present,Present,Absent,Present,Absent
+Ivermectin+Doxycycline,10,0,0,0,0,>60,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,15,0,1,0,0,less than 40,Female,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,4,0,0,0,0,40-60,Male,present,present,Present,Absent,Absent,Absent
+Placebo,12,0,1,0,0,less than 40,Female,absent,Absent,Absent,single,Absent,Absent
+Placebo,6,1,0,0,0,>60,Male,absent,present,Present,Absent,Absent,Absent
+Placebo,8,1,0,0,0,40-60,Male,present,present,Absent,single,Present,Absent
+Ivermectin+Doxycycline,14,0,0,0,0,less than 40,Female,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,1,0,0,0,less than 40,Male,present,present,Absent,single,Absent,Absent
+Ivermectin+Doxycycline,4,1,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,1,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,1,0,0,0,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,10,0,0,0,0,>60,Male,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,7,0,0,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,12,0,1,1,1,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,12,0,1,0,0,40-60,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,10,0,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,15,0,1,1,0,40-60,Female,present,present,Present,Multiple,Present,Present
+Ivermectin+Doxycycline,6,1,0,0,0,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,5,0,0,0,0,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,2,NA,NA,NA,NA,40-60,Male,absent,present,Absent,Multiple,Present,Present
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Female,present,Absent,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Female,absent,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,40-60,Male,absent,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,3,NA,NA,NA,NA,>60,Male,present,Absent,Present,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Male,present,present,Present,Absent,Absent,Absent
+Placebo,3,NA,NA,NA,NA,less than 40,Male,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Male,present,present,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,40-60,Female,absent,present,Present,single,Present,Absent
+Placebo,1,NA,NA,NA,NA,40-60,Female,absent,Absent,Absent,Multiple,Present,Present
+Placebo,2,NA,NA,NA,NA,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Female,present,Absent,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Male,absent,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,40-60,Male,absent,Absent,Absent,Multiple,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,40-60,Female,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Male,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Male,absent,Absent,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,40-60,Male,present,present,Present,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Male,present,Absent,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Female,present,present,Absent,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,less than 40,Female,absent,present,Present,Absent,Absent,Absent
+Placebo,1,NA,NA,NA,NA,40-60,Female,present,present,Absent,Absent,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Female,present,Absent,Absent,Multiple,Absent,Absent
+Ivermectin+Doxycycline,1,NA,NA,NA,NA,less than 40,Male,present,Absent,Present,Absent,Absent,Absent

@@ -196,7 +196,9 @@ df2_final = df2 %>%
         X_agegrp_0d = factor(X_agegrp_0d,
                          levels = c(1, 2, 3),
                          labels = c("less than 40", "40-60", ">60"),
-                         ordered = TRUE)
+                         ordered = TRUE),
+        across(c(X_sex_0d, X_fever_0d, X_cough_0d, X_respdiff_0d, X_comorb_0d, 
+                 X_diabetes_0d, X_hyperten_0d), as_factor)
     ) %>% 
 
   # Select and reorder columns
@@ -266,6 +268,7 @@ df3_final = df3 %>%
       "age", "age_over_90",
       "sex",
       "race",
+      "ethnicity",
       # admission service & location
       "admit_medical",
       "admit_surgical",
@@ -572,16 +575,16 @@ df6_final = df6 %>%
     X_mda_ldl_0m             = as.numeric(mda_ldl_0m),
 
     # Additional baseline covariates used in ANCOVA
-    X_age                    = age_x,
-    X_sex                    = sex_x,
-    X_statin                 = statin,
-    X_dm_treatment           = dm_treatment,
-    X_hba1c_ancova           = as.numeric(al_hb_a1c_jds),
-    X_sbp                    = as.numeric(al_sbp),
-    X_max_imt                = as.numeric(al_max_imt)
+    X_age_0m                    = age_x,
+    X_sex_0m                    = sex_x,
+    X_statin_0m                 = statin,
+    X_dm_treatment_0m           = dm_treatment,
+    X_hba1c_ancova_0m           = as.numeric(al_hb_a1c_jds),
+    X_sbp_0m                    = as.numeric(al_sbp),
+    X_max_imt_0m                = as.numeric(al_max_imt)
   ) %>%
   mutate(
-    across(c(X_sex, X_statin, X_dm_treatment), as.factor),
+    across(c(X_sex_0m, X_statin_0m, X_dm_treatment_0m), as_factor),
     Treatment = relevel(factor(Treatment), ref = "Conventional")
   ) %>% 
   select(
@@ -631,20 +634,22 @@ df7_final = df7 %>%
     YS_Oxygen_14d = outcome3,
 
     # Covariates
-    X_variant             = variant,
-    X_IgG                 = IgG,
-    X_vaccine_status      = NewVax,
-    X_BMI_cat             = BMI_CAT,
-    X_immunodef           = immunodeficency,
-    X_renal               = renal,
-    X_diabetes            = diabetes,
-    X_CVD                 = CVD,
-    X_bpco                = bpco,
-    X_liver               = liver
+    X_variant_0d             = variant,
+    X_IgG_0d                 = IgG,
+    X_vaccine_status_0d      = NewVax,
+    X_BMI_cat_0d             = BMI_CAT,
+    X_immunodef_0d           = immunodeficency,
+    X_renal_0d               = renal,
+    X_diabetes_0d            = diabetes,
+    X_CVD_0d                 = CVD,
+    X_bpco_0d                = bpco,
+    X_liver_0d               = liver
   ) %>%
   mutate(
     Treatment = relevel(factor(Treatment), ref = "Casirivimab/Imdevimab"),
-    
+    across(c(X_variant_0d, X_IgG_0d, X_vaccine_status_0d, X_BMI_cat_0d, 
+             X_immunodef_0d, X_renal_0d, X_diabetes_0d, X_CVD_0d, X_bpco_0d, 
+             X_bpco_0d, X_liver_0d), as_factor)
   ) %>% 
   select(
     Treatment,
@@ -653,7 +658,6 @@ df7_final = df7 %>%
     starts_with("X_")
   )
 ```
-
 
 
 ## Output Data
@@ -1609,14 +1613,14 @@ df17 = read.csv("raw_data/17/17.csv")
 ## Cleaning
 ```{r}
 df17_final = df17 %>% 
-  rename(
+  mutate(
     Treatment = group,
     X_LDL_0w = LDL,
     X_TC_0w = TC,
     X_TG_0w = TG,
     X_HDL_0w = HDL,
     X_age_0w = age,
-    X_sex_0w = sex,
+    X_sex_0w = trimws(sex),
     X_hbp_0w = hbp,
     X_smoke_0w = smoke,
     X_DM_0w = DM,
@@ -2171,7 +2175,6 @@ df24_final = df24 %>%
   ) %>% 
   mutate(
     YP_catheterized     = SONDES,
-    YS_time_to_catheter = Heure.du.sondage,
     YS_anxiety_6h       = anxiete.6h,
     YS_anxiety_1d       = anxiete.s,
     YS_comfort_6h       = confort.6h,
