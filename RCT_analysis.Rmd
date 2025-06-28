@@ -20,6 +20,7 @@ library(haven)
 library(purrr)
 library(DescTools)
 library(RobinCar)
+library(ggplot2)
 ```
 
 # Trial 1
@@ -32,10 +33,11 @@ df1 = read_rds("cleaned_data/trial1.rds")
 ```{r}
 # 342 -> 291
 df1_cleaned = df1 %>% 
-  filter(!if_any(starts_with("YP"), is.na)) %>% 
+  filter(!if_any(starts_with(c("YP")), is.na)) %>% 
   select(
     Treatment,
     starts_with("YP"),
+    # starts_with("YS"),
     starts_with("X")
   )
 
@@ -49,8 +51,8 @@ df1_final = df1_cleaned %>%
       }
   ))
 ```
-
-## unadjusted
+## YP
+### unadjusted
 ```{r}
 fit1 = lm(YP_delta_HOMA_IR_4m ~ Treatment, data = df1_final)
 
@@ -67,8 +69,12 @@ print(paste("The estimate ATE for True Acupuncture is", est1.2_un,
             "with se", se1.2_un))
 ```
 
-## ancova
+### ancova
 ```{r}
+covariates = df1_final %>%
+  select(starts_with("X_")) %>%
+  names()
+
 fit1 = lm(YP_delta_HOMA_IR_4m ~ ., data = df1_final)
 
 est1.1_mod = round(summary(fit1)$coefficients[2,1], 3)
@@ -84,12 +90,8 @@ print(paste("The estimate ATE for True Acupuncture is", est1.2_mod,
             "with se", se1.2_mod))
 
 ```
-## robincar
+### robincar
 ```{r}
-covariates = df1_final %>%
-  select(starts_with("X_")) %>%
-  names()
-
 # Create formula string
 form_str = paste("YP_delta_HOMA_IR_4m ~ Treatment + ", paste(covariates, collapse = " + "))
 
@@ -100,6 +102,16 @@ robincar_glm(
   formula = as.formula(form_str),
   contrast_h = "diff"
 )
+```
+## YS
+```{r}
+df1_YS = df1_cleaned %>% 
+  filter(!if_any(starts_with("YS"), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YS"),
+    starts_with("X")
+  )
 ```
 
 # Trial 2
@@ -2195,7 +2207,8 @@ df28_clean = df28 %>%
       }
   )) %>%
   mutate(
-    YP_ContrSBP_6m = as.numeric(YP_ContrSBP_6m)
+    YP_ContrSBP_6m = as.numeric(YP_ContrSBP_6m),
+    X_ControlledBP_0m = as.numeric(X_ControlledBP_0m)
   ) %>% 
   select(
     Treatment,
@@ -2216,7 +2229,6 @@ se = summary(fit)$coefficients[2,2]
 
 c(round(est, 3), round(se, 3))
 ```
-
 
 ## ancova
 ```{r}
@@ -2429,3 +2441,358 @@ robincar_linear(
   contrast_h = "diff"
   )
 ```
+# Plot
+## Load Data
+```{r}
+df = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
+```
+
+##
+```{r}
+df_new = df %>%
+  mutate(
+    outcome_group = case_when(
+      `outcome   type` %in% c("continuous", "continuous proportion") ~ "continuous",
+      `outcome   type` %in% c("ordinal", "categorical") ~ "categorical",
+      `outcome   type` %in% c("binary", "composite binary") ~ "binary",
+      `outcome   type` == "time to event" ~ "time_to_event",
+      TRUE ~ "other"
+    )
+  )
+```
+
+## Violin Plot
+```{r}
+# 1. Precision Gain Plot
+ggplot(df_new, aes(x = outcome_group, y = `How much precision gain can ANCOVA provide?`)) +
+  geom_violin(trim = FALSE, fill = "lightblue", alpha = 0.6) +
+  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  labs(
+    title = "ANCOVA vs Unadjusted Precision Gain",
+    x = "Outcome Group",
+    y = "Ratio"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# 2. Point Estimate Difference Plot
+ggplot(df_new, aes(x = outcome_group, y = `The difference between unadjusted and ANCOVA point esimates`)) +
+  geom_violin(trim = FALSE, fill = "lightgreen", alpha = 0.6) +
+  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  labs(
+    title = "Unadjusted vs ANCOVA Point Estimate Difference",
+    x = "Outcome Group",
+    y = "Difference"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+# new Point Est
+df_plot <- df_new %>%
+  mutate(point_est_diff_clean = ifelse(
+    outcome_group == "continuous" & 
+    `The difference between unadjusted and ANCOVA point esimates` > 100,
+    NA,
+    `The difference between unadjusted and ANCOVA point esimates`
+  ))
+
+ggplot(df_plot, aes(x = outcome_group, y = point_est_diff_clean)) +
+  geom_violin(trim = FALSE, fill = "#50C878", alpha = 0.7, color = "white") +
+  geom_jitter(width = 0.15, alpha = 0.6, color = "black", size = 1.2) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "#E74C3C", size = 0.8) +
+  labs(
+    title = "Unadjusted vs ANCOVA Point Estimate Difference",
+    subtitle = "Extreme outliers (>100) excluded for visualization",
+    x = "Outcome Group",
+    y = "Difference"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 3. Variance Estimator Difference Plot
+ggplot(df_new, aes(x = outcome_group, y = `The difference between robust and model-based variance estimators`)) +
+  geom_violin(trim = FALSE, fill = "lightcoral", alpha = 0.6) +
+  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  labs(
+    title = "Robust vs Model-Based Variance Ratio",
+    x = "Outcome Group",
+    y = "Ratio"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Histogram
+```{r}
+# Precision Gain Histograms by Outcome Group
+ggplot(df_new[df_new$outcome_group == "binary", ], aes(x = `How much precision gain can ANCOVA provide?`)) +
+  geom_histogram(bins = 30, fill = "lightblue", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "ANCOVA Precision Gain - Binary Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "continuous", ], aes(x = `How much precision gain can ANCOVA provide?`)) +
+  geom_histogram(bins = 30, fill = "lightblue", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "ANCOVA Precision Gain - Continuous Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "categorical", ], aes(x = `How much precision gain can ANCOVA provide?`)) +
+  geom_histogram(bins = 30, fill = "lightblue", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "ANCOVA Precision Gain - Categorical Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "time_to_event", ], aes(x = `How much precision gain can ANCOVA provide?`)) +
+  geom_histogram(bins = 30, fill = "lightblue", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "ANCOVA Precision Gain - Time-to-Event Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Point Estimate Difference Histograms by Outcome Group
+ggplot(df_new[df_new$outcome_group == "binary", ], aes(x = `The difference between unadjusted and ANCOVA point esimates`)) +
+  geom_histogram(bins = 30, fill = "lightgreen", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Point Estimate Difference - Binary Outcomes", x = "Difference", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "continuous", ], aes(x = `The difference between unadjusted and ANCOVA point esimates`)) +
+  geom_histogram(bins = 30, fill = "lightgreen", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Point Estimate Difference - Continuous Outcomes", x = "Difference", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "categorical", ], aes(x = `The difference between unadjusted and ANCOVA point esimates`)) +
+  geom_histogram(bins = 30, fill = "lightgreen", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Point Estimate Difference - Categorical Outcomes", x = "Difference", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "time_to_event", ], aes(x = `The difference between unadjusted and ANCOVA point esimates`)) +
+  geom_histogram(bins = 30, fill = "lightgreen", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Point Estimate Difference - Time-to-Event Outcomes", x = "Difference", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Variance Estimator Difference Histograms by Outcome Group
+ggplot(df_new[df_new$outcome_group == "binary", ], aes(x = `The difference between robust and model-based variance estimators`)) +
+  geom_histogram(bins = 30, fill = "lightcoral", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Variance Estimator Difference - Binary Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "continuous", ], aes(x = `The difference between robust and model-based variance estimators`)) +
+  geom_histogram(bins = 30, fill = "lightcoral", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Variance Estimator Difference - Continuous Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "categorical", ], aes(x = `The difference between robust and model-based variance estimators`)) +
+  geom_histogram(bins = 30, fill = "lightcoral", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Variance Estimator Difference - Categorical Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(df_new[df_new$outcome_group == "time_to_event", ], aes(x = `The difference between robust and model-based variance estimators`)) +
+  geom_histogram(bins = 30, fill = "lightcoral", alpha = 0.7, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Variance Estimator Difference - Time-to-Event Outcomes", x = "Ratio", y = "Frequency") +
+  theme_classic(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+# More Plots
+```{r}
+library(ggplot2)
+library(dplyr)
+library(ggbeeswarm)
+library(ggridges)
+
+# Data preparation (same outlier removal as before)
+df_clean <- df_new %>%
+  mutate(
+    point_est_clean = ifelse(
+      outcome_group == "continuous" & 
+      `The difference between unadjusted and ANCOVA point esimates` > 15,
+      NA,
+      `The difference between unadjusted and ANCOVA point esimates`
+    )
+  )
+
+# ============================================================================
+# OPTION 1: BEESWARM PLOTS (Best for showing individual points + distribution)
+# ============================================================================
+
+# Precision Gain - Beeswarm
+ggplot(df_new, aes(x = outcome_group, y = `How much precision gain can ANCOVA provide?`, color = outcome_group)) +
+  geom_beeswarm(size = 3, alpha = 0.8, cex = 2) +
+  geom_boxplot(aes(fill = outcome_group), alpha = 0.3, width = 0.3, outlier.shape = NA) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "#E74C3C", size = 1) +
+  scale_color_manual(values = c("#2E8B57", "#4A90E2", "#FF6B35", "#9B59B6")) +
+  scale_fill_manual(values = c("#2E8B57", "#4A90E2", "#FF6B35", "#9B59B6")) +
+  labs(
+    title = "ANCOVA Precision Gain by Outcome Type",
+    subtitle = "Each point represents one study comparison",
+    x = "Outcome Group",
+    y = "Precision Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+
+# ============================================================================
+# OPTION 2: RIDGE PLOTS (Great for comparing distributions)
+# ============================================================================
+
+# Point Estimate Differences - Ridge Plot
+ggplot(df_clean, aes(x = point_est_clean, y = outcome_group, fill = outcome_group)) +
+  geom_density_ridges(alpha = 0.7, bandwidth = 0.3, scale = 0.9) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "#E74C3C", size = 1) +
+  scale_fill_manual(values = c("#2E8B57", "#4A90E2", "#FF6B35", "#9B59B6")) +
+  labs(
+    title = "Distribution of Point Estimate Differences",
+    subtitle = "Density curves show distribution shape for each outcome type",
+    x = "Difference (Unadjusted - ANCOVA)",
+    y = "Outcome Group"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+    legend.position = "none",
+    panel.grid.minor = element_blank()
+  ) +
+  xlim(-2, 2)
+
+# ============================================================================
+# OPTION 3: DOT PLOTS (Clean, simple, effective for small-medium sample sizes)
+# ============================================================================
+
+# Variance Ratio - Dot Plot
+ggplot(df_new, aes(x = `The difference between robust and model-based variance estimators`, 
+                   y = outcome_group, color = outcome_group)) +
+  geom_point(size = 3, alpha = 0.8, position = position_jitter(height = 0.15)) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "#E74C3C", size = 1) +
+  stat_summary(fun = median, geom = "point", shape = 18, size = 6, color = "black") +
+  scale_color_manual(values = c("#2E8B57", "#4A90E2", "#FF6B35", "#9B59B6")) +
+  labs(
+    title = "Variance Estimator Ratios",
+    subtitle = "Large diamonds show group medians",
+    x = "Ratio (Robust SE / Model-Based SE)",
+    y = "Outcome Group"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank()
+  )
+
+# ============================================================================
+# OPTION 4: FACETED HISTOGRAMS (Good for detailed distribution examination)
+# ============================================================================
+
+# All three metrics in faceted plot
+df_long <- df_clean %>%
+  select(outcome_group, 
+         `How much precision gain can ANCOVA provide?`,
+         point_est_clean,
+         `The difference between robust and model-based variance estimators`) %>%
+  pivot_longer(cols = -outcome_group, names_to = "metric", values_to = "value") %>%
+  mutate(
+    metric = factor(metric, 
+                   levels = c("How much precision gain can ANCOVA provide?",
+                             "point_est_clean",
+                             "The difference between robust and model-based variance estimators"),
+                   labels = c("Precision Gain Ratio", 
+                             "Point Estimate Difference",
+                             "Variance Estimator Ratio"))
+  )
+
+ggplot(df_long, aes(x = value, fill = outcome_group)) +
+  geom_histogram(bins = 15, alpha = 0.7, color = "white") +
+  geom_vline(data = data.frame(metric = factor(c("Precision Gain Ratio", "Variance Estimator Ratio"), 
+                                              levels = c("Precision Gain Ratio", "Point Estimate Difference", "Variance Estimator Ratio")),
+                              xint = c(1, 1)),
+            aes(xintercept = xint), linetype = "dashed", color = "#E74C3C", size = 1) +
+  geom_vline(data = data.frame(metric = factor("Point Estimate Difference", 
+                                              levels = c("Precision Gain Ratio", "Point Estimate Difference", "Variance Estimator Ratio")),
+                              xint = 0),
+            aes(xintercept = xint), linetype = "dashed", color = "#E74C3C", size = 1) +
+  facet_grid(outcome_group ~ metric, scales = "free") +
+  scale_fill_manual(values = c("#2E8B57", "#4A90E2", "#FF6B35", "#9B59B6")) +
+  labs(
+    title = "Distribution of ANCOVA Metrics by Outcome Type",
+    x = "Value",
+    y = "Count",
+    fill = "Outcome Group"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    strip.text = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+# ============================================================================
+# OPTION 5: BOX PLOTS WITH INDIVIDUAL POINTS (Classic, clear, informative)
+# ============================================================================
+
+# Combined plot showing all three metrics
+df_combined <- df_clean %>%
+  select(outcome_group, 
+         precision = `How much precision gain can ANCOVA provide?`,
+         point_diff = point_est_clean,
+         variance_ratio = `The difference between robust and model-based variance estimators`) %>%
+  pivot_longer(cols = -outcome_group, names_to = "metric", values_to = "value") %>%
+  mutate(
+    metric = factor(metric, 
+                   levels = c("precision", "point_diff", "variance_ratio"),
+                   labels = c("Precision Gain", "Point Estimate Diff", "Variance Ratio"))
+  )
+
+ggplot(df_combined, aes(x = outcome_group, y = value, fill = outcome_group)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.6, size = 2) +
+  facet_wrap(~ metric, scales = "free_y", ncol = 3) +
+  scale_fill_manual(values = c("#2E8B57", "#4A90E2", "#FF6B35", "#9B59B6")) +
+  labs(
+    title = "ANCOVA Performance Metrics by Outcome Type",
+    x = "Outcome Group",
+    y = "Value"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 12),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+```{r}
+str(df30_final)
+```
+

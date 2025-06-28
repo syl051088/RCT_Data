@@ -22,8 +22,6 @@ library(DescTools)
 ```
 
 
-
-
 # Trial 1
 ## Load Data
 ```{r}
@@ -127,7 +125,7 @@ df1_final = df1_combined %>%
     X_ApoA1_0m        = as.numeric(`ApoA-1`),
     X_ApoB_0m         = as.numeric(ApoB)
   ) %>%
-  mutate(Treatment = relevel(factor(Treatment), ref = "Sham Acupuncture + Placebo")) %>% 
+  mutate(Treatment = relevel(factor(Treatment), ref = "Sham Acupuncture + Placebo")) %>%
   
   select(
     Treatment,
@@ -198,7 +196,8 @@ df2_final = df2 %>%
                          labels = c("less than 40", "40-60", ">60"),
                          ordered = TRUE),
         across(c(X_sex_0d, X_fever_0d, X_cough_0d, X_respdiff_0d, X_comorb_0d, 
-                 X_diabetes_0d, X_hyperten_0d), as_factor)
+                 X_diabetes_0d, X_hyperten_0d, YP_early_7d, YP_late_12d,
+                 YS_severity_worsen, YS_pos_14d), as_factor)
     ) %>% 
 
   # Select and reorder columns
@@ -628,7 +627,7 @@ df7_final = df7 %>%
 
     # Secondary outcomes
     YS_Symptom_duration_30d   = TotalDsympt,
-    YS_SymptomResolutionObserved = resolution,
+    YS_Symptom_resolution_observed = resolution,
     YS_Death_14d          = outcome1,
     YS_Hospital_14d       = outcome2,
     YS_Oxygen_14d = outcome3,
@@ -649,7 +648,8 @@ df7_final = df7 %>%
     Treatment = relevel(factor(Treatment), ref = "Casirivimab/Imdevimab"),
     across(c(X_variant_0d, X_IgG_0d, X_vaccine_status_0d, X_BMI_cat_0d, 
              X_immunodef_0d, X_renal_0d, X_diabetes_0d, X_CVD_0d, X_bpco_0d, 
-             X_bpco_0d, X_liver_0d), as_factor)
+             X_bpco_0d, X_liver_0d, YS_Death_14d,
+             YS_Hospital_14d), as_factor)
   ) %>% 
   select(
     Treatment,
@@ -953,7 +953,6 @@ df10_intub_clean = df10_intubation %>%
     YS_nb_attempts_intub   = per_nb_attempts,
     YS_burp_intub          = per_burp,
     YS_railroading_intub   = per_railroading,
-    YS_cormack_grade_intub = per_cormack,
     YS_pogo_intub          = per_pogo,
     YS_vocal_cord_pos_intub= `per_vocal cord`,
     YS_force_intub         = per_force,
@@ -1012,7 +1011,10 @@ df10_all = df10_pat_clean %>%
 # 7. Drop any columns we no longer need (e.g., ID) if desired
 df10_final = df10_all %>%
   mutate(
-    across(c(YP_help_needed_intub, X_center_0d, X_sex_0d, X_age_0d), as_factor),
+    across(c(YP_help_needed_intub, X_center_0d, X_sex_0d, X_age_0d, YS_IDS_intub, 
+             YS_nb_attempts_intub, YS_burp_intub, YS_railroading_intub, YS_vocal_cord_pos_intub, 
+             YS_force_intub, YS_esophageal_intub, YS_removing_cover_intub, YS_hemodynamic_comp_intub,
+             YS_hoarseness_postop, YS_sore_throat_postop), as_factor),
     Treatment = relevel(factor(Treatment), ref = "No Video"),
     X_size_0d = factor(X_size_0d, levels = c("< 160", "160 < < 180", "> 180"), ordered = TRUE)
   ) %>% 
@@ -1292,6 +1294,7 @@ df13_final = df13 %>%
   mutate(
     YP_PPH500 = factor(YP_PPH500),
     Treatment = relevel(factor(Treatment), ref = "IM injection"),
+    across(c(YS_UTEROTONICOS, YS_PPH1000), as_factor), 
     X_INDUCTION_0min = factor(X_INDUCTION_0min)
   ) %>% 
   # 3. Reorder columns as requested
@@ -1421,9 +1424,10 @@ df14_final = df_final %>%
       X_obesity_0w,
       X_hypertension_0w,
       X_othercomorb_0w,
-      X_smoke_0w
+      X_smoke_0w,
+      YS_dyspnea_6w, YS_dyspnea_28w, YS_dyspnea_2w, YS_dyspnea_4w, YS_AE
     ),
-    as.factor)
+    as_factor)
   ) %>% 
   select(
     Treatment,
@@ -1433,10 +1437,6 @@ df14_final = df_final %>%
     starts_with("YS_"),
     starts_with("X_")
   )
-```
-
-```{r}
-str(df14_final)
 ```
 
 ## Output Data
@@ -1809,7 +1809,8 @@ df19_final = df19 %>%
       X_CHILD_PUGH_CLASS_0d,
       X_DONOR_GENDER_0d,
       X_GRAFT_SHARING_0d,
-      X_DONOR_DIAGNOSIS_0d 
+      X_DONOR_DIAGNOSIS_0d,
+      YS_MASSIVE_ASCITES
     ), as_factor)
   ) %>% 
   # 3. Keep one‐row-per-patient with only Treatment, YP_, YS_, and X_ columns
@@ -2020,7 +2021,20 @@ df22_final = df22_final %>%
     YS_Comp_Cat_NN    = Comp_Cat_NN,
     YS_APGAR1         = APGAR1,
     YS_APGAR2         = APGAR2,
-    Treatment = relevel(factor(Treatment), ref ="Usual Care")
+    Treatment = relevel(factor(Treatment), ref ="Usual Care"),
+    across(c(pre_YS_Test_screen2, pre_YS_Diag_FBS, pre_YS_Diag_HGPO1, 
+             pre_YS_Diag_HGPO2, pre_YS_Place_FU1, pre_YS_Tx_FU1, pre_YS_Place_FU2, 
+             pre_YS_Tx_FU2, pre_YS_Place_FU3, pre_YS_Tx_FU3, pre_YS_Place_FU4, pre_YS_Tx_FU4, 
+             pre_YS_Place_FU5, pre_YS_Tx_FU5, pre_YS_Place_FU6, pre_YS_Tx_FU6,
+              pre_YS_Tx_FU7, pre_YS_Place_FU8, pre_YS_Tx_FU8,
+             pre_YS_Place_FU9, pre_YS_Tx_FU9, pre_YS_Place_FU10, pre_YS_Tx_FU10,
+             pre_YS_Place_FU11, pre_YS_Tx_FU11, pre_YS_Place_FU12, pre_YS_Tx_FU12,
+             pre_YS_Place_FU13, pre_YS_Tx_FU13, pre_YS_Place_FU14, pre_YS_Tx_FU14,
+             pre_YS_Place_FU15, pre_YS_Tx_FU15, pre_YS_Place_FU16, pre_YS_Tx_FU16,
+             pre_YS_Place_FU17, pre_YS_Tx_FU17, pre_YS_Place_FU18, pre_YS_Tx_FU18,
+             pre_YS_Place_FU19, pre_YS_Tx_FU19, pre_YS_Place_FU20, pre_YS_Tx_FU20,
+             pre_YS_Place_FU21, pre_YS_Tx_FU21, pre_YS_Place_FU22, pre_YS_Tx_FU22,
+             post_YS_DM_PP, post_YS_Test_PP2, post_YS_Test_PP1, post_YS_Retest_PP), as_factor)
   )
 
 # 7. Reorder columns: Treatment, Cluster, then YP_, pre_YS_, post_YS_, X_
@@ -2277,7 +2291,7 @@ df25_final = df25 %>%
     YS_DelayedGTT_0w  = Delayed_WGTT_PRE,
     YS_BM_less3_0w    = BM_less3perweek_PRE,
     Treatment = relevel(factor(Treatment), ref="Placebo"),
-    across(c())
+    across(c(YS_DelayedGTT_8w, YS_BM_less3_0w, YS_DelayedGTT_0w), as_factor)
   ) %>%
   select(
     Treatment,
@@ -2500,7 +2514,7 @@ df28_final = df28 %>%
     ),
     Treatment = relevel(factor(Treatment), ref="Usual Care"),
     across(c(YP_ContrSBP_6m, YS_ContrDBP_6m, YS_ControlledBP_6m, X_SEX_0m, X_Age_0m, 
-             X_RxHTN_0m, X_ContrSBP_0m, X_ContrDBP_0m, X_ControlledBP_0m))
+             X_RxHTN_0m, X_ContrSBP_0m, X_ContrDBP_0m, X_ControlledBP_0m), as_factor)
   ) %>%
   select(
     Treatment,
@@ -2758,7 +2772,7 @@ df30_final = df30_demo %>%
   ) %>%
   mutate(
     Treatment = relevel(factor(Treatment), ref="Chair-REST"),
-    across(c(YP_Adherence, X_Sex_0d, X_Psychotropics_0d, X_Age_0d), as_factor)
+    across(c(YP_Adherence, X_Sex_0d, X_Psychotropics_0d, X_Age_0d, YS_Dropout), as_factor)
   ) %>% 
   
   # 8) drop ID and order columns: Treatment → YP_ → YS_ → X_

@@ -1,4 +1,4 @@
-Treatment,YP_Progression_binary,YS_Symptom_duration_30d,YS_SymptomResolutionObserved,YS_Death_14d,YS_Hospital_14d,YS_Oxygen_14d,X_variant_0d,X_IgG_0d,X_vaccine_status_0d,X_BMI_cat_0d,X_immunodef_0d,X_renal_0d,X_diabetes_0d,X_CVD_0d,X_bpco_0d,X_liver_0d
+Treatment,YP_Progression_binary,YS_Symptom_duration_30d,YS_Symptom_resolution_observed,YS_Death_14d,YS_Hospital_14d,YS_Oxygen_14d,X_variant_0d,X_IgG_0d,X_vaccine_status_0d,X_BMI_cat_0d,X_immunodef_0d,X_renal_0d,X_diabetes_0d,X_CVD_0d,X_bpco_0d,X_liver_0d
 Casirivimab/Imdevimab,0,3,1,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
 Bamlanivimab/Etesevimab,0,5,1,0,0,0,Omicron,negative,NA,<= 29,not present,not present,other,not present,not present,present
 Bamlanivimab/Etesevimab,0,5,1,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,present,not present
