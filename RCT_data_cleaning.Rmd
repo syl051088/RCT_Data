@@ -763,6 +763,9 @@ df9 = read_sav("raw_data/9/9.sav")
 
 ## Cleaning
 ```{r}
+df9 = df9 %>%
+  mutate(across(where(is.character), ~ na_if(.x, "not applicable")))
+
 df9_final = df9 %>% 
   zap_missing() %>%
     mutate(
@@ -831,8 +834,8 @@ df9_final = df9 %>%
                               labels = c("No", "Yes")),
     
     YS_general_anaesthetic = factor(YS_general_anaesthetic,
-                                  levels = c(1, 2, 3),
-                                  labels = c("No", "Yes", "Not_applicable")),
+                                  levels = c(1, 2),
+                                  labels = c("No", "Yes")),
     
     YS_side_effect = factor(YS_side_effect,
                           levels = c(1, 2),
@@ -2791,5 +2794,9 @@ df30_final = df30_demo %>%
 # trial 30
 write_csv(df30_final, "cleaned_data/trial30.csv")
 write_rds(df30_final, "cleaned_data/trial30.rds")
+```
+
+```{r}
+str(df10_clean)
 ```
 

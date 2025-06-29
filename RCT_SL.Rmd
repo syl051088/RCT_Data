@@ -1,0 +1,1000 @@
+---
+title: "Untitled"
+author: "Yulin Shao"
+date: "2025-06-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rio)
+library(janitor)
+library(readxl)
+library(striprtf)
+library(stringr)
+library(tibble)
+library(tidyr)
+library(stringi)
+library(haven)
+library(purrr)
+library(DescTools)
+library(RobinCar)
+library(SuperLearner)
+library(caret)
+```
+
+```{r}
+SLmethods <- c("SL.glm", "SL.rpart", "SL.nnet")
+
+ K <- 5
+  sample_split_index <- sample(rep(1:K, each = n/K), size = n)
+  sample_split <- map(1:K, ~which(sample_split_index==.))
+  temp <- map(1:K, function(k){
+    validation_index <- sample_split[[k]]
+    training_index1 <- intersect(setdiff(1:n, validation_index), which(d_re$A==1))
+    training_index0 <- intersect(setdiff(1:n, validation_index), which(d_re$A==0))
+    eta_fit1 <- SuperLearner(d_re$Y[training_index1], X = d_re[training_index1,c("X1","X2","S")], family = "gaussian", SL.library = SLmethods)
+    eta_fit0 <- SuperLearner(d_re$Y[training_index0], X = d_re[training_index0,c("X1","X2","S")], family = "gaussian", SL.library = SLmethods)
+    eta.pred1 <- predict(eta_fit1, newdata = d_re[validation_index,c("X1","X2","S")])$pred
+    eta.pred0 <- predict(eta_fit0, newdata = d_re[validation_index,c("X1","X2","S")])$pred
+    f1 <- d_re$A[validation_index]/pi * (d_re$Y[validation_index] - eta.pred1) + eta.pred1
+    f0 <- (1-d_re$A[validation_index])/(1-pi) * (d_re$Y[validation_index] - eta.pred0) + eta.pred0
+    mutate(d_re[validation_index,], pred1=f1, pred0=f0, fold=k)
+  }) %>% Reduce(rbind,.)
+  est_ml_re <- mean(temp$pred1 - temp$pred0)
+  V_ml_re <- map_dbl(1:K, function(k){
+    var(temp$pred1[temp$fold==k]-temp$pred0[temp$fold==k])
+  }) %>% mean
+  IF <- as.vector(temp$pred1-temp$pred0-mean(temp$pred1-temp$pred0))
+  cIIF <- colMeans(diag((temp$A-pi)/pi/(1-pi) * IF) %*% as.matrix(temp[,c("X1","X2")] - rep(1, n) %*% t(colMeans(temp[,c("X1","X2")]))))
+  VI <- n/sum(A_re)/sum(1-A_re) * var(Xr)
+```
+
+```{r}
+# Function for multi-arm RCT analysis using SuperLearner
+analyze_rct_multiarm = function(data, 
+                                treatment_col = "Treatment",
+                                outcome_cols,
+                                covariate_cols,
+                                reference_arm = NULL,
+                                K = 5,
+                                SL_methods = c("SL.glm", "SL.rpart", "SL.nnet"),
+                                n_cores = 4,
+                                seed = 123) {
+  
+  # Load required libraries
+  require(tidyverse)
+  require(SuperLearner)
+  require(foreach)
+  require(doSNOW)
+  
+  # Set seed for reproducibility
+  set.seed(seed)
+  
+  # Setup parallel processing
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  on.exit(stopCluster(cl))
+  
+  # Prepare data
+  n = nrow(data)
+  
+  # Get treatment information
+  treatments = unique(data[[treatment_col]])
+  n_treatments = length(treatments)
+  
+  # Calculate treatment probabilities (propensity scores)
+  treatment_props = table(data[[treatment_col]]) / n
+  
+  # Store results for each outcome
+  results_list = list()
+  
+  for(outcome in outcome_cols) {
+    
+    # Create sample splits
+    sample_split_index = sample(rep(1:K, length.out = n))
+    sample_split = map(1:K, ~which(sample_split_index == .))
+    
+    # Perform cross-validated estimation
+    cv_results = foreach(k = 1:K, .combine = 'rbind', 
+                        .packages = c("SuperLearner", "tidyverse")) %dopar% {
+      
+      validation_index = sample_split[[k]]
+      training_index = setdiff(1:n, validation_index)
+      
+      # Fit SuperLearner for each treatment arm
+      predictions = data.frame(row.names = validation_index)
+      
+      for(trt in treatments) {
+        # Get training indices for this treatment
+        trt_training = intersect(training_index, 
+                                which(data[[treatment_col]] == trt))
+        
+        # Fit model
+        eta_fit = SuperLearner(
+          Y = data[[outcome]][trt_training],
+          X = data[trt_training, covariate_cols, drop = FALSE],
+          family = "gaussian",
+          SL.library = SL_methods
+        )
+        
+        # Predict on validation set
+        eta_pred = predict(eta_fit, 
+                         newdata = data[validation_index, covariate_cols, drop = FALSE])$pred
+        
+        # Calculate doubly robust estimates
+        A_trt = as.numeric(data[[treatment_col]][validation_index] == trt)
+        pi_trt = as.numeric(treatment_props[trt])
+        
+        dr_estimate = A_trt / pi_trt * (data[[outcome]][validation_index] - eta_pred) + eta_pred
+        
+        predictions[[paste0("pred_", trt)]] = dr_estimate
+      }
+      
+      predictions$fold = k
+      predictions$index = validation_index
+      predictions
+    }
+    
+    # Calculate treatment effects relative to reference arm
+    treatment_effects = list()
+    
+    for(trt in setdiff(treatments, reference_arm)) {
+      pred_trt = cv_results[[paste0("pred_", trt)]]
+      pred_ref = cv_results[[paste0("pred_", reference_arm)]]
+      
+      # Point estimate
+      est = mean(pred_trt - pred_ref)
+      
+      # Variance estimation by fold
+      V = map_dbl(1:K, function(k) {
+        fold_idx = cv_results$fold == k
+        var(pred_trt[fold_idx] - pred_ref[fold_idx])
+      }) %>% mean()
+      
+      # Store results
+      treatment_effects[[paste0(trt, "_vs_", reference_arm)]] = list(
+        estimate = est,
+        variance = V
+      )
+    }
+    
+    results_list[[outcome]] = treatment_effects
+  }
+  
+  # Format results
+  formatted_results = map_df(names(results_list), function(outcome) {
+    map_df(names(results_list[[outcome]]), function(comparison) {
+      result = results_list[[outcome]][[comparison]]
+      data.frame(
+        outcome = outcome,
+        comparison = comparison,
+        estimate = result$estimate,
+        variance = result$variance
+      )
+    })
+  })
+  
+  return(formatted_results)
+}
+
+analyze_rct_multiarm(df1_final, 
+                     outcome_cols = "YP_delta_HOMA_IR_4m",
+                     covariate_cols = covariates,
+                     reference_arm = "Placebo")
+```
+
+```{r}
+# Function for multi-arm RCT analysis using SuperLearner
+analyze_rct_multiarm = function(data, 
+                                treatment_col = "Treatment",
+                                outcome_cols,
+                                covariate_cols,
+                                reference_arm = NULL,
+                                K = 5,
+                                SL_methods = c("SL.glm", "SL.rpart", "SL.nnet"),
+                                n_cores = 4,
+                                seed = 123) {
+  
+  # Load required libraries
+  require(tidyverse)
+  require(SuperLearner)
+  require(foreach)
+  require(doSNOW)
+  
+  # Set seed for reproducibility
+  set.seed(seed)
+  
+  # Setup parallel processing
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  on.exit(stopCluster(cl))
+  
+  # Prepare data
+  data = as.data.frame(data)
+  n = nrow(data)
+  
+  # Get treatment information
+  treatments = unique(data[[treatment_col]])
+  n_treatments = length(treatments)
+  
+  # Calculate treatment probabilities (propensity scores)
+  treatment_props = table(data[[treatment_col]]) / n
+  
+  # Store results for each outcome
+  results_list = list()
+  
+  for(outcome in outcome_cols) {
+    
+    # Create sample splits
+    sample_split_index = sample(rep(1:K, length.out = n))
+    sample_split = map(1:K, ~which(sample_split_index == .))
+    
+    # Perform cross-validated estimation
+    cv_results = foreach(k = 1:K, .combine = 'rbind', 
+                        .packages = c("SuperLearner", "tidyverse")) %dopar% {
+      
+      validation_index = sample_split[[k]]
+      training_index = setdiff(1:n, validation_index)
+      
+      # Fit SuperLearner for each treatment arm
+      predictions = data.frame(row.names = validation_index)
+      
+      for(trt in treatments) {
+        # Get training indices for this treatment
+        trt_training = intersect(training_index, 
+                                which(data[[treatment_col]] == trt))
+        
+        # Fit model
+        eta_fit = SuperLearner(
+          Y = data[[outcome]][trt_training],
+          X = data[trt_training, covariate_cols, drop = FALSE],
+          family = "gaussian",
+          SL.library = SL_methods
+        )
+        
+        # Predict on validation set
+        eta_pred = predict(eta_fit, 
+                         newdata = data[validation_index, covariate_cols, drop = FALSE])$pred
+        
+        # Calculate doubly robust estimates
+        A_trt = as.numeric(data[[treatment_col]][validation_index] == trt)
+        pi_trt = as.numeric(treatment_props[trt])
+        
+        dr_estimate = A_trt / pi_trt * (data[[outcome]][validation_index] - eta_pred) + eta_pred
+        
+        # Clean treatment name for column naming
+        trt_clean = gsub(" ", "_", gsub("[^[:alnum:] ]", "", trt))
+        predictions[[paste0("pred_", trt_clean)]] = dr_estimate
+      }
+      
+      predictions$fold = k
+      predictions$index = validation_index
+      predictions
+    }
+    
+    # Calculate treatment effects relative to reference arm
+    treatment_effects = list()
+    
+    for(trt in setdiff(treatments, reference_arm)) {
+      pred_trt = cv_results[[paste0("pred_", trt)]]
+      pred_ref = cv_results[[paste0("pred_", reference_arm)]]
+      
+      # Point estimate: sample mean of individual treatment effect predictions
+      est_ml = mean(pred_trt - pred_ref)
+      
+      # Variance: mean of within-fold variances (as in original code)
+      V_ml = map_dbl(1:K, function(k) {
+        fold_idx = cv_results$fold == k
+        var(pred_trt[fold_idx] - pred_ref[fold_idx])
+      }) %>% mean()
+      
+      # Store results
+      treatment_effects[[paste0(trt, "_vs_", reference_arm)]] = list(
+        estimate = est_ml,
+        variance = V_ml
+      )
+    }
+    
+    results_list[[outcome]] = treatment_effects
+  }
+  
+  # Format results
+  formatted_results = map_df(names(results_list), function(outcome) {
+    map_df(names(results_list[[outcome]]), function(comparison) {
+      result = results_list[[outcome]][[comparison]]
+      data.frame(
+        outcome = outcome,
+        comparison = comparison,
+        estimate = result$estimate,
+        variance = result$variance
+      )
+    })
+  })
+  
+  return(formatted_results)
+}
+```
+
+```{r}
+analyze_rct_multiarm(df1_final, 
+                     outcome_cols = "YP_delta_HOMA_IR_4m",
+                     covariate_cols = covariates,
+                     reference_arm = "Sham Acupuncture + Placebo")
+
+# Simulation to demonstrate multi-arm RCT analysis
+set.seed(123)
+library(tidyverse)
+library(SuperLearner)
+
+# Simulation parameters
+n = 1000  # sample size
+n_covariates = 5
+
+# True treatment effects (relative to control)
+true_effects = c(
+  "Control" = 0,
+  "Treatment_A" = 2.5,
+  "Treatment_B" = 1.8,
+  "Treatment_C" = -0.5
+)
+
+# Generate data
+simulate_rct_data = function(n, true_effects, n_covariates = 5) {
+  # Covariates
+  X = matrix(rnorm(n * n_covariates), n, n_covariates)
+  colnames(X) = paste0("X", 1:n_covariates)
+  
+  # Treatment assignment (equal randomization)
+  treatments = names(true_effects)
+  n_treatments = length(treatments)
+  Treatment = sample(treatments, n, replace = TRUE)
+  
+  # Outcome model: Y = f(X) + treatment_effect + noise
+  # Base outcome depends on covariates
+  base_outcome = 5 + 2*X[,1] - 1.5*X[,2] + 0.8*X[,3] + 
+                 0.5*X[,1]*X[,2] + 0.3*X[,2]^2
+  
+  # Add treatment effects
+  Y = base_outcome + true_effects[Treatment] + rnorm(n, 0, 2)
+  
+  # Create data frame
+  data = data.frame(
+    Treatment = Treatment,
+    Y = Y,
+    X
+  )
+  
+  return(data)
+}
+
+# Generate simulated data
+sim_data = simulate_rct_data(n, true_effects, n_covariates)
+
+# Run analysis
+results = analyze_rct_multiarm(
+  data = sim_data,
+  treatment_col = "Treatment",
+  outcome_cols = "Y",
+  covariate_cols = paste0("X", 1:n_covariates),
+  reference_arm = "Control",
+  K = 5,
+  SL_methods = c("SL.glm", "SL.glmnet", "SL.ranger"),
+  n_cores = 2,
+  seed = 123
+)
+
+# Calculate true/oracle variance using the true outcome model
+calculate_true_variance = function(data, treatment_name, control_name = "Control") {
+  # Get indices
+  idx_trt = which(data$Treatment == treatment_name)
+  idx_ctrl = which(data$Treatment == control_name)
+  n_trt = length(idx_trt)
+  n_ctrl = length(idx_ctrl)
+  n = nrow(data)
+  
+  # True propensity scores (known from simulation)
+  pi_trt = n_trt / n
+  pi_ctrl = n_ctrl / n
+  
+  # Calculate residual variances for each group
+  # For treated group
+  X_trt = as.matrix(data[idx_trt, paste0("X", 1:5)])
+  true_mean_trt = 5 + 2*X_trt[,1] - 1.5*X_trt[,2] + 0.8*X_trt[,3] + 
+                  0.5*X_trt[,1]*X_trt[,2] + 0.3*X_trt[,2]^2 + 
+                  true_effects[treatment_name]
+  var_trt = var(data$Y[idx_trt] - true_mean_trt)
+  
+  # For control group
+  X_ctrl = as.matrix(data[idx_ctrl, paste0("X", 1:5)])
+  true_mean_ctrl = 5 + 2*X_ctrl[,1] - 1.5*X_ctrl[,2] + 0.8*X_ctrl[,3] + 
+                   0.5*X_ctrl[,1]*X_ctrl[,2] + 0.3*X_ctrl[,2]^2 + 
+                   true_effects[control_name]
+  var_ctrl = var(data$Y[idx_ctrl] - true_mean_ctrl)
+  
+  # True variance of doubly robust estimator (assuming perfect outcome model)
+  true_var = var_trt / pi_trt + var_ctrl / pi_ctrl
+  
+  return(true_var / n)
+}
+
+# Calculate true variances for each treatment
+true_variances = data.frame(
+  comparison = paste0(c("Treatment_A", "Treatment_B", "Treatment_C"), "_vs_Control"),
+  true_variance = c(
+    calculate_true_variance(sim_data, "Treatment_A", "Control"),
+    calculate_true_variance(sim_data, "Treatment_B", "Control"),
+    calculate_true_variance(sim_data, "Treatment_C", "Control")
+  )
+)
+
+# Compare with true values
+comparison = results %>%
+  left_join(true_variances, by = "comparison") %>%
+  mutate(
+    # Extract treatment name from comparison
+    treatment = gsub("_vs_Control", "", comparison),
+    true_effect = true_effects[treatment] - true_effects["Control"],
+    bias = estimate - true_effect,
+    relative_bias = bias / abs(true_effect) * 100,
+    variance_ratio = variance / true_variance
+  )
+
+print("Results comparison:")
+print(comparison)
+print("\nNote: true_variance is the oracle variance assuming perfect outcome model")
+
+# Run simulation multiple times to check consistency
+run_multiple_simulations = function(n_sims = 100, n = 1000) {
+  
+  sim_results = map_df(1:n_sims, function(sim) {
+    # Generate new data
+    sim_data = simulate_rct_data(n, true_effects, n_covariates)
+    
+    # Run analysis
+    results = analyze_rct_multiarm(
+      data = sim_data,
+      treatment_col = "Treatment",
+      outcome_cols = "Y",
+      covariate_cols = paste0("X", 1:n_covariates),
+      reference_arm = "Control",
+      K = 5,
+      SL_methods = c("SL.glm", "SL.ranger"),
+      n_cores = 2,
+      seed = sim * 123
+    )
+    
+    results$sim = sim
+    results
+  })
+  
+  # Summarize results
+  summary_stats = sim_results %>%
+    group_by(comparison) %>%
+    summarise(
+      mean_estimate = mean(estimate),
+      sd_estimate = sd(estimate),
+      mean_variance = mean(variance),
+      empirical_variance = var(estimate),  # Empirical variance across simulations
+      true_effect = unique(true_effects[gsub("_vs_Control", "", comparison[1])] - true_effects["Control"]),
+      bias = mean_estimate - true_effect,
+      coverage = mean(abs(estimate - true_effect) <= 1.96 * sqrt(variance))
+    )
+  
+  return(summary_stats)
+}
+
+# Run multiple simulations (uncomment to run)
+# cat("\nRunning 100 simulations to check performance...\n")
+# multi_sim_results = run_multiple_simulations(n_sims = 100, n = 1000)
+# print(multi_sim_results)
+
+# Simple test with known linear model
+test_simple = function() {
+  set.seed(42)
+  n = 500
+  
+  # Simple linear case
+  X1 = rnorm(n)
+  X2 = rnorm(n)
+  Treatment = sample(c("Control", "Treat"), n, replace = TRUE)
+  
+  # True effect = 3
+  Y = 2 + X1 + 0.5*X2 + 3*(Treatment == "Treat") + rnorm(n, 0, 1)
+  
+  test_data = data.frame(
+    Treatment = Treatment,
+    Y = Y,
+    X1 = X1,
+    X2 = X2
+  )
+  
+  results = analyze_rct_multiarm(
+    data = test_data,
+    treatment_col = "Treatment",
+    outcome_cols = "Y",
+    covariate_cols = c("X1", "X2"),
+    reference_arm = "Control",
+    K = 5,
+    SL_methods = c("SL.glm"),
+    n_cores = 1,
+    seed = 42
+  )
+  
+  cat("\nSimple test case (true effect = 3):\n")
+  cat("Estimated effect:", results$estimate, "\n")
+  cat("Standard error:", sqrt(results$variance), "\n")
+  
+  return(results)
+}
+
+# Run simple test
+simple_results = test_simple()
+```
+
+## correct
+
+```{r}
+# ─── 0) Load libraries ────────────────────────────────────────────────────
+library(tidyverse)
+library(SuperLearner)
+library(foreach)
+library(doSNOW)
+library(doRNG)
+
+# ─── 1) Define the multi‐arm DL‐based estimator ────────────────────────────
+analyze_rct_multiarm = function(
+  data,
+  treatment_col   = "Treatment",
+  outcome_cols,
+  covariate_cols,
+  reference_arm   = NULL,
+  K               = 5,
+  SL_methods      = c("SL.glm", "SL.rpart"),
+  n_cores         = 4,
+  seed            = 123
+) {
+  require(dplyr); require(purrr); require(SuperLearner)
+  require(foreach); require(doSNOW); require(doRNG)
+  set.seed(seed)
+
+  # spin up cluster
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  on.exit(stopCluster(cl), add = TRUE)
+
+  # data prep
+  n          = nrow(data)
+  arms       = unique(data[[treatment_col]])
+  
+  if (is.null(reference_arm)) {
+    reference_arm = arms[1]
+  }
+  
+  if (!(reference_arm %in% arms)) {
+    stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  }
+  # true randomization probabilities
+  pi_tab     = prop.table(table(data[[treatment_col]]))
+
+  # create CV splits
+  split_ix   = sample(rep(1:K, length.out = n))
+  splits     = map(1:K, ~ which(split_ix == .x))
+
+  out_list   = vector("list", length(outcome_cols))
+  names(out_list) = outcome_cols
+
+  # loop outcomes
+  for (Y in outcome_cols) {
+    # cross‐fit preds
+    cv_preds = foreach(
+      k            = 1:K,
+      .combine     = bind_rows,
+      .packages    = c("SuperLearner","dplyr"),
+      .options.RNG = seed
+    ) %dorng% {
+      val_ix   = splits[[k]]
+      train_ix = setdiff(seq_len(n), val_ix)
+
+      # initialize
+      preds_k  = tibble(index = val_ix)
+
+      for (arm in arms) {
+        arm_nm    = make.names(arm)
+        tr_ix     = intersect(train_ix,
+                              which(data[[treatment_col]] == arm))
+        # ensure reproducibility inside SL
+        set.seed(seed + k)
+        fit       = SuperLearner(
+          Y           = data[[Y]][tr_ix],
+          X           = data[tr_ix, covariate_cols, drop = FALSE],
+          family      = gaussian(),
+          SL.library  = SL_methods
+        )
+        eta_hat   = predict(
+          fit,
+          newdata = data[val_ix, covariate_cols, drop = FALSE]
+        )$pred
+
+        A_k       = as.integer(data[[treatment_col]][val_ix] == arm)
+        pi_arm    = as.numeric(pi_tab[arm])
+        dr_est    = A_k/pi_arm * (data[[Y]][val_ix] - eta_hat) + eta_hat
+
+        preds_k[[paste0("pred_", arm_nm)]] = dr_est
+      }
+
+      preds_k$fold = k
+      preds_k
+    }
+
+    # align rows
+    cv_preds = arrange(cv_preds, index)
+
+    # compute contrasts vs reference
+    effects = map_dfr(
+      setdiff(arms, reference_arm),
+      function(arm) {
+        arm_nm    = make.names(arm)
+        ref_nm    = make.names(reference_arm)
+        D         = cv_preds[[paste0("pred_", arm_nm)]] -
+                    cv_preds[[paste0("pred_", ref_nm)]]
+
+        est       = mean(D)
+        var_i     = var(D)
+        var_mean  = var_i / n
+        se_mean   = sqrt(var_mean)
+
+        tibble(
+          outcome    = Y,
+          comparison = paste0(arm, "_vs_", reference_arm),
+          estimate   = est,
+          SE         = se_mean,
+          variance   = var_mean
+        )
+      }
+    )
+
+    out_list[[Y]] = effects
+  }
+
+  bind_rows(out_list)
+}
+```
+
+```{r}
+# ─── 1) Wrapper for SL.nnet that one-hot–encodes factors ─────────────────
+SL.nnet.smart = function(Y, X, newX, family, obsWeights, ...) {
+  X    = as.data.frame(X)
+  newX = as.data.frame(newX)
+
+  # one-hot encode factors
+  X_mat    = model.matrix(~ . - 1, data = X)
+  newX_mat = model.matrix(~ . - 1, data = newX)
+
+  common_cols = intersect(colnames(X_mat), colnames(newX_mat))
+  X_mat    = X_mat[  , common_cols, drop = FALSE]
+  newX_mat = newX_mat[, common_cols, drop = FALSE]
+
+  keep = apply(X_mat, 2, function(col) all(is.finite(col)) && var(col, na.rm = TRUE) > 0)
+  X_final    = X_mat[  , keep, drop = FALSE]
+  newX_final = newX_mat[, keep, drop = FALSE]
+
+  SL.nnet(
+    Y          = Y,
+    X          = X_final,
+    newX       = newX_final,
+    family     = family,
+    obsWeights = obsWeights,
+    ...
+  )
+}
+
+# ─── 2) Main multi-arm estimator with per-fold diagnostics ───────────────
+analyze_rct_multiarm = function(
+  data,
+  treatment_col = "Treatment",
+  outcome_cols,
+  covariate_cols,
+  reference_arm   = NULL,
+  K               = 5,
+  SL_methods      = c("SL.glm","SL.rpart","SL.nnet.smart"),
+  n_cores         = 4,
+  seed            = 123
+) {
+  require(dplyr); require(SuperLearner)
+  require(foreach); require(doSNOW); require(doRNG); require(caret)
+  set.seed(seed)
+
+  # parallel backend
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  on.exit(stopCluster(cl), add = TRUE)
+  clusterExport(cl, "SL.nnet.smart")
+
+  data          = as.data.frame(data)
+  n             = nrow(data)
+  arms          = unique(data[[treatment_col]])
+  reference_arm = reference_arm %||% arms[1]
+  if (!(reference_arm %in% arms))
+    stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  pi_tab        = prop.table(table(data[[treatment_col]]))
+
+  # CV splits
+  split_ix = sample(rep(1:K, length.out = n))
+  splits   = map(1:K, ~ which(split_ix == .x))
+
+  out_list = vector("list", length(outcome_cols))
+  names(out_list) = outcome_cols
+
+  for (Y in outcome_cols) {
+    message("=== Outcome: ", Y, " ===")
+    cv_preds = foreach(
+      k = 1:K,
+      .combine     = bind_rows,
+      .packages    = c("SuperLearner","dplyr","caret"),
+      .options.RNG = seed
+    ) %dorng% {
+      val_ix   = splits[[k]]
+      train_ix = setdiff(seq_len(n), val_ix)
+
+      # 1) zero-variance detection
+      zero_flags = sapply(covariate_cols, function(col) {
+        v = data[[col]][train_ix]
+        if (is.numeric(v)) {
+          var(v, na.rm = TRUE) == 0
+        } else {
+          length(unique(v)) <= 1
+        }
+      })
+      if (any(zero_flags)) {
+        bad = covariate_cols[zero_flags]
+        message(" Fold ", k, ": zero-variance covariates: ", paste(bad, collapse = ", "))
+      }
+
+      # 2) multicollinearity detection
+      tmp = data[train_ix, covariate_cols, drop = FALSE]
+      mm  = model.matrix(~ . - 1, data = tmp)
+      combo = findLinearCombos(mm)
+      if (!is.null(combo$remove)) {
+        bad = colnames(mm)[combo$remove]
+        message(" Fold ", k, ": perfect collinearity in: ", paste(bad, collapse = ", "))
+      }
+
+      preds_k = tibble(index = val_ix)
+
+      for (arm in arms) {
+        arm_nm = make.names(arm)
+        sel    = which(data[[treatment_col]][train_ix] == arm)
+        tr_ix2 = train_ix[sel]
+
+        set.seed(seed + k)
+        fit = SuperLearner(
+          Y          = data[[Y]][tr_ix2],
+          X          = data[tr_ix2, covariate_cols, drop = FALSE],
+          newX       = data[val_ix, covariate_cols, drop = FALSE],
+          family     = gaussian(),
+          SL.library = SL_methods
+        )
+
+        eta_hat = predict(fit, newdata = data[val_ix, covariate_cols, drop = FALSE])$pred
+        A_k     = as.integer(data[[treatment_col]][val_ix] == arm)
+        pi_arm  = pi_tab[arm]
+        dr_est  = A_k/pi_arm * (data[[Y]][val_ix] - eta_hat) + eta_hat
+
+        preds_k[[paste0("pred_", arm_nm)]] = dr_est
+      }
+
+      preds_k$fold = k
+      preds_k
+    }
+
+    # compute contrasts vs reference
+    df = arrange(cv_preds, index)
+    effects = map_dfr(
+      setdiff(arms, reference_arm),
+      function(arm) {
+        a_nm  = make.names(arm)
+        r_nm  = make.names(reference_arm)
+        D     = df[[paste0("pred_", a_nm)]] - df[[paste0("pred_", r_nm)]]
+        est   = mean(D)
+        var_i = var(D)
+        se    = sqrt(var_i / n)
+        tibble(
+          outcome    = Y,
+          comparison = paste0(arm, "_vs_", reference_arm),
+          estimate   = est,
+          SE         = se,
+          variance   = var_i / n
+        )
+      }
+    )
+
+    out_list[[Y]] = effects
+  }
+
+  bind_rows(out_list)
+}
+```
+
+
+```{r}
+analyze_rct_multiarm(df1_final, 
+                     outcome_cols = "YP_delta_HOMA_IR_4m",
+                     covariate_cols = covariates,
+                     reference_arm = "Sham Acupuncture + Placebo")
+
+```
+
+```{r}
+# If any are factors or characters, convert them
+# Option 1: Convert factors to numeric (if they're actually categorical)
+# df2_clean_numeric = df2_clean
+# for(col in covariates) {
+#   if(is.factor(df2_clean[[col]]) || is.character(df2_clean[[col]])) {
+#     df2_clean_numeric[[col]] = as.numeric(as_factor(df2_clean[[col]]))
+#   }
+# }
+# 
+# analyze_rct_multiarm(df2_clean_numeric,
+#                      outcome_cols = "YP_recovery_time",
+#                      covariate_cols = covariates,
+#                      reference_arm = "Placebo",
+#                      )
+
+analyze_rct_multiarm(df2_clean,
+                     outcome_cols = "YP_recovery_time",
+                     covariate_cols = covariates,
+                     reference_arm = "Placebo",
+                     )
+# df1_clean_numeric = df1_final
+# for(col in covariates) {
+#   if(is.factor(df1_final[[col]]) || is.character(df1_final[[col]])) {
+#     df1_clean_numeric[[col]] = as.numeric(as.factor(df1_final[[col]]))
+#   }
+# }
+# 
+# analyze_rct_multiarm(df1_clean_numeric, 
+#                      outcome_cols = "YP_delta_HOMA_IR_4m",
+#                      covariate_cols = covariates,
+#                      reference_arm = "Sham Acupuncture + Placebo")
+```
+
+```{r}
+# ─── 0) Load libraries ────────────────────────────────────────────────────
+library(tidyverse)
+library(SuperLearner)
+library(foreach)
+library(doSNOW)
+library(doRNG)
+
+# ─── 1) Define the multi‐arm DL‐based estimator ────────────────────────────
+analyze_rct_multiarm = function(
+  data,
+  treatment_col   = "Treatment",
+  outcome_cols,
+  covariate_cols,
+  reference_arm   = NULL,
+  K               = 5,
+  SL_methods      = c("SL.glm", "SL.rpart"),
+  n_cores         = 4,
+  seed            = 123
+) {
+  require(dplyr); require(purrr); require(SuperLearner)
+  require(foreach); require(doSNOW); require(doRNG)
+  set.seed(seed)
+
+  # spin up cluster
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  on.exit(stopCluster(cl), add = TRUE)
+
+  # data prep
+  data       = as.data.frame(data)
+  n          = nrow(data)
+  arms       = unique(data[[treatment_col]])
+  if (is.null(reference_arm)) {
+    reference_arm = arms[1]
+  }
+  if (!(reference_arm %in% arms)) {
+    stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  }
+  # true randomization probabilities
+  pi_tab     = prop.table(table(data[[treatment_col]]))
+
+  # create CV splits
+  split_ix   = sample(rep(1:K, length.out = n))
+  splits     = map(1:K, ~ which(split_ix == .x))
+
+  out_list   = vector("list", length(outcome_cols))
+  names(out_list) = outcome_cols
+
+  # loop outcomes
+  for (Y in outcome_cols) {
+    # cross‐fit preds
+    cv_preds = foreach(
+      k            = 1:K,
+      .combine     = bind_rows,
+      .packages    = c("SuperLearner","dplyr"),
+      .options.RNG = seed
+    ) %dorng% {
+      val_ix   = splits[[k]]
+      train_ix = setdiff(seq_len(n), val_ix)
+
+      # initialize
+      preds_k  = tibble(index = val_ix)
+
+      for (arm in arms) {
+        arm_nm    = make.names(arm)
+        tr_ix     = intersect(train_ix,
+                              which(data[[treatment_col]] == arm))
+        # ensure reproducibility inside SL
+        set.seed(seed + k)
+        fit       = SuperLearner(
+          Y           = data[[Y]][tr_ix],
+          X           = data[tr_ix, covariate_cols, drop = FALSE],
+          family      = gaussian(),
+          SL.library  = SL_methods
+        )
+        eta_hat   = predict(
+          fit,
+          newdata = data[val_ix, covariate_cols, drop = FALSE]
+        )$pred
+
+        A_k       = as.integer(data[[treatment_col]][val_ix] == arm)
+        pi_arm    = as.numeric(pi_tab[arm])
+        dr_est    = A_k/pi_arm * (data[[Y]][val_ix] - eta_hat) + eta_hat
+
+        preds_k[[paste0("pred_", arm_nm)]] = dr_est
+      }
+
+      preds_k$fold = k
+      preds_k
+    }
+
+    # align rows
+    cv_preds = arrange(cv_preds, index)
+
+    # compute contrasts vs reference
+    effects = map_dfr(
+      setdiff(arms, reference_arm),
+      function(arm) {
+        arm_nm    = make.names(arm)
+        ref_nm    = make.names(reference_arm)
+        D         = cv_preds[[paste0("pred_", arm_nm)]] -
+                    cv_preds[[paste0("pred_", ref_nm)]]
+
+        est       = mean(D)
+        var_i     = var(D)
+        var_mean  = var_i / n
+        se_mean   = sqrt(var_mean)
+
+        tibble(
+          outcome    = Y,
+          comparison = paste0(arm, "_vs_", reference_arm),
+          estimate   = est,
+          SE         = se_mean,
+          variance   = var_mean
+        )
+      }
+    )
+
+    out_list[[Y]] = effects
+  }
+
+  bind_rows(out_list)
+}
+```
+
+```{r}
+analyze_rct_multiarm_debug(
+  df2_clean,
+  outcome_cols   = "YP_recovery_time",
+  covariate_cols = covariates,
+  reference_arm  = "Placebo",
+  K              = 5,
+  SL_methods     = c("SL.glm","SL.rpart","SL.nnet.smart"),
+  seed           = 123
+)
+```
+
