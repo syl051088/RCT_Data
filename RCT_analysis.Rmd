@@ -29,6 +29,120 @@ df_comparison = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
 ```
 
 # Function
+## analyze_rct_vec()
+```{r}
+analyze_rct_vectorized = function(df,
+                                 outcome_cols,
+                                 covariate_col = NULL,
+                                 treatment_col = "Treatment",
+                                 adj_method = "ANCOVA") {
+  
+  require(dplyr)
+  require(RobinCar)
+  
+  # Setup
+  covariates = if (is.null(covariate_col)) {
+    grep("^X_", names(df), value = TRUE)
+  } else {
+    covariate_col
+  }
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  # Preallocate vectors for each column
+  n_est = length(outcome_cols) * (nlevels(df[[treatment_col]]) - 1) * 3
+  
+  outcome_vec = character(n_est)
+  treatment_vec = character(n_est)
+  control_vec = character(n_est)
+  method_vec = character(n_est)
+  estimate_vec = numeric(n_est)
+  se_vec = numeric(n_est)
+  
+  idx = 1
+  
+  # Process all outcomes
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Fit models
+    coef_unadj = coef(summary(lm(reformulate(treatment_col, outcome), df)))
+    coef_ancova = coef(summary(lm(reformulate(c(treatment_col, covariates), outcome), df)))
+    
+    # Extract treatment effects
+    treat_idx_unadj = grep(treat_pattern, rownames(coef_unadj))
+    treat_idx_ancova = grep(treat_pattern, rownames(coef_ancova))
+    n_treat = length(treat_idx_unadj)
+    
+    # Vectorized assignment for unadjusted
+    idx_end = idx + n_treat - 1
+    outcome_vec[idx:idx_end] = outcome
+    treatment_vec[idx:idx_end] = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
+    control_vec[idx:idx_end] = control_level
+    method_vec[idx:idx_end] = "Unadjusted"
+    estimate_vec[idx:idx_end] = round(coef_unadj[treat_idx_unadj, 1], 3)
+    se_vec[idx:idx_end] = round(coef_unadj[treat_idx_unadj, 2], 3)
+    idx = idx_end + 1
+    
+    # Vectorized assignment for ANCOVA
+    idx_end = idx + n_treat - 1
+    outcome_vec[idx:idx_end] = outcome
+    treatment_vec[idx:idx_end] = sub(treat_pattern, "", rownames(coef_ancova)[treat_idx_ancova])
+    control_vec[idx:idx_end] = control_level
+    method_vec[idx:idx_end] = "ANCOVA"
+    estimate_vec[idx:idx_end] = round(coef_ancova[treat_idx_ancova, 1], 3)
+    se_vec[idx:idx_end] = round(coef_ancova[treat_idx_ancova, 2], 3)
+    idx = idx_end + 1
+    
+    # RobinCar
+    rc_fit = suppressWarnings(
+      robincar_linear(df, treatment_col, outcome, 
+                      covariate_cols = covariates, 
+                      adj_method = adj_method, 
+                      contrast_h = "diff")
+    )
+    rc_result = rc_fit$contrast$result
+    n_rc = nrow(rc_result)
+    
+    idx_end = idx + n_rc - 1
+    outcome_vec[idx:idx_end] = outcome
+    treatment_vec[idx:idx_end] = sub("^treat\\s+(.+)\\s+-\\s+.+$", "\\1", rc_result$contrast)
+    control_vec[idx:idx_end] = sub("^treat\\s+.+\\s+-\\s+(.+)$", "\\1", rc_result$contrast)
+    method_vec[idx:idx_end] = "RobinCar"
+    estimate_vec[idx:idx_end] = round(rc_result$estimate, 3)
+    se_vec[idx:idx_end] = round(rc_result$se, 3)
+    idx = idx_end + 1
+  }
+  
+  # Create tibble from vectors (trim to actual size)
+  actual_size = idx - 1
+  results = tibble(
+    Outcome = outcome_vec[1:actual_size],
+    Treatment = treatment_vec[1:actual_size],
+    Control = control_vec[1:actual_size],
+    Method = method_vec[1:actual_size],
+    Estimate = estimate_vec[1:actual_size],
+    SE = se_vec[1:actual_size]
+  )
+  
+  # Pivot and rename
+  results %>%
+    pivot_wider(
+      id_cols = c(Outcome, Treatment, Control),
+      names_from = Method,
+      values_from = c(Estimate, SE),
+      names_sep = "_"
+    ) %>%
+    rename(
+      Est_RC = Estimate_RobinCar, SE_RC = SE_RobinCar,
+      Est_AC = Estimate_ANCOVA, SE_AC = SE_ANCOVA,
+      Est_UN = Estimate_Unadjusted, SE_UN = SE_Unadjusted
+    ) %>%
+    select(Outcome, Treatment, Control, Est_RC, SE_RC, Est_AC, SE_AC, Est_UN, SE_UN)
+}
+```
+
 ## analyze_rct()
 ```{r}
 analyze_rct = function(df,
@@ -216,14 +330,16 @@ insert = function(trial_no,
 }
 ```
 
-
 # Trial 1
+
 ## Load Data
+
 ```{r}
 df1 = read_rds("cleaned_data/trial1.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 342 -> 245
 df1_cleaned = df1 %>% 
@@ -245,7 +361,9 @@ df1_final = df1_cleaned %>%
       }
   ))
 ```
+
 ## YP
+
 ```{r}
 outcome = "YP_delta_HOMA_IR_4m"
 
@@ -254,22 +372,40 @@ results = analyze_rct(df1_final, outcome)
 df_comparison = insert(1, results, "continuous")
 ```
 
+```{r}
+  tibble1 = analyze_rct_vectorized(df1_final, outcome)
+  tibble2 = analyze_rct(df1_final, outcome)
+
+# rst = microbenchmark::microbenchmark(
+#   tibble1 = analyze_rct_vectorized(df1_final, outcome),
+#   tibble2 = analyze_rct(df1_final, outcome),
+#   times = 20
+# )
+# 
+print(rst)
+# plot(rst)
+```
+
 ## YS
+
 ```{r}
 outcome = df1_final %>% select(starts_with("YS_")) %>% names()
 
-resutls = analyze_rct(df1_final, outcome)
+# resutls = analyze_rct(df1_final, outcome)
 
-df_comparison = insert(1, resutls, rep("continuous", length(outcome)))
+# df_comparison = insert(1, resutls, rep("continuous", length(outcome)))
 ```
 
 # Trial 2
+
 ## Load Data
+
 ```{r}
 df2 = read_rds("cleaned_data/trial2.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 400 -> 368
 df2_clean = df2 %>% 
@@ -292,7 +428,9 @@ df2_clean = df2 %>%
 ```{r}
 anyNA(df2_clean)
 ```
+
 ## YP
+
 ```{r}
 outcome = "YP_recovery_time"
 
@@ -302,6 +440,7 @@ df_comparison = insert(2, results, rep("time to event", length(outcome)))
 ```
 
 ## YS
+
 ```{r}
 df2_clean = df2_clean %>% 
   mutate(
@@ -315,12 +454,15 @@ df_comparison = insert(2, results, rep("binary", length(outcome)))
 ```
 
 # Trial 3
+
 ## Load Data
+
 ```{r}
 df3 = read_rds("cleaned_data/trial3.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 6030 -> 6027
 df3_clean = df3 %>% 
@@ -345,6 +487,7 @@ anyNA(df3_clean)
 ```
 
 ## YP
+
 ```{r}
 rct_results = analyze_rct(df = df3_clean, outcome_cols = "YP_composite_time")
 
@@ -354,6 +497,7 @@ df_comparison = insert(trial_no = 3, rct_results = rct_results, outcome_type = "
 ```
 
 ## YS
+
 ```{r}
 outcomes = df3_clean %>%
   select(starts_with("YS_")) %>%
@@ -377,19 +521,22 @@ outcome_type = c(rep("binary", 4), "continuous", "binary")
 df_comparison = insert(trial_no = 3, rct_results = rct_results, outcome_type = outcome_type)
 ```
 
-
 # Trial 4
+
 ## Load Data
+
 ```{r}
 df4 = read_rds("cleaned_data/trial4.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 anyNA(df4)
 ```
 
 ## YP
+
 ```{r}
 outcome = df4 %>% select(starts_with("YP")) %>% names()
 
@@ -398,14 +545,16 @@ results = analyze_rct(df4, outcome)
 df_comparison = insert(4, results, rep("continuous", length(outcome)))
 ```
 
-
 # Trial 5
+
 ## Load Data
+
 ```{r}
 df5 = read_rds("cleaned_data/trial5.rds")
 ```
 
 ## Cleaninig
+
 ```{r}
 # Step 1: Identify YS_ and YP_ variables with < 30% missingness
 low_missing_vars = df5 %>%
@@ -445,6 +594,7 @@ df5_clean = df5_clean %>%
 ```
 
 ## YP
+
 ```{r}
 outcome = "YP_composite_14d"
 
@@ -454,6 +604,7 @@ df_comparison = insert(5, results, "composite binary")
 ```
 
 ## YS
+
 ```{r}
 outcome = df5_clean %>% select(starts_with("YS")) %>% names()
 
@@ -468,12 +619,15 @@ df_comparison = insert(5, results, c("continuous", rep("binary", 7), rep("contin
 ```
 
 # Trial 6
+
 ## Load Data
+
 ```{r}
 df6 = read_rds("cleaned_data/trial6.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 463 -> 345
 df6_clean = df6 %>% 
@@ -496,7 +650,9 @@ df6_clean = df6 %>%
 ```{r}
 anyNA(df6_clean)
 ```
+
 ## YP
+
 ```{r}
 outcome = "YP_delta_CCA_IMT_24m"
 
@@ -505,14 +661,16 @@ results = analyze_rct(df6_clean, outcome)
 df_comparison = insert(6, results, "continuous")
 ```
 
-
 # Trial 7
+
 ## Load Data
+
 ```{r}
 df7 = read_rds("cleaned_data/trial7.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df7_clean = df7 %>% 
   filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>% 
@@ -537,7 +695,9 @@ df7_clean = df7 %>%
 ```{r}
 anyNA(df7_clean)
 ```
+
 ## YP
+
 ```{r}
 results = analyze_rct(df7_clean, "YP_Progression_binary")
 
@@ -545,6 +705,7 @@ df_comparison = insert(7, results, "binary")
 ```
 
 ## YS
+
 ```{r}
 outcome = c("YS_Symptom_duration_30d", "YS_Death_14d", "YS_Hospital_14d")
 
@@ -558,14 +719,16 @@ results = analyze_rct(df7_final, outcome)
 df_comparison = insert(7, results, c("continuous", "binary", "binary"))
 ```
 
-
 # Trial 8
+
 ## Load Data
+
 ```{r}
 df8 = read_rds("cleaned_data/trial8.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 115 -> 103
 df8_clean = df8 %>% 
@@ -592,7 +755,9 @@ df8_clean = df8 %>%
 ```{r}
 anyNA(df8_clean)
 ```
+
 ## YP
+
 ```{r}
 results = analyze_rct(df8_clean, "YP_RTPCR_negative_6d")
 
@@ -600,6 +765,7 @@ df_comparison = insert(8, results, "binary")
 ```
 
 ## YS
+
 ```{r}
 outcome = df8_clean %>% select(starts_with("YS")) %>% names()
 
@@ -611,14 +777,16 @@ results = analyze_rct(df8_final, outcome)
 df_comparison = insert(8, results, rep("binary", length(outcome)))
 ```
 
-
 # Trial 9
+
 ## Load Data
+
 ```{r}
 df9 = read_rds("cleaned_data/trial9.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 577 -> 475
 df9_clean = df9 %>% 
@@ -644,7 +812,9 @@ df9_clean = df9 %>%
 ```{r}
 anyNA(df9_clean)
 ```
+
 ## YP
+
 ```{r}
 results = analyze_rct(df9_clean, "YP_manual_removal")
 
@@ -652,6 +822,7 @@ df_comparison = insert(9, results, "binary")
 ```
 
 ## YS
+
 ```{r}
 outcome = df9_clean %>% select(starts_with("YS"), -YS_placental_delivery, -YS_maternal_mortality) %>% names()
 
@@ -668,14 +839,16 @@ type = c(rep("continuous", 4), rep("binary", 10), "continuous", rep("binary", 1)
 df_comparison = insert(9, results, type)
 ```
 
-
 # Trial 10
+
 ## Load Data
+
 ```{r}
 df10 = read_rds("cleaned_data/trial10.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # Step 1: Identify YS_ and YP_ variables with < 30% missingness
 low_missing_vars = df10 %>%
@@ -709,7 +882,9 @@ df10_clean = df10_clean %>%
 ```{r}
 anyNA(df10_clean)
 ```
+
 ## YP
+
 ```{r}
 results = analyze_rct(df10_clean, "YP_help_needed_intub")
 
@@ -717,6 +892,7 @@ df_comparison = insert(10, results, "binary")
 ```
 
 ## YS
+
 ```{r}
 outcome = df10_clean %>% 
   select(starts_with("YS"), 
@@ -735,14 +911,16 @@ type = c(rep("binary", 2), "continuous", rep("binary", 3), rep("continuous", 12)
 df_comparison = insert(10, results, type)
 ```
 
-
 # Trial 11
+
 ## Load Data
+
 ```{r}
 df11 = read_rds("cleaned_data/trial11.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 44 -> 31
 df11_clean = df11 %>% 
@@ -765,7 +943,9 @@ df11_clean = df11 %>%
 ```{r}
 anyNA(df11_clean)
 ```
+
 ## YP
+
 ```{r}
 outcome = df11_clean %>% select(starts_with("YP")) %>% names()
 
@@ -775,6 +955,7 @@ df_comparison = insert(11 ,results, rep("continuous", 2))
 ```
 
 ## YS
+
 ```{r}
 outcome = df11_clean %>% select(starts_with("YS")) %>% names()
 
@@ -783,14 +964,16 @@ results = analyze_rct(df11_clean, outcome)
 df_comparison = insert(11, results, rep("continuous", length(outcome)))
 ```
 
-
 # Trial 12
+
 ## Load Data
+
 ```{r}
 df12 = read_rds("cleaned_data/trial12.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 41 -> 40
 df12_clean = df12 %>% 
@@ -819,6 +1002,7 @@ anyNA(df12_clean)
 ```
 
 ## YP
+
 ```{r}
 covariates = df12_clean %>% select(starts_with("X_")) %>% names()
 covariates = c(covariates, "n_participants")
@@ -831,6 +1015,7 @@ df_comparison = insert(12, results, c("binary", rep("continuous", 5)))
 ```
 
 ## YS
+
 ```{r}
 outcome = c("YS_diet_diversity_24m", "YS_caregiver_child_interaction_24m")
 
@@ -839,14 +1024,16 @@ results = analyze_rct(df12_clean, outcome, covariates)
 df_comparison = insert(12, results, rep("continuous", 2))
 ```
 
-
 # Trial 13
+
 ## Load Data
+
 ```{r}
 df13 = read_rds("cleaned_data/trial13.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 480 -> 471
 df13_clean = df13 %>% 
@@ -872,6 +1059,7 @@ anyNA(df13_clean)
 ```
 
 ## YP
+
 ```{r}
 outcome = df13_clean %>% select(starts_with("YP_")) %>% names()
 
@@ -881,6 +1069,7 @@ df_comparison = insert(13, results, c("continuous", "binary"))
 ```
 
 ## YS
+
 ```{r}
 outcome = df13_clean %>% select(starts_with("YS")) %>% names()
 
@@ -894,14 +1083,16 @@ results = analyze_rct(df13_final, outcome)
 df_comparison = insert(13, results, c(rep("continuous", 8), rep("binary", 2), rep("continuous", 5)))
 ```
 
-
 # Trial 14
+
 ## Load Data
+
 ```{r}
 df14 = read_rds("cleaned_data/trial14.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 119 -> 100
 df14_clean = df14 %>% 
@@ -924,77 +1115,90 @@ df14_clean = df14 %>%
 ```{r}
 anyNA(df14_clean)
 ```
+
 ## YP
+
 ```{r}
 outcome = c("YP_6MWD_6w", "YP_6MWD_28w")
+
+results = analyze_rct(df14_clean, outcome)
+
+df_comparison = insert(14, results, rep("continuous", 2))
 ```
 
+## YS
+
+```{r}
+outcome = df14_clean %>% select(starts_with("YS")) %>% names()
+
+df14_final = df14_clean %>% 
+  mutate(
+    across(all_of(outcome), as.numeric)
+  )
+
+results = analyze_rct(df14_final, outcome)
+
+df_comparison = insert(14, results, c(rep("continuous", length(outcome)-5), rep("binary", 5)))
+```
 
 # Trial 15
+
 ## Load Data
+
 ```{r}
 df15 = read_rds("cleaned_data/trial15.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df15_clean = df15 %>% 
-  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>%
   select(
     Treatment,
     starts_with("YP"),
+    starts_with("YS"),
     starts_with("X"))
 ```
 
 ```{r}
 anyNA(df15_clean)
 ```
-## unadjusted
+
+## YP
+
 ```{r}
-fit = lm(YP_delta_EmoReact_4w ~ Treatment, data = df15_clean)
+outcome = df15_clean %>% select(starts_with("YP")) %>% names()
 
-est = summary(fit)$coefficients[2,1]
-se = summary(fit)$coefficients[2,2]
+results = analyze_rct(df15_clean, outcome)
 
-c(round(est, 3), round(se, 3))
+df_comparison = insert(15, results, rep("continuous", length(outcome)))
 ```
 
-## ancova
+## YS
+
 ```{r}
-fit = lm(YP_delta_EmoReact_4w ~ ., data = df15_clean)
+outcome = df15_clean %>% select(starts_with("YS")) %>% names()
 
-est = summary(fit)$coefficients[2,1]
-se = summary(fit)$coefficients[2,2]
+results = analyze_rct(df15_clean, outcome)
 
-c(round(est, 3), round(se, 3))
-```
-
-## robincar
-```{r}
-covariates = df15_clean %>% 
-  select(starts_with("X_")) %>%
-  names()
-
-robincar_linear(
-  df = df15_clean,
-  response_col = "YP_delta_EmoReact_4w",
-  treat_col = "Treatment",
-  covariate_cols = covariates,
-  adj_method = "ANCOVA",
-  contrast_h = "diff"
-  )
+df_comparison = insert(15, results, rep("continuous", length(outcome)))
 ```
 
 # Trial 16
+
 ## Load Data
+
 ```{r}
 df16 = read_rds("cleaned_data/trial16.rds")
 ```
 
 ## Cleaning
+
 ```{r}
+# 48 -> 46
 df16_clean = df16 %>% 
-  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>%
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -1006,6 +1210,7 @@ df16_clean = df16 %>%
   select(
     Treatment,
     starts_with("YP"),
+    starts_with("YS"),
     starts_with("X"))
 ```
 
@@ -1013,53 +1218,39 @@ df16_clean = df16 %>%
 anyNA(df16_clean)
 ```
 
-## unadjusted
+## YP
+
 ```{r}
-fit = lm(YP_delta_BDI_9w ~ Treatment, data = df16_clean)
+outcome = df16_clean %>% select(starts_with("YP")) %>% names()
 
-est = summary(fit)$coefficients[2,1]
-se = summary(fit)$coefficients[2,2]
+results = analyze_rct(df16_clean, outcome)
 
-c(round(est, 3), round(se, 3))
+df_comparison = insert(16, results, rep("continuous", length(outcome)))
 ```
 
+## YS
 
-## ancova
 ```{r}
-fit = lm(YP_delta_BDI_9w ~ ., data = df16_clean)
+outcome = df16_clean %>% select(starts_with("YS")) %>% names()
 
-est = summary(fit)$coefficients[2,1]
-se = summary(fit)$coefficients[2,2]
+results = analyze_rct(df16_clean, outcome)
 
-c(round(est, 3), round(se, 3))
-```
-
-## robincar
-```{r}
-covariates = df16_clean %>% 
-  select(starts_with("X_")) %>%
-  names()
-
-robincar_linear(
-  df = df16_clean,
-  response_col = "YP_delta_BDI_9w",
-  treat_col = "Treatment",
-  covariate_cols = covariates,
-  adj_method = "ANCOVA",
-  contrast_h = "diff"
-  )
+df_comparison = insert(16, results, rep("continuous", length(outcome)))
 ```
 
 # Trial 17
+
 ## Load Data
+
 ```{r}
 df17 = read_rds("cleaned_data/trial17.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df17_clean = df17 %>% 
-  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>%
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -1071,6 +1262,7 @@ df17_clean = df17 %>%
   select(
     Treatment,
     starts_with("YP"),
+    starts_with("YS"),
     starts_with("X"))
 ```
 
@@ -1078,58 +1270,36 @@ df17_clean = df17 %>%
 anyNA(df17_clean)
 ```
 
-## unadjusted
+## YP
 ```{r}
-fit = lm(YP_delta_LDL_24w ~ Treatment, data = df17_clean)
+results = analyze_rct(df17_clean, "YP_delta_LDL_24w")
 
-# est = summary(fit)$coefficients[2,1]
-# se = summary(fit)$coefficients[2,2]
-# 
-# c(round(est, 3), round(se, 3))
-
-summary(fit)
+df_comparison = insert(17, results, "continuous")
 ```
 
-
-## ancova
+## YS
 ```{r}
-fit = lm(YP_delta_LDL_24w ~ ., data = df17_clean)
+outcome = df17_clean %>% select(starts_with("YS")) %>% names()
 
-# est = summary(fit)$coefficients[2,1]
-# se = summary(fit)$coefficients[2,2]
-# 
-# c(round(est, 3), round(se, 3))
+results = analyze_rct(df17_clean, outcome)
 
-summary(fit)
-```
-
-## robincar
-```{r}
-covariates = df17_clean %>% 
-  select(starts_with("X_")) %>%
-  names()
-
-robincar_linear(
-  df = df17_clean,
-  response_col = "YP_delta_LDL_24w",
-  treat_col = "Treatment",
-  covariate_cols = covariates,
-  adj_method = "ANCOVA",
-  contrast_h = "diff"
-  )
+df_comparison = insert(17, results, rep("continuous", 3))
 ```
 
 
 # Trial 18
 ## Load Data
+
 ```{r}
 df18 = read_rds("cleaned_data/trial18.rds")
 ```
 
 ## Cleaning
+
 ```{r}
+# 295 -> 239
 df18_clean = df18 %>% 
-  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>%
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -1141,82 +1311,28 @@ df18_clean = df18 %>%
   select(
     Treatment,
     starts_with("YP"),
+    starts_with("YS"),
     starts_with("X"))
 ```
 
 ```{r}
 anyNA(df18_clean)
 ```
-
-## unadjusted
+## YP
 ```{r}
-outcomes = df18_clean %>% 
-  select(YP_time_to_disengaged_12m, YP_prop_time_in_care_12m) %>%
-  names()
+results = analyze_rct(df18_clean, c("YP_time_to_disengaged_12m", "YP_prop_time_in_care_12m"))
 
-covariates = df18_clean %>% 
-  select(starts_with("X_")) %>%
-  names()
-
-predictors = c("Treatment", covariates)
-
-# Fit lm for each YP outcome using only X predictors
-fit = outcomes %>%
-  set_names() %>%  # names the list by outcomes
-  map(~ {
-    formula = reformulate("Treatment", response = .x)
-    lm(formula, data = df18_clean)
-  })
-
-est = summary(fit[[1]])$coefficients[2,1]
-se = summary(fit[[1]])$coefficients[2,2]
-
-c(round(est, 3), round(se, 3))
-
-est = summary(fit[[2]])$coefficients[2,1]
-se = summary(fit[[2]])$coefficients[2,2]
-
-c(round(est, 3), round(se, 3))
+df_comparison = insert(18, results, c("time to event", "continuous proportion"))
 ```
 
-
-## ancova
+## YS
 ```{r}
-fit = outcomes %>%
-  set_names() %>%  # names the list by outcomes
-  map(~ {
-    formula = reformulate(predictors, response = .x)
-    lm(formula, data = df18_clean)
-  })
+outcome = df18_clean %>% select(starts_with("YS")) %>% names()
 
-est = summary(fit[[1]])$coefficients[2,1]
-se = summary(fit[[1]])$coefficients[2,2]
+results = analyze_rct(df18_clean, outcome)
 
-c(round(est, 3), round(se, 3))
-
-est = summary(fit[[2]])$coefficients[2,1]
-se = summary(fit[[2]])$coefficients[2,2]
-
-c(round(est, 3), round(se, 3))
+df_comparison = insert(18, results, rep("countinuous", length(outcome)))
 ```
-
-
-## robincar
-```{r}
-fit = outcomes %>%
-  set_names() %>%  # names the list by outcomes
-  map(~
-    robincar_linear(
-      df = df18_clean, 
-      treat_col = "Treatment",
-      response_col = .x,
-      covariate_cols = covariates,
-      adj_method = "ANCOVA",
-      contrast_h = "diff"))
-fit[[1]]$contrast
-fit[[2]]$contrast
-```
-
 
 # Trial 19
 ## Load Data
@@ -1227,7 +1343,7 @@ df19 = read_rds("cleaned_data/trial19.rds")
 ## Cleaning
 ```{r}
 df19_clean = df19 %>% 
-  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
+  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>%
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -1239,58 +1355,42 @@ df19_clean = df19 %>%
   select(
     Treatment,
     starts_with("YP"),
+    starts_with("YS"),
     starts_with("X"))
 ```
 
 ```{r}
 anyNA(df19_clean)
 ```
-
-## unadjusted
+## YP
 ```{r}
-fit = lm(YP_FHVP_CVP_GRADIENT ~ Treatment, data = df19_clean)
+results = analyze_rct(df19_clean, "YP_FHVP_CVP_GRADIENT")
 
-est = summary(fit)$coefficients[2,1]
-se = summary(fit)$coefficients[2,2]
-
-c(round(est, 3), round(se, 3))
+df_comparison = insert(19, results, "countinuous")
 ```
 
 
-## ancova
+## YS
 ```{r}
-fit = lm(YP_FHVP_CVP_GRADIENT ~ ., data = df19_clean)
+outcome = df19_clean %>% select(starts_with("YS"), -YS_ARF_PREVALENCE_28d) %>% names()
 
-est = summary(fit)$coefficients[2,1]
-se = summary(fit)$coefficients[2,2]
+df19_final = df19_clean %>% 
+  mutate(YS_MASSIVE_ASCITES = as.numeric(YS_MASSIVE_ASCITES))
 
-c(round(est, 3), round(se, 3))
+results = analyze_rct(df19_final, outcome)
+
+df_comparison = insert(19, results, c(rep("continuous", length(outcome)-1), "binary"))
 ```
-
-## robincar
-```{r}
-covariates = df19_clean %>% 
-  select(starts_with("X_")) %>%
-  names()
-
-robincar_linear(
-  df = df19_clean,
-  response_col = "YP_FHVP_CVP_GRADIENT",
-  treat_col = "Treatment",
-  covariate_cols = covariates,
-  adj_method = "ANCOVA",
-  contrast_h = "diff"
-  )
-```
-
 
 # Trial 20
 ## Load Data
+
 ```{r}
 df20 = read_rds("cleaned_data/trial20.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df20_clean = df20 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
@@ -1313,6 +1413,7 @@ anyNA(df20_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 fit = lm(YP_IWT_minutes_12w ~ Treatment, data = df20_clean)
 
@@ -1322,8 +1423,8 @@ se = summary(fit)$coefficients[2,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## ancova
+
 ```{r}
 fit = lm(YP_IWT_minutes_12w ~ ., data = df20_clean)
 
@@ -1334,6 +1435,7 @@ c(round(est, 3), round(se, 3))
 ```
 
 ## robincar
+
 ```{r}
 covariates = df20_clean %>% 
   select(starts_with("X_")) %>%
@@ -1350,12 +1452,15 @@ robincar_linear(
 ```
 
 # Trial 21
+
 ## Load Data
+
 ```{r}
 df21 = read_rds("cleaned_data/trial21.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df21_clean = df21 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
@@ -1375,9 +1480,10 @@ df21_clean = df21 %>%
 
 ```{r}
 anyNA(df21_clean)
-```   
+```
 
 ## unadjusted
+
 ```{r}
 covariates = df21_clean %>% 
   select(starts_with("X_")) %>%
@@ -1398,8 +1504,8 @@ se = summary(fit)$coefficients[3,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## ancova
+
 ```{r}
 formula = reformulate(predictors, response = "YP_days_to_tb_initiation")
 fit = lm(formula, data = df21_clean)
@@ -1416,6 +1522,7 @@ c(round(est, 3), round(se, 3))
 ```
 
 ## robincar
+
 ```{r}
 covariates = df21_clean %>% 
   select(starts_with("X_")) %>%
@@ -1430,13 +1537,17 @@ robincar_linear(
   contrast_h = "diff"
   )
 ```
+
 # Trial 22
+
 ## Load Data
+
 ```{r}
 df22 = read_rds("cleaned_data/trial22.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df22_clean = df22 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment, ClusterID), is.na)) %>%
@@ -1460,6 +1571,7 @@ anyNA(df22_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 covariates = df22_clean %>% 
   select(starts_with("X_")) %>%
@@ -1477,8 +1589,8 @@ se = summary(fit)$coefficients[2,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## ancova
+
 ```{r}
 formula = reformulate(predictors, response = "YP_Birthwgt")
 
@@ -1491,6 +1603,7 @@ c(round(est, 3), round(se, 3))
 ```
 
 ## robincar
+
 ```{r}
 robincar_linear(
   df = df22_clean,
@@ -1501,13 +1614,17 @@ robincar_linear(
   contrast_h = "diff"
   )
 ```
+
 # Trial 23
+
 ## Load Data
+
 ```{r}
 df23 = read_rds("cleaned_data/trial23.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df23_clean = df23 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
@@ -1530,6 +1647,7 @@ anyNA(df23_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 outcomes = df23_clean %>% 
   select(YP_time_28d, YP_time_90d) %>%
@@ -1560,8 +1678,8 @@ se = summary(fit[[2]])$coefficients[2,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## ancova
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1581,8 +1699,8 @@ se = summary(fit[[2]])$coefficients[2,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## robincar
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1599,12 +1717,15 @@ fit[[2]]$contrast
 ```
 
 # Trial 24
+
 ## Load Data
+
 ```{r}
 df24 = read_rds("cleaned_data/trial24.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df24_clean = df24 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
@@ -1630,6 +1751,7 @@ anyNA(df24_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 fit = lm(YP_catheterized ~ Treatment, data = df24_clean)
 
@@ -1639,8 +1761,8 @@ se = summary(fit)$coefficients[2,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## ancova
+
 ```{r}
 fit = lm(YP_catheterized ~ ., data = df24_clean)
 
@@ -1651,6 +1773,7 @@ c(round(est, 3), round(se, 3))
 ```
 
 ## robincar
+
 ```{r}
 covariates = df24_clean %>% 
   select(starts_with("X_")) %>%
@@ -1665,13 +1788,17 @@ robincar_linear(
   contrast_h = "diff"
   )
 ```
+
 # Trial 25
+
 ## Load Data
+
 ```{r}
 df25 = read_rds("cleaned_data/trial25.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 55 -> 48
 df25_clean = df25 %>% 
@@ -1696,6 +1823,7 @@ anyNA(df25_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 outcomes = df25_clean %>% 
   select(YP_delta_GQ1_8w, YP_delta_GQ2_8w, YP_delta_GQ3_8w, YP_delta_GQ4_8w,
@@ -1727,6 +1855,7 @@ t(results)
 ```
 
 ## ancova
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1744,8 +1873,8 @@ results = sapply(fit, function(m) {
 t(results)
 ```
 
-
 ## robincar
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1770,14 +1899,16 @@ fit[[10]]$contrast
 fit[[11]]$contrast
 ```
 
-
 # Trial 26
+
 ## Load Data
+
 ```{r}
 df26 = read_rds("cleaned_data/trial26.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df26_clean = df26 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
@@ -1804,6 +1935,7 @@ anyNA(df26_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 outcomes = df26_clean %>% 
   select(YP_delta_Adherence_6m, YP_optimal_adherence_6m, YP_attendance_6m) %>%
@@ -1839,8 +1971,8 @@ se = summary(fit[[3]])$coefficients[2,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## ancova
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1865,8 +1997,8 @@ se = summary(fit[[3]])$coefficients[2,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## robincar
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1884,12 +2016,15 @@ fit[[3]]$contrast
 ```
 
 # Trial 27
+
 ## Load Data
+
 ```{r}
 df27 = read_rds("cleaned_data/trial27.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 101 -> 87
 df27_clean = df27 %>% 
@@ -1919,6 +2054,7 @@ anyNA(df27_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 outcomes = df27_clean %>% 
   select(YP_bleeding_score, YP_bleeding_category3, YP_surgical_problem_bleeding) %>%
@@ -1948,6 +2084,7 @@ t(results)
 ```
 
 ## ancova
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1965,8 +2102,8 @@ results = sapply(fit, function(m) {
 t(results)
 ```
 
-
 ## robincar
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -1984,12 +2121,15 @@ fit[[3]]$contrast
 ```
 
 # Trial 28
+
 ## Load Data
+
 ```{r}
 df28 = read_rds("cleaned_data/trial28.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df28_clean = df28 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
@@ -2016,6 +2156,7 @@ anyNA(df28_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 fit = lm(YP_ContrSBP_6m ~ Treatment, data = df28_clean)
 
@@ -2026,6 +2167,7 @@ c(round(est, 3), round(se, 3))
 ```
 
 ## ancova
+
 ```{r}
 fit = lm(YP_ContrSBP_6m ~ ., data = df28_clean)
 
@@ -2036,6 +2178,7 @@ c(round(est, 3), round(se, 3))
 ```
 
 ## robincar
+
 ```{r}
 covariates = df28_clean %>% 
   select(starts_with("X_")) %>%
@@ -2052,12 +2195,15 @@ robincar_linear(
 ```
 
 # Trial 29
+
 ## Load Data
+
 ```{r}
 df29 = read_rds("cleaned_data/trial29.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 # 101 -> 87
 df29_clean = df29 %>% 
@@ -2086,6 +2232,7 @@ anyNA(df29_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 outcomes = df29_clean %>% 
   select(YP_HAZ_36m, YP_Stunted_36m, YP_MDAT_GM_Z_36m, YP_MDAT_FM_Z_36m, YP_MDAT_LANG_Z_36m,
@@ -2117,6 +2264,7 @@ t(results)
 ```
 
 ## ancova
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -2134,8 +2282,8 @@ results = sapply(fit, function(m) {
 t(results)
 ```
 
-
 ## robincar
+
 ```{r}
 fit = outcomes %>%
   set_names() %>%  # names the list by outcomes
@@ -2160,12 +2308,15 @@ fit[[10]]$contrast
 ```
 
 # Trial 30
+
 ## Load Data
+
 ```{r}
 df30 = read_rds("cleaned_data/trial30.rds")
 ```
 
 ## Cleaning
+
 ```{r}
 df30_clean = df30 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
@@ -2191,6 +2342,7 @@ anyNA(df30_clean)
 ```
 
 ## unadjusted
+
 ```{r}
 fit = lm(YP_Adherence ~ Treatment, data = df30_clean)
 
@@ -2205,8 +2357,8 @@ se = summary(fit)$coefficients[3,2]
 c(round(est, 3), round(se, 3))
 ```
 
-
 ## ancova
+
 ```{r}
 fit = lm(YP_Adherence ~ ., data = df30_clean)
 
@@ -2222,6 +2374,7 @@ c(round(est, 3), round(se, 3))
 ```
 
 ## robincar
+
 ```{r}
 covariates = df30_clean %>% 
   select(starts_with("X_")) %>%
@@ -2238,6 +2391,7 @@ robincar_linear(
 ```
 
 # Export
+
 ```{r}
 library(writexl)
 
@@ -2245,12 +2399,15 @@ write_xlsx(df_comparison, "cleaned_data/meta_data_comparison.xlsx")
 ```
 
 # Plot
+
 ## Load Data
+
 ```{r}
 df = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
 ```
 
-##
+## 
+
 ```{r}
 df_new = df %>%
   mutate(
@@ -2265,6 +2422,7 @@ df_new = df %>%
 ```
 
 ## Violin Plot
+
 ```{r}
 # 1. Precision Gain Plot
 ggplot(df_new, aes(x = outcome_group, y = `How much precision gain can ANCOVA provide?`)) +
@@ -2330,6 +2488,7 @@ ggplot(df_new, aes(x = outcome_group, y = `The difference between robust and mod
 ```
 
 ## Histogram
+
 ```{r}
 # Precision Gain Histograms by Outcome Group
 ggplot(df_new[df_new$outcome_group == "binary", ], aes(x = `How much precision gain can ANCOVA provide?`)) +
@@ -2418,7 +2577,9 @@ ggplot(df_new[df_new$outcome_group == "time_to_event", ], aes(x = `The differenc
   theme_classic(base_size = 14) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
 # More Plots
+
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -2598,4 +2759,3 @@ ggplot(df_combined, aes(x = outcome_group, y = value, fill = outcome_group)) +
 ```{r}
 str(df30_final)
 ```
-
