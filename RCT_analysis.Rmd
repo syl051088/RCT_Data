@@ -29,22 +29,19 @@ df_comparison = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
 ```
 
 # Function
-## analyze_rct_vec()
+## analyze_rct()
 ```{r}
-analyze_rct_vectorized = function(df,
-                                 outcome_cols,
-                                 covariate_col = NULL,
-                                 treatment_col = "Treatment",
-                                 adj_method = "ANCOVA") {
-  
+analyze_rct = function(df,
+                       outcome_cols,
+                       covariate_col = NULL,
+                       treatment_col = "Treatment",
+                       adj_method = "ANCOVA") {
   require(dplyr)
   require(RobinCar)
   
   # Setup
   covariates = if (is.null(covariate_col)) {
     grep("^X_", names(df), value = TRUE)
-  } else {
-    covariate_col
   }
   
   control_level = levels(df[[treatment_col]])[1]
@@ -67,15 +64,19 @@ analyze_rct_vectorized = function(df,
     outcome = outcome_cols[i]
     
     # Fit models
-    coef_unadj = coef(summary(lm(reformulate(treatment_col, outcome), df)))
-    coef_ancova = coef(summary(lm(reformulate(c(treatment_col, covariates), outcome), df)))
+    coef_unadj = coef(summary(lm(
+      reformulate(treatment_col, outcome), df
+    )))
+    coef_ancova = coef(summary(lm(reformulate(
+      c(treatment_col, covariates), outcome
+    ), df)))
     
     # Extract treatment effects
     treat_idx_unadj = grep(treat_pattern, rownames(coef_unadj))
     treat_idx_ancova = grep(treat_pattern, rownames(coef_ancova))
     n_treat = length(treat_idx_unadj)
     
-    # Vectorized assignment for unadjusted
+    # unadjusted
     idx_end = idx + n_treat - 1
     outcome_vec[idx:idx_end] = outcome
     treatment_vec[idx:idx_end] = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
@@ -85,7 +86,7 @@ analyze_rct_vectorized = function(df,
     se_vec[idx:idx_end] = round(coef_unadj[treat_idx_unadj, 2], 3)
     idx = idx_end + 1
     
-    # Vectorized assignment for ANCOVA
+    # ANCOVA
     idx_end = idx + n_treat - 1
     outcome_vec[idx:idx_end] = outcome
     treatment_vec[idx:idx_end] = sub(treat_pattern, "", rownames(coef_ancova)[treat_idx_ancova])
@@ -97,10 +98,14 @@ analyze_rct_vectorized = function(df,
     
     # RobinCar
     rc_fit = suppressWarnings(
-      robincar_linear(df, treatment_col, outcome, 
-                      covariate_cols = covariates, 
-                      adj_method = adj_method, 
-                      contrast_h = "diff")
+      robincar_linear(
+        df,
+        treatment_col,
+        outcome,
+        covariate_cols = covariates,
+        adj_method = adj_method,
+        contrast_h = "diff"
+      )
     )
     rc_result = rc_fit$contrast$result
     n_rc = nrow(rc_result)
@@ -127,111 +132,7 @@ analyze_rct_vectorized = function(df,
   )
   
   # Pivot and rename
-  results %>%
-    pivot_wider(
-      id_cols = c(Outcome, Treatment, Control),
-      names_from = Method,
-      values_from = c(Estimate, SE),
-      names_sep = "_"
-    ) %>%
-    rename(
-      Est_RC = Estimate_RobinCar, SE_RC = SE_RobinCar,
-      Est_AC = Estimate_ANCOVA, SE_AC = SE_ANCOVA,
-      Est_UN = Estimate_Unadjusted, SE_UN = SE_Unadjusted
-    ) %>%
-    select(Outcome, Treatment, Control, Est_RC, SE_RC, Est_AC, SE_AC, Est_UN, SE_UN)
-}
-```
-
-## analyze_rct()
-```{r}
-analyze_rct = function(df,
-                       outcome_cols,
-                       covariate_col = NULL,
-                       treatment_col = "Treatment",
-                       adj_method = "ANCOVA") {
-  require(dplyr)
-  require(purrr)
-  require(tidyr)
-  require(RobinCar)
-  require(stringr)
-
-  # Extract covariates
-  covariates = if (is.null(covariate_col)) {
-    df %>% select(starts_with("X_")) %>% names()
-  } else {
-    covariate_col
-  }
-
-  # Get reference/control level from the factor
-  control_level = levels(df[[treatment_col]])[1]
-
-  # Helper: extract contrast rows and fix contrast format
-  extract_lm_est_se = function(fit, outcome, method) {
-    coefs = summary(fit)$coefficients
-    rownames(coefs) %>%
-      as_tibble() %>%
-      filter(str_detect(value, paste0("^", treatment_col))) %>%
-      mutate(
-        Estimate = round(coefs[value, 1], 3),
-        SE       = round(coefs[value, 2], 3),
-        Outcome  = outcome,
-        Method   = method,
-        # Extract treatment arm from term name
-        Treatment = str_remove(value, paste0("^", treatment_col)),
-        Control   = control_level,
-        Contrast  = paste("treat", Treatment, "-", control_level)
-      ) %>%
-      select(Contrast, Estimate, SE, Outcome, Method)
-  }
-
-  results = list()
-
-  for (outcome in outcome_cols) {
-    # --- Unadjusted
-    fit_unadj = lm(reformulate(treatment_col, response = outcome), data = df)
-    res_unadj = extract_lm_est_se(fit_unadj, outcome, "Unadjusted")
-
-    # --- ANCOVA
-    predictors = c(treatment_col, covariates)
-    fit_ancova = lm(reformulate(predictors, response = outcome), data = df)
-    res_ancova = extract_lm_est_se(fit_ancova, outcome, "ANCOVA")
-
-    # --- RobinCar
-    fit_robincar = suppressWarnings(
-      robincar_linear(
-        df             = df,
-        treat_col      = treatment_col,
-        response_col   = outcome,
-        covariate_cols = covariates,
-        adj_method     = adj_method,
-        contrast_h     = "diff"
-      )
-    )
-
-    res_robincar = fit_robincar$contrast$result %>%
-      transmute(
-        Contrast = contrast,
-        Estimate = round(estimate, 3),
-        SE       = round(se, 3),
-        Outcome  = outcome,
-        Method   = "RobinCar"
-      )
-
-    # Combine results
-    results[[outcome]] = bind_rows(res_unadj, res_ancova, res_robincar)
-  }
-
-  # Combine all outcomes
-  long_results = bind_rows(results)
-
-  # --- Extract Treatment/Control from uniform contrast string
-  long_results = long_results %>%
-    mutate(Contrast = str_remove(Contrast, "^treat\\s+")) %>%
-    separate(Contrast, into = c("Treatment", "Control"), sep = " - ", remove = TRUE)
-
-  # Pivot to wide format
-  final_results = long_results %>%
+  final_results = results %>%
     pivot_wider(
       id_cols = c(Outcome, Treatment, Control),
       names_from = Method,
@@ -240,16 +141,24 @@ analyze_rct = function(df,
     ) %>%
     rename(
       Est_RC = Estimate_RobinCar,
-      SE_RC  = SE_RobinCar,
+      SE_RC = SE_RobinCar,
       Est_AC = Estimate_ANCOVA,
-      SE_AC  = SE_ANCOVA,
+      SE_AC = SE_ANCOVA,
       Est_UN = Estimate_Unadjusted,
-      SE_UN  = SE_Unadjusted
+      SE_UN = SE_Unadjusted
     ) %>%
-    select(Outcome, Treatment, Control, Est_RC, SE_RC, Est_AC, SE_AC, Est_UN, SE_UN)
+    select(Outcome,
+           Treatment,
+           Control,
+           Est_RC,
+           SE_RC,
+           Est_AC,
+           SE_AC,
+           Est_UN,
+           SE_UN)
   
-  stopifnot(final_results$Est_RC == final_results$Est_AC)
-
+  stopifnot(all(final_results$Est_RC == final_results$Est_AC))
+  
   return(final_results)
 }
 ```
@@ -372,28 +281,14 @@ results = analyze_rct(df1_final, outcome)
 df_comparison = insert(1, results, "continuous")
 ```
 
-```{r}
-  tibble1 = analyze_rct_vectorized(df1_final, outcome)
-  tibble2 = analyze_rct(df1_final, outcome)
-
-# rst = microbenchmark::microbenchmark(
-#   tibble1 = analyze_rct_vectorized(df1_final, outcome),
-#   tibble2 = analyze_rct(df1_final, outcome),
-#   times = 20
-# )
-# 
-print(rst)
-# plot(rst)
-```
-
 ## YS
 
 ```{r}
 outcome = df1_final %>% select(starts_with("YS_")) %>% names()
 
-# resutls = analyze_rct(df1_final, outcome)
+resutls = analyze_rct(df1_final, outcome)
 
-# df_comparison = insert(1, resutls, rep("continuous", length(outcome)))
+df_comparison = insert(1, resutls, rep("continuous", length(outcome)))
 ```
 
 # Trial 2
@@ -1285,7 +1180,6 @@ results = analyze_rct(df17_clean, outcome)
 
 df_comparison = insert(17, results, rep("continuous", 3))
 ```
-
 
 # Trial 18
 ## Load Data

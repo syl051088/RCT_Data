@@ -842,10 +842,12 @@ analyze_rct_multiarm(df1_final,
 #                      reference_arm = "Placebo",
 #                      )
 
-analyze_rct_multiarm(df2_clean,
-                     outcome_cols = "YP_recovery_time",
+# covariates = df17_clean %>% select(starts_with("X")) %>% names()
+
+analyze_rct_multiarm(df17_clean,
+                     outcome_cols = outcome,
                      covariate_cols = covariates,
-                     reference_arm = "Placebo",
+                     reference_arm = "statin"
                      )
 # df1_clean_numeric = df1_final
 # for(col in covariates) {
@@ -861,32 +863,34 @@ analyze_rct_multiarm(df2_clean,
 ```
 # latest
 ```{r}
-analyze_rct_multiarm = function(data,
-                                outcome_cols,
-                                covariate_cols,
-                                reference_arm   = NULL,
-                                treatment_col   = "Treatment",
-                                K               = 5,
-                                SL_methods      = c("SL.glm", "SL.rpart"),
-                                n_cores         = 4,
-                                seed            = 123) {
+analyze_rct_multiarm = function(
+  data,
+  treatment_col   = "Treatment",
+  outcome_cols,
+  covariate_cols,
+  reference_arm   = NULL,
+  K               = 5,
+  SL_methods      = c("SL.glm", "SL.rpart"),
+  n_cores         = 4,
+  seed            = 123
+) {
   require(dplyr)
   require(purrr)
   require(SuperLearner)
   require(foreach)
   require(doSNOW)
   require(doRNG)
-  
+
   set.seed(seed)
-  
+
   # start parallel backend
   cl = makeCluster(n_cores)
   registerDoSNOW(cl)
   on.exit(stopCluster(cl), add = TRUE)
-  
+
   n    = nrow(data)
   arms = unique(data[[treatment_col]])
-  
+
   # pick reference if not given
   if (is.null(reference_arm)) {
     reference_arm = arms[1]
@@ -894,75 +898,82 @@ analyze_rct_multiarm = function(data,
   if (!(reference_arm %in% arms)) {
     stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
   }
-  
+
   # overall randomization proportions
   pi_tab = prop.table(table(data[[treatment_col]]))
-  
+
   # create CV splits
   split_ix = sample(rep(1:K, length.out = n))
   splits   = map(1:K, ~ which(split_ix == .x))
-  
+
   # loop over each outcome, then each non-reference arm
   results = map_dfr(outcome_cols, function(Y) {
     map_dfr(setdiff(arms, reference_arm), function(arm) {
-      # define the two-arm set and conditional pis
-      pair_arms = c(reference_arm, arm)
-      pi_pair   = pi_tab[pair_arms] / sum(pi_tab[pair_arms])
+      pair_arms    = c(reference_arm, arm)
+      pi_pair      = pi_tab[pair_arms] / sum(pi_tab[pair_arms])
       names(pi_pair) = make.names(pair_arms)
-      
+
       # cross‐fit DR predictions
       cv_comp = map_dfr(1:K, function(k) {
         val_ix   = splits[[k]]
         train_ix = setdiff(seq_len(n), val_ix)
-        
+
         preds = tibble(index = val_ix)
-        
+
         for (a in pair_arms) {
-          a_nm   = make.names(a)
-          tr_ix  = intersect(train_ix, which(data[[treatment_col]] == a))
-          
-          # fit SuperLearner on arm=a training set
+          a_nm  = make.names(a)
+          tr_ix = intersect(train_ix, which(data[[treatment_col]] == a))
+
           set.seed(seed + k + which(pair_arms == a))
-          fit    = SuperLearner(
-            Y          = data[[Y]][tr_ix],
-            X          = data[tr_ix, covariate_cols, drop = FALSE],
-            family     = gaussian(),
-            SL.library = SL_methods
-          )
-          eta    = predict(fit, newdata = data[val_ix, covariate_cols, drop = FALSE])$pred
-          
+          fit   = SuperLearner(
+                    Y          = data[[Y]][tr_ix],
+                    X          = data[tr_ix, covariate_cols, drop = FALSE],
+                    family     = gaussian(),
+                    SL.library = SL_methods
+                  )
+          eta   = predict(fit, newdata = data[val_ix, covariate_cols, drop = FALSE])$pred
+
           A_k    = as.integer(data[[treatment_col]][val_ix] == a)
           pi_cond = as.numeric(pi_pair[a_nm])
-          
-          # doubly‐robust estimate
-          dr     = A_k / pi_cond * (data[[Y]][val_ix] - eta) + eta
+
+          dr     = A_k/pi_cond * (data[[Y]][val_ix] - eta) + eta
           preds[[paste0("f_", a_nm)]] = dr
         }
-        
+
         preds = preds %>% mutate(fold = k)
         preds
       })
-      
+
       cv_comp = arrange(cv_comp, index)
-      
-      # compute contrast D = f_arm - f_ref
-      D     = cv_comp[[paste0("f_", make.names(arm))]] -
-        cv_comp[[paste0("f_", make.names(reference_arm))]]
-      
-      est   = mean(D)
-      var_D = var(D)
-      se    = sqrt(var_D / n)
-      
+
+      # attach actual arms
+      cv_comp = cv_comp %>% mutate(A_i = data[[treatment_col]][index])
+
+      # restrict to the two-arm set
+      cv_pair = cv_comp %>% filter(A_i %in% pair_arms)
+
+      # compute contrasts for this pair
+      D_pair = cv_pair[[paste0("f_", make.names(arm))]] -
+               cv_pair[[paste0("f_", make.names(reference_arm))]]
+
+      # effective sample size for this contrast
+      n_pair = nrow(cv_pair)
+
+      # estimate, variance, and SE
+      est      = mean(D_pair)
+      variance = var(D_pair) / n_pair
+      se       = sqrt(variance)
+
       tibble(
         outcome    = Y,
         comparison = paste0(arm, "_vs_", reference_arm),
         estimate   = est,
         SE         = se,
-        variance   = var_D / n
+        variance   = variance
       )
     })
   })
-  
+
   return(results)
 }
 ```

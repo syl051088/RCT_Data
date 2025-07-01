@@ -1624,7 +1624,7 @@ df17_final = df17 %>%
     X_HDL_0w = HDL,
     X_age_0w = age,
     X_sex_0w = trimws(sex),
-    X_hbp_0w = hbp,
+    X_hbp_0w = trimws(hbp),
     X_smoke_0w = smoke,
     X_DM_0w = DM,
     X_BMI_0w = BMId
@@ -1644,7 +1644,6 @@ df17_final = df17 %>%
     starts_with("X")
   )
 ```
-
 
 ## Output Data
 ```{r}
@@ -2797,6 +2796,6 @@ write_rds(df30_final, "cleaned_data/trial30.rds")
 ```
 
 ```{r}
-str(df17_clean)
+str(df19_clean)
 ```
 
