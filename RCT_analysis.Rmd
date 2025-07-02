@@ -29,13 +29,149 @@ df_comparison = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
 ```
 
 # Function
+## analyze_rct_sl()
+```{r}
+analyze_rct_sl = function(
+  data,
+  treatment_col   = "Treatment",
+  outcome_cols,
+  covariate_cols,
+  reference_arm   = NULL,
+  K               = 5,
+  SL_methods      = c("SL.glm", "SL.rpart", "SL.ranger"),
+  n_cores         = parallel::detectCores() - 1,
+  seed            = 123
+) {
+  # load packages only if needed
+  require(dplyr)
+  require(SuperLearner)
+  require(foreach)
+  require(doSNOW)
+  require(doRNG)
+  require(quadprog)
+
+  set.seed(seed)
+  # set up cluster for foreach
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  registerDoRNG(seed)    # reproducible across workers
+  on.exit(stopCluster(cl), add = TRUE)
+
+  n    = nrow(data)
+  arms = unique(data[[treatment_col]])
+  if (is.null(reference_arm)) reference_arm = arms[1]
+  if (!(reference_arm %in% arms)) stop(
+    "reference_arm must be one of: ", paste(arms, collapse = ", ")
+  )
+
+  # overall treatment propensities
+  pi_tab = prop.table(table(data[[treatment_col]]))
+
+  # pre–compute our random splits
+  split_ix = sample(rep(1:K, length.out = n))
+  splits   = split(seq_len(n), split_ix)
+
+  # all (Y, arm) combos
+  combos = expand.grid(
+    Outcome   = outcome_cols,
+    Treatment = setdiff(arms, reference_arm),
+    stringsAsFactors = FALSE
+  )
+
+  results = foreach(i = seq_len(nrow(combos)), .combine = dplyr::bind_rows,
+                     .packages = c("dplyr", "SuperLearner")) %dopar% {
+    Y   = combos$Outcome[i]
+    arm = combos$Treatment[i]
+    pair_arms = c(reference_arm, arm)
+
+    # renormalize propensities for this pair
+    pi_pair = pi_tab[pair_arms] / sum(pi_tab[pair_arms])
+    names(pi_pair) = pair_arms
+
+    # cross‐fit per fold
+    cv_list = lapply(seq_len(K), function(k) {
+      val_ix   = splits[[k]]
+      train_ix = setdiff(seq_len(n), val_ix)
+
+      preds = matrix(
+        NA_real_,
+        nrow = length(val_ix),
+        ncol = length(pair_arms),
+        dimnames = list(NULL, pair_arms)
+      )
+
+      for (a in pair_arms) {
+        sel_tr = train_ix[data[[treatment_col]][train_ix] == a]
+        Y_tr   = data[[Y]][sel_tr]
+        X_tr   = data[ sel_tr, covariate_cols, drop = FALSE]
+        X_va   = data[val_ix, covariate_cols, drop = FALSE]
+
+        if (is.factor(Y_tr)) {
+          cvCtrl = list(V = min(10, length(Y_tr)),
+                         stratifyCV = TRUE,
+                         strata = Y_tr)
+        } else {
+          cvCtrl = list(V = min(10, length(Y_tr)),
+                         stratifyCV = FALSE)
+        }
+
+        fit = SuperLearner(
+          Y          = Y_tr,
+          X          = X_tr,
+          newX       = X_va,
+          family     = gaussian(),
+          SL.library = SL_methods,
+          method     = "method.CC_LS",
+          cvControl  = cvCtrl
+        )
+
+        eta_hat = fit$SL.predict
+        A_k     = as.integer(data[[treatment_col]][val_ix] == a)
+        dr      = A_k/pi_pair[a] * (data[[Y]][val_ix] - eta_hat) + eta_hat
+
+        preds[, a] = dr
+      }
+
+      df = as.data.frame(preds)
+      df$index = val_ix
+      df
+    })
+
+    cv_comp = dplyr::bind_rows(cv_list) %>%
+      dplyr::arrange(index) %>%
+      dplyr::mutate(A_i = data[[treatment_col]][index]) %>%
+      dplyr::filter(A_i %in% pair_arms)
+
+    D_pair = cv_comp[[arm]] - cv_comp[[reference_arm]]
+    n_pair = nrow(cv_comp)
+
+    est = mean(D_pair)
+    se  = sqrt(var(D_pair) / n_pair)
+
+    tibble::tibble(
+      Outcome   = Y,
+      Treatment = arm,
+      Control   = reference_arm,
+      Est_SL    = round(est,  3),
+      SE_SL     = round(se,   3)
+    )
+  }
+
+  return(results)
+}
+```
+
 ## analyze_rct()
 ```{r}
 analyze_rct = function(df,
                        outcome_cols,
                        covariate_col = NULL,
                        treatment_col = "Treatment",
-                       adj_method = "ANCOVA") {
+                       adj_method = "ANCOVA",
+                       K = 5,
+                       SL_methods      = c("SL.glm", "SL.rpart", "SL.ranger"),
+                       n_cores         = parallel::detectCores() - 1,
+                       seed = 123) {
   require(dplyr)
   require(RobinCar)
   
@@ -159,6 +295,39 @@ analyze_rct = function(df,
   
   stopifnot(all(final_results$Est_RC == final_results$Est_AC))
   
+  ## SL
+  sl_res = analyze_rct_sl(
+    data          = df,
+    outcome_cols  = outcome_cols,
+    covariate_cols= covariates,
+    treatment_col = treatment_col,
+    reference_arm = control_level,   # so SL knows which arm is “Control”
+    K             = K,               # you can expose this in your wrapper’s args
+    SL_methods    = SL_methods,      # same for SL_methods
+    n_cores       = n_cores,
+    seed          = seed
+  )
+  
+  # Merge SL in by Outcome/Treatment/Control
+  final_results = final_results %>%
+    left_join(
+      sl_res,
+      by = c("Outcome", "Treatment", "Control")
+    ) %>%
+    # optionally rename to match your naming convention
+    rename(
+      Est_SL = Est_SL,
+      SE_SL  = SE_SL
+    ) %>%
+    # reorder columns however you like:
+    select(
+      Outcome, Treatment, Control,
+      Est_RC, SE_RC,
+      Est_AC, SE_AC,
+      Est_UN, SE_UN,
+      Est_SL, SE_SL
+    )
+  
   return(final_results)
 }
 ```
@@ -193,6 +362,8 @@ insert = function(trial_no,
       ANCOVA_model_based_se = SE_AC,
       Unadjust_est = Est_UN,
       Unadjust_se = SE_UN,
+      SuperLearner_est = Est_SL,
+      SuperLearner_se = SE_SL,
       `How much precision gain can ANCOVA provide?` =
         (SE_RC / SE_UN)^2,
       `The difference between unadjusted and ANCOVA point estimates` =
@@ -212,6 +383,8 @@ insert = function(trial_no,
       ANCOVA_model_based_se,
       Unadjust_est,
       Unadjust_se,
+      SuperLearner_est,
+      SuperLearner_se,
       `How much precision gain can ANCOVA provide?`,
       `The difference between unadjusted and ANCOVA point estimates`,
       `The ratio between robust and model-based variance estimators`
@@ -247,20 +420,19 @@ insert = function(trial_no,
 df1 = read_rds("cleaned_data/trial1.rds")
 ```
 
-## Cleaning
 
+## YP
 ```{r}
-# 342 -> 245
-df1_cleaned = df1 %>% 
-  filter(!if_any(starts_with(c("YP", "YS")), is.na)) %>% 
+# 342 -> 291
+df1_yp = df1 %>% 
+  filter(!if_any(starts_with(c("YP")), is.na)) %>% 
   select(
     Treatment,
     starts_with("YP"),
-    starts_with("YS"),
     starts_with("X")
   )
 
-df1_final = df1_cleaned %>%
+df1_yp = df1_yp %>%
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -271,12 +443,14 @@ df1_final = df1_cleaned %>%
   ))
 ```
 
-## YP
+```{r}
+anyNA(df1_yp)
+```
 
 ```{r}
 outcome = "YP_delta_HOMA_IR_4m"
 
-results = analyze_rct(df1_final, outcome)
+results = analyze_rct(df1_yp, outcome)
 
 df_comparison = insert(1, results, "continuous")
 ```
@@ -284,9 +458,34 @@ df_comparison = insert(1, results, "continuous")
 ## YS
 
 ```{r}
-outcome = df1_final %>% select(starts_with("YS_")) %>% names()
+# 342 -> 245
+df1_ys = df1 %>% 
+  filter(!if_any(starts_with(c("YS")), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YS"),
+    starts_with("X")
+  )
 
-resutls = analyze_rct(df1_final, outcome)
+df1_ys = df1_ys %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  ))
+```
+
+```{r}
+anyNA(df1_ys)
+```
+
+```{r}
+outcome = df1_ys %>% select(starts_with("YS_")) %>% names()
+
+resutls = analyze_rct(df1_ys, outcome)
 
 df_comparison = insert(1, resutls, rep("continuous", length(outcome)))
 ```
@@ -299,12 +498,12 @@ df_comparison = insert(1, resutls, rep("continuous", length(outcome)))
 df2 = read_rds("cleaned_data/trial2.rds")
 ```
 
-## Cleaning
+## YP
 
 ```{r}
 # 400 -> 368
-df2_clean = df2 %>% 
-  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>%
+df2_yp = df2 %>% 
+  filter(!if_any(c(starts_with(c("YP")), Treatment), is.na)) %>%
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -316,20 +515,17 @@ df2_clean = df2 %>%
   select(
     Treatment,
     starts_with("YP"),
-    starts_with("YS"),
     starts_with("X"))
 ```
 
 ```{r}
-anyNA(df2_clean)
+anyNA(df2_yp)
 ```
-
-## YP
 
 ```{r}
 outcome = "YP_recovery_time"
 
-results = analyze_rct(df2_clean, outcome)
+results = analyze_rct(df2_yp, outcome)
 
 df_comparison = insert(2, results, rep("time to event", length(outcome)))
 ```
@@ -337,13 +533,35 @@ df_comparison = insert(2, results, rep("time to event", length(outcome)))
 ## YS
 
 ```{r}
-df2_clean = df2_clean %>% 
+# 400 -> 368
+df2_ys = df2 %>% 
+  filter(!if_any(c(starts_with(c("YS")), Treatment), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  select(
+    Treatment,
+    starts_with("YS"),
+    starts_with("X"))
+```
+
+```{r}
+anyNA(df2_ys)
+```
+
+```{r}
+df2_ys = df2_ys %>% 
   mutate(
     across(c(YS_severity_worsen, YS_pos_14d), as.numeric)
   )
 outcome = c("YS_severity_worsen", "YS_pos_14d")
 
-results = analyze_rct(df2_clean, outcome)
+results = analyze_rct(df2_ys, outcome)
 
 df_comparison = insert(2, results, rep("binary", length(outcome)))
 ```
@@ -356,12 +574,11 @@ df_comparison = insert(2, results, rep("binary", length(outcome)))
 df3 = read_rds("cleaned_data/trial3.rds")
 ```
 
-## Cleaning
-
+## YP
 ```{r}
 # 6030 -> 6027
-df3_clean = df3 %>% 
-  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>%
+df3_yp = df3 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>%
   mutate(across(
     everything(),
     ~ if (is.numeric(.)) {
@@ -373,18 +590,16 @@ df3_clean = df3 %>%
   select(
     Treatment,
     starts_with("YP"),
-    starts_with("YS"), 
     starts_with("X"))
 ```
 
 ```{r}
-anyNA(df3_clean)
+anyNA(df3_yp)
 ```
 
-## YP
 
 ```{r}
-rct_results = analyze_rct(df = df3_clean, outcome_cols = "YP_composite_time")
+rct_results = analyze_rct(df = df3_yp, outcome_cols = "YP_composite_time")
 
 outcome_type = c(rep("binary", 4), "continuous", "binary")
 
@@ -394,7 +609,29 @@ df_comparison = insert(trial_no = 3, rct_results = rct_results, outcome_type = "
 ## YS
 
 ```{r}
-outcomes = df3_clean %>%
+# 6030 -> 6027
+df3_ys = df3 %>% 
+  filter(!if_any(c(starts_with("YS"), Treatment), is.na)) %>%
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  )) %>%
+  select(
+    Treatment,
+    starts_with("YS"),
+    starts_with("X"))
+```
+
+```{r}
+anyNA(df3_ys)
+```
+
+```{r}
+outcomes = df3_ys %>%
   select(starts_with("YS_")) %>%
   select(where(~ {
     valid_type = (is.numeric(.x) || (is.factor(.x) && nlevels(.x) == 2))
@@ -403,13 +640,13 @@ outcomes = df3_clean %>%
   })) %>%
   names()
 
-df3_clean = df3_clean %>%
+df3_ys = df3_ys %>%
   mutate(across(c(YS_aki_progression_event, YS_death_event, YS_dialysis_event,  
                   YS_discharge_home, YS_discharge_inpatient_hospice), as.numeric))
 ```
 
 ```{r}
-rct_results = analyze_rct(df = df3_clean, outcome_cols = outcomes)
+rct_results = analyze_rct(df = df3_ys, outcome_cols = outcomes)
 
 outcome_type = c(rep("binary", 4), "continuous", "binary")
 
@@ -424,13 +661,12 @@ df_comparison = insert(trial_no = 3, rct_results = rct_results, outcome_type = o
 df4 = read_rds("cleaned_data/trial4.rds")
 ```
 
-## Cleaning
+
+## YP
 
 ```{r}
 anyNA(df4)
 ```
-
-## YP
 
 ```{r}
 outcome = df4 %>% select(starts_with("YP")) %>% names()
@@ -448,31 +684,14 @@ df_comparison = insert(4, results, rep("continuous", length(outcome)))
 df5 = read_rds("cleaned_data/trial5.rds")
 ```
 
-## Cleaninig
+## YP
 
 ```{r}
-# Step 1: Identify YS_ and YP_ variables with < 30% missingness
-low_missing_vars = df5 %>%
-  select(starts_with("YS_"), starts_with("YP_")) %>%
-  summarise(across(everything(), ~ mean(is.na(.)))) %>%
-  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Missing_Proportion") %>%
-  filter(Missing_Proportion < 0.30) %>%
-  pull(Variable)
-
-# Step 2: Keep all other variables, plus filtered YS_/YP_ variables
-df5_clean = df5 %>%
-  select(-starts_with("YS_"), -starts_with("YP_")) %>%
-  bind_cols(df5 %>% select(all_of(low_missing_vars)))
-```
-
-```{r}
-# 5060 -> 4660
-df5_clean = df5_clean %>% 
-  filter(!if_any(c(starts_with(c("YP", "YS")), Treatment), is.na)) %>% 
+df5_yp = df5 %>% 
+  filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>% 
   select(
     Treatment,
     starts_with("YP"),
-    starts_with("YS"),
     starts_with("X")
   ) %>% 
   mutate(across(
@@ -488,12 +707,10 @@ df5_clean = df5_clean %>%
   )
 ```
 
-## YP
-
 ```{r}
 outcome = "YP_composite_14d"
 
-results = analyze_rct(df5_clean, outcome)
+results = analyze_rct(df5_yp, outcome)
 
 df_comparison = insert(5, results, "composite binary")
 ```
@@ -501,14 +718,53 @@ df_comparison = insert(5, results, "composite binary")
 ## YS
 
 ```{r}
-outcome = df5_clean %>% select(starts_with("YS")) %>% names()
+# Step 1: Identify YS_ and YP_ variables with < 30% missingness
+low_missing_vars = df5 %>%
+  select(starts_with("YS_")) %>%
+  summarise(across(everything(), ~ mean(is.na(.)))) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Missing_Proportion") %>%
+  filter(Missing_Proportion < 0.30) %>%
+  pull(Variable)
 
-df5_final = df5_clean %>% 
+# Step 2: Keep all other variables, plus filtered YS_/YP_ variables
+df5_clean = df5 %>%
+  select(-starts_with("YS_"), -starts_with("YP_")) %>%
+  bind_cols(df5 %>% select(all_of(low_missing_vars)))
+```
+
+```{r}
+# 5060 -> 4660
+df5_ys = df5_clean %>% 
+  filter(!if_any(c(starts_with("YS"), Treatment), is.na)) %>% 
+  select(
+    Treatment,
+    starts_with("YS"),
+    starts_with("X")
+  ) %>% 
+  mutate(across(
+    everything(),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  ))
+```
+
+```{r}
+anyNA(df5_ys)
+```
+
+
+```{r}
+outcome = df5_ys %>% select(starts_with("YS")) %>% names()
+
+df5_ys = df5_ys %>% 
   mutate(
     across(all_of(outcome), as.numeric)
   )
 
-results = analyze_rct(df5_final, outcome)
+results = analyze_rct(df5_ys, outcome)
 
 df_comparison = insert(5, results, c("continuous", rep("binary", 7), rep("continuous", 3), "binary"))
 ```
@@ -521,11 +777,10 @@ df_comparison = insert(5, results, c("continuous", rep("binary", 7), rep("contin
 df6 = read_rds("cleaned_data/trial6.rds")
 ```
 
-## Cleaning
-
+## YP
 ```{r}
 # 463 -> 345
-df6_clean = df6 %>% 
+df6_yp = df6 %>% 
   filter(!if_any(c(starts_with("YP"), Treatment), is.na)) %>% 
   select(
     Treatment,
@@ -543,15 +798,13 @@ df6_clean = df6 %>%
 ```
 
 ```{r}
-anyNA(df6_clean)
+anyNA(df6_yp)
 ```
-
-## YP
 
 ```{r}
 outcome = "YP_delta_CCA_IMT_24m"
 
-results = analyze_rct(df6_clean, outcome)
+results = analyze_rct(df6_yp, outcome)
 
 df_comparison = insert(6, results, "continuous")
 ```
