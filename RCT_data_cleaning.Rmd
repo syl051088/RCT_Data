@@ -608,8 +608,9 @@ write_rds(df6_final, "cleaned_data/trial6.rds")
 ## Load Data
 ```{r}
 # trial 7
-df7 = read_dta("raw_data/7/7.dta")
+df7 = read_excel("raw_data/7/7.xlsx", sheet = "Standard Scores")
 ```
+
 
 ## Cleaning
 ```{r}
@@ -617,39 +618,48 @@ df7_final = df7 %>%
   mutate(
     # Treatment label
     Treatment = case_when(
-      arm == 0 ~ "Sotrovimab",
-      arm == 1 ~ "Bamlanivimab/Etesevimab",
-      arm == 2 ~ "Casirivimab/Imdevimab"
+      Group == 1 ~ "ThinkRx",
+      Group == 2 ~ "Brain Lab"
     ),
     
-    # Primary outcome (composite event)
-    YP_Progression_binary = outcome_global,
+    # baseline covariates (_0h)
+    X_Age_0h              = Age,
+    X_Race_0h        = `Race Type`,
+    X_Gender_0h           = Gender,
+    X_ADD_ADHD_0h         = `ADD/ADHD`,
+    X_Autistic_0h         = Autistic,
+    X_Dyslexia_0h         = Dyslexia,
+    X_Gifted_0h           = Gifted,
+    X_LD_0h               = LD,
+    X_None_0h             = None,
+    X_Physical_0h         = Physical,
+    X_Speech_0h           = Speech,
+    X_TBI_0h              = TBI,
+    X_Length_T1_to_T2_0h  = `Length T1 to T2`,
+    X_COG2_0h         = `COG2 Pre`,
+    X_COG3_0h         = `COG3 Pre`,
+    X_COG4_0h         = `COG4 Pre`,
+    X_COG5_0h         = `COG5 Pre`,
+    X_COG6_0h         = `COG6 Pre`,
+    X_COG7_0h         = `COG7 Pre`,
+    X_COG10_0h        = `COG10 Pre`,
+    X_IQ_0h           = `IQ Pre`,
 
-    # Secondary outcomes
-    YS_Symptom_duration_30d   = TotalDsympt,
-    YS_Symptom_resolution_observed = resolution,
-    YS_Death_14d          = outcome1,
-    YS_Hospital_14d       = outcome2,
-    YS_Oxygen_14d = outcome3,
-
-    # Covariates
-    X_variant_0d             = variant,
-    X_IgG_0d                 = IgG,
-    X_vaccine_status_0d      = NewVax,
-    X_BMI_cat_0d             = BMI_CAT,
-    X_immunodef_0d           = immunodeficency,
-    X_renal_0d               = renal,
-    X_diabetes_0d            = diabetes,
-    X_CVD_0d                 = CVD,
-    X_bpco_0d                = bpco,
-    X_liver_0d               = liver
+    Treatment = relevel(factor(Treatment), ref = "ThinkRx"),
+    
+    # primary: change from baseline after 60 h
+    YP_delta_COG2_60h   = `COG2 Gain`,
+    YP_delta_COG3_60h   = `COG3 Gain`,
+    YP_delta_COG4_60h   = `COG 4 Gain`,
+    YP_delta_COG5_60h   = `COG5 Gain`,
+    YP_delta_COG6_60h   = `COG6 Gain`,
+    YP_delta_COG7_60h   = `COG 7 Gain`,
+    YP_delta_COG10_60h  = `COG10 Gain`,
+    YP_delta_IQ_60h     = `IQ Gain`,
   ) %>%
   mutate(
-    Treatment = relevel(factor(Treatment), ref = "Casirivimab/Imdevimab"),
-    across(c(X_variant_0d, X_IgG_0d, X_vaccine_status_0d, X_BMI_cat_0d, 
-             X_immunodef_0d, X_renal_0d, X_diabetes_0d, X_CVD_0d, X_bpco_0d, 
-             X_bpco_0d, X_liver_0d, YS_Death_14d,
-             YS_Hospital_14d), as_factor)
+    across(c(X_Race_0h, X_Gender_0h, X_ADD_ADHD_0h, X_Autistic_0h, X_Dyslexia_0h, 
+             X_Gifted_0h, X_LD_0h, X_None_0h, X_Physical_0h, X_Speech_0h, X_TBI_0h), as_factor)
   ) %>% 
   select(
     Treatment,
@@ -2795,7 +2805,12 @@ write_csv(df30_final, "cleaned_data/trial30.csv")
 write_rds(df30_final, "cleaned_data/trial30.rds")
 ```
 
+
 ```{r}
-str(df6_yp)
+str(df27_ys)
+```
+```{r}
+df24_ys %>% select(where(is.factor)) %>% 
+  map(~ table(.))
 ```
 
