@@ -2784,7 +2784,7 @@ df30_final = df30_demo %>%
   ) %>%
   mutate(
     Treatment = relevel(factor(Treatment), ref="Chair-REST"),
-    across(c(YP_Adherence, X_Sex_0d, X_Psychotropics_0d, X_Age_0d, YS_Dropout), as_factor)
+    across(c(X_Sex_0d, X_Psychotropics_0d, X_Age_0d, YS_Dropout), as_factor)
   ) %>% 
   
   # 8) drop ID and order columns: Treatment → YP_ → YS_ → X_
@@ -2807,10 +2807,18 @@ write_rds(df30_final, "cleaned_data/trial30.rds")
 
 
 ```{r}
-str(df27_ys)
+str(df30_ys)
 ```
 ```{r}
-df24_ys %>% select(where(is.factor)) %>% 
+df30_ys %>% select(YS_Dropout) %>% 
   map(~ table(.))
+```
+```{r}
+df30_ys %>%
+  select(starts_with("YS_")) %>%
+  map_dfr(~ tibble(
+    Type = class(.x)[1],
+    Levels = if (is.factor(.x)) nlevels(.x) else NA_integer_
+  ), .id = "Variable")
 ```
 
