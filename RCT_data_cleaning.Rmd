@@ -2806,19 +2806,3 @@ write_rds(df30_final, "cleaned_data/trial30.rds")
 ```
 
 
-```{r}
-str(df30_ys)
-```
-```{r}
-df30_ys %>% select(YS_Dropout) %>% 
-  map(~ table(.))
-```
-```{r}
-df30_ys %>%
-  select(starts_with("YS_")) %>%
-  map_dfr(~ tibble(
-    Type = class(.x)[1],
-    Levels = if (is.factor(.x)) nlevels(.x) else NA_integer_
-  ), .id = "Variable")
-```
-
