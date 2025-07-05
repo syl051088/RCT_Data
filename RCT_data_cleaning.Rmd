@@ -137,6 +137,7 @@ df1_final = df1_combined %>%
   )
 ```
 
+
 ## Output Data
 ```{r}
 # write trial 1
@@ -316,6 +317,7 @@ df3_final = df3 %>%
   )
   
 ```
+
 
 
 ## Output Data
@@ -1039,7 +1041,6 @@ df10_final = df10_all %>%
   )
 ```
 
-
 ## Output Data
 ```{r}
 # trial 10
@@ -1118,7 +1119,6 @@ df11_final = df11 %>%
     starts_with("X_")
   )
 ```
-
 
 ## Output Data
 ```{r}
@@ -1246,7 +1246,6 @@ df12_cluster = df12_cluster %>%
     across(c(YP_stunting_24m, X_sex_0m, X_bornearly_0m, X_mother_age_cat_0m, X_mother_primary_0m), as_factor)
   )
 ```
-
 ## Output Data
 ```{r}
 # trial 12
@@ -1834,7 +1833,6 @@ df19_final = df19 %>%
   )
 ```
 
-
 ## Output Data
 ```{r}
 # trial 19
@@ -2101,8 +2099,6 @@ df22_cluster = df22_cluster %>%
   )
 ```
 
-
-
 ## Output Data
 ```{r}
 # trial 22
@@ -2228,7 +2224,6 @@ df24_final = df24 %>%
     starts_with("X_")
   )
 ```
-
 
 ## Output Data
 ```{r}
@@ -2653,8 +2648,6 @@ df29_cluster = df29_cluster %>%
              X_Facilities_0m, X_WBOTs_0m), as_factor)
   )
 ```
-
-
 ## Output Data
 ```{r}
 # trial 29
@@ -2796,7 +2789,6 @@ df30_final = df30_demo %>%
   )
 
 ```
-
 
 ## Output Data
 ```{r}
