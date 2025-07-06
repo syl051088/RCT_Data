@@ -36,7 +36,7 @@ analyze_rct_sl(df2_yp,
 )
 ```
 ```{r}
-str(df2_yp)
+parallel::detectCores(logical = T)
 ```
 
 
@@ -323,6 +323,40 @@ analyze_rct_multiarm = function(
   bind_rows(out_list)
 }
 ```
+
+```{r}
+SL.nnet.smart = function(Y, X, newX, family, obsWeights, ...) {
+  X    = as.data.frame(X)
+  newX = as.data.frame(newX)
+
+  # one-hot encode factors
+  X_mat    = model.matrix(~ . - 1, data = X)
+  newX_mat = model.matrix(~ . - 1, data = newX)
+
+  common_cols = intersect(colnames(X_mat), colnames(newX_mat))
+  X_mat    = X_mat[  , common_cols, drop = FALSE]
+  newX_mat = newX_mat[, common_cols, drop = FALSE]
+
+  keep = apply(X_mat, 2, function(col) all(is.finite(col)) && var(col, na.rm = TRUE) > 0)
+  X_final    = X_mat[  , keep, drop = FALSE]
+  newX_final = newX_mat[, keep, drop = FALSE]
+
+  SL.nnet(
+    Y          = Y,
+    X          = X_final,
+    newX       = newX_final,
+    family     = family,
+    obsWeights = obsWeights,
+    ...
+  )
+}
+```
+
+```{r}
+analyze_rct(df26_ys, outcome, SL_methods = "SL.nnet.smart")
+```
+
+
 
 
 ```{r}
