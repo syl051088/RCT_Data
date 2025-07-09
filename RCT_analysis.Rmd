@@ -28,6 +28,7 @@ library(writexl)
 
 ```{r}
 df_comparison = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
+df_bench = read_xlsx("cleaned_data/meta_data_benchmark.xlsx")
 ```
 
 # Function
@@ -425,6 +426,106 @@ update = function(trial_no,
 }
 ```
 
+## update_bench()
+
+```{r}
+update_bench = function(trial_no,
+                        data,
+                        outcome_cols,
+                        covariate_cols  = NULL,
+                        treatment_col   = "Treatment",
+                        K               = 5,
+                        n_cores         = parallel::detectCores() - 1,
+                        seed            = 123,
+                        df              = df_bench) {
+  require(dplyr)
+  
+  # 1) fit everything with SL.lm (to compare to ANCOVA)
+  res_lm = analyze_rct(
+    df             = data,
+    outcome_cols   = outcome_cols,
+    covariate_col  = covariate_cols,
+    treatment_col  = treatment_col,
+    SL_methods     = c("SL.lm"),
+    K              = K,
+    n_cores        = n_cores,
+    seed           = seed
+  )
+  
+  res_lm = res_lm %>%
+    transmute(
+      Trial_No               = trial_no,
+      Treatment,
+      Control,
+      Outcome,
+      ANCOVA_est             = Est_AC,
+      ANCOVA_model_based_se  = SE_AC,
+      SL.lm_est              = Est_SL,
+      SL.lm_se               = SE_SL
+    )
+  
+  # 2) fit everything with SL.mean (to compare to Unadjusted)
+  res_mean = analyze_rct(
+    df             = data,
+    outcome_cols   = outcome_cols,
+    covariate_col  = covariate_cols,
+    treatment_col  = treatment_col,
+    SL_methods     = c("SL.mean"),
+    K              = K,
+    n_cores        = n_cores,
+    seed           = seed
+  )
+  
+  res_mean = res_mean %>%
+    transmute(
+      Outcome,
+      Treatment,
+      Control,
+      Unadjust_est  = Est_UN,
+      Unadjust_se   = SE_UN,
+      SL.mean_est   = Est_SL,
+      SL.mean_se    = SE_SL
+    )
+  
+  # 3) join the two pieces and reorder
+  new_rows = res_lm %>%
+    left_join(res_mean, by = c("Outcome","Treatment","Control")) %>%
+    select(
+      Trial_No,
+      Treatment,
+      Control,
+      Outcome,
+      ANCOVA_est,
+      SL.lm_est,
+      ANCOVA_model_based_se,
+      SL.lm_se,
+      Unadjust_est,
+      SL.mean_est,
+      Unadjust_se,
+      SL.mean_se
+    )
+  
+  # 4) replace or append into your master df
+  for (i in seq_len(nrow(new_rows))) {
+    row      = new_rows[i, ]
+    match_ix = which(
+      df$Trial_No  == row$Trial_No &
+      df$Outcome   == row$Outcome  &
+      df$Treatment == row$Treatment &
+      df$Control   == row$Control
+    )
+    if (length(match_ix) > 0) {
+      df[match_ix[1], ] = row
+    } else {
+      df = bind_rows(df, row)
+    }
+  }
+  
+  df
+}
+```
+
+
 # Trial 1
 
 ## Load Data
@@ -468,6 +569,11 @@ results = analyze_rct(df1_yp, outcome)
 df_comparison = update(1, results, "continuous")
 ```
 
+```{r}
+df_bench = update_bench(1, df1_yp, outcome)
+```
+
+
 ## YS
 
 ```{r}
@@ -502,6 +608,11 @@ results = analyze_rct(df1_ys, outcome)
 
 df_comparison = update(1, results, rep("continuous", length(outcome)))
 ```
+
+```{r}
+df_bench = update_bench(1, df1_ys, outcome)
+```
+
 
 # Trial 2
 
@@ -543,6 +654,11 @@ results = analyze_rct(df2_yp, outcome)
 df_comparison = update(2, results, rep("time to event", length(outcome)))
 ```
 
+```{r}
+df_bench = update_bench(2, df2_yp, outcome)
+```
+
+
 ## YS
 
 ```{r}
@@ -578,6 +694,11 @@ results = analyze_rct(df2_ys, outcome)
 
 df_comparison = update(2, results, rep("binary", length(outcome)))
 ```
+
+```{r}
+df_bench = update_bench(2, df2_ys, outcome)
+```
+
 
 # Trial 3
 
@@ -618,6 +739,11 @@ outcome_type = c(rep("binary", 4), "continuous", "binary")
 
 df_comparison = update(trial_no = 3, rct_results = rct_results, outcome_type = "time to event")
 ```
+
+```{r}
+df_bench = update_bench(3, df3_yp, "YP_composite_time")
+```
+
 
 ## YS
 
@@ -666,6 +792,11 @@ outcome_type = c(rep("binary", 4), "continuous", "binary")
 df_comparison = update(trial_no = 3, rct_results = rct_results, outcome_type = outcome_type)
 ```
 
+```{r}
+df_bench = update_bench(3, df3_ys, outcomes)
+```
+
+
 # Trial 4
 
 ## Load Data
@@ -674,11 +805,17 @@ df_comparison = update(trial_no = 3, rct_results = rct_results, outcome_type = o
 df4 = read_rds("cleaned_data/trial4.rds")
 ```
 
+```{r}
+df4 = df4 %>% select(-X_Age_0w)
+```
+
+
 ## YP
 
 ```{r}
 anyNA(df4)
 ```
+
 
 ```{r}
 outcome = df4 %>% select(starts_with("YP")) %>% names()
@@ -687,6 +824,12 @@ results = analyze_rct(df4, outcome)
 
 df_comparison = update(4, results, rep("continuous", length(outcome)))
 ```
+
+
+```{r}
+# df_bench = update_bench(4, df4, outcome)
+```
+
 
 # Trial 5
 
@@ -730,6 +873,11 @@ results = analyze_rct(df5_yp, outcome)
 
 df_comparison = update(5, results, "composite binary")
 ```
+
+```{r}
+df_bench = update_bench(5, df5_yp, outcome)
+```
+
 
 ## YS
 
@@ -784,6 +932,11 @@ results = analyze_rct(df5_ys, outcome)
 df_comparison = update(5, results, c("continuous", rep("binary", 7), rep("continuous", 3), "binary"))
 ```
 
+```{r}
+df_bench = update_bench(5, df5_ys, outcome)
+```
+
+
 # Trial 6
 
 ## Load Data
@@ -825,6 +978,11 @@ results = analyze_rct(df6_yp, outcome)
 df_comparison = update(6, results, "continuous")
 ```
 
+```{r}
+df_bench = update_bench(6, df6_yp, outcome)
+```
+
+
 # Trial 7
 
 ## Load Data
@@ -843,7 +1001,12 @@ anyNA(df7)
 outcome = df7 %>% select(starts_with("YP")) %>% names()
 results = analyze_rct(df7, outcome)
 
-df_comparison = update(7, results, rep("continuous", length(outcome)))
+df_comparison = update(7, results, rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
+```
+
+
+```{r}
+# df_bench = update_bench(7, df7, outcome)
 ```
 
 # Trial 8
@@ -888,6 +1051,11 @@ results = analyze_rct(df8_yp, "YP_RTPCR_negative_6d")
 df_comparison = update(8, results, "binary")
 ```
 
+```{r}
+df_bench = update_bench(8, df8_yp, "YP_RTPCR_negative_6d")
+```
+
+
 ## YS
 
 ```{r}
@@ -923,6 +1091,11 @@ results = analyze_rct(df8_ys, outcome)
 
 df_comparison = update(8, results, rep("binary", length(outcome)))
 ```
+
+```{r}
+df_bench = update_bench(8, df8_ys, outcome)
+```
+
 
 # Trial 9
 
@@ -963,6 +1136,11 @@ results = analyze_rct(df9_yp, "YP_manual_removal")
 
 df_comparison = update(9, results, "binary")
 ```
+
+```{r}
+df_bench = update_bench(9, df9_yp, "YP_manual_removal")
+```
+
 
 ## YS
 
@@ -1023,6 +1201,11 @@ type = c(rep("continuous", 4), rep("binary", 9), "continuous", rep("binary", 1),
 df_comparison = update(9, results, type)
 ```
 
+```{r}
+df_bench = update_bench(9, df9_ys, outcome)
+```
+
+
 # Trial 10
 
 ## Load Data
@@ -1053,8 +1236,14 @@ anyNA(df10_yp)
 ```{r}
 results = analyze_rct(df10_yp, "YP_help_needed_intub")
 
-df_comparison = update(10, results, "binary")
+df_comparison = update(10, results, "binary", SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+
+```{r}
+# df_bench = update_bench(10, df10_yp, "YP_help_needed_intub")
+```
+
 
 ## YS
 
@@ -1113,8 +1302,13 @@ df10_ys = df10_ys %>%
 results = analyze_rct(df10_ys, outcome)
 
 type = c(rep("binary", 2), "continuous", rep("binary", 3), rep("continuous", 12))
-df_comparison = update(10, results, type)
+df_comparison = update(10, results, type, SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(10, df10_ys, outcome)
+```
+
 
 # Trial 11
 
@@ -1153,8 +1347,13 @@ outcome = df11_yp %>% select(starts_with("YP")) %>% names()
 
 results = analyze_rct(df11_yp, outcome)
 
-df_comparison = update(11 ,results, rep("continuous", 2))
+df_comparison = update(11 ,results, rep("continuous", 2), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(11, df11_yp, outcome)
+```
+
 
 ## YS
 
@@ -1185,8 +1384,13 @@ outcome = df11_ys %>% select(starts_with("YS")) %>% names()
 
 results = analyze_rct(df11_ys, outcome)
 
-df_comparison = update(11, results, rep("continuous", length(outcome)))
+df_comparison = update(11, results, rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(11, df11_ys, outcome)
+```
+
 
 # Trial 12
 
@@ -1233,7 +1437,11 @@ outcome = df12_yp %>% select(starts_with("YP_")) %>% names()
 
 results = analyze_rct(df12_yp, outcome, covariates)
 
-df_comparison = update(12, results, c("binary", rep("continuous", 5)))
+df_comparison = update(12, results, c("binary", rep("continuous", 5)), SL_methods = c("SL.rpart", "SL.ranger"))
+```
+
+```{r}
+# df_bench = update_bench(12, df12_yp, outcome, covariates)
 ```
 
 ## YS
@@ -1266,8 +1474,13 @@ outcome = c("YS_diet_diversity_24m", "YS_caregiver_child_interaction_24m")
 
 results = analyze_rct(df12_ys, outcome, covariates)
 
-df_comparison = update(12, results, rep("continuous", 2))
+df_comparison = update(12, results, rep("continuous", 2), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(12, df12_ys, outcome, covariates)
+```
+
 
 # Trial 13
 
@@ -1310,6 +1523,11 @@ results = analyze_rct(df13_yp, outcome)
 df_comparison = update(13, results, c("continuous", "binary"))
 ```
 
+```{r}
+df_bench = update_bench(13, df13_yp, outcome)
+```
+
+
 ## YS
 
 ```{r}
@@ -1346,6 +1564,11 @@ results = analyze_rct(df13_ys, outcome)
 
 df_comparison = update(13, results, c(rep("continuous", 8), rep("binary", 2), rep("continuous", 5)))
 ```
+
+```{r}
+df_bench = update_bench(13, df13_ys, outcome)
+```
+
 
 # Trial 14
 
@@ -1384,8 +1607,13 @@ outcome = c("YP_6MWD_6w", "YP_6MWD_28w")
 
 results = analyze_rct(df14_yp, outcome)
 
-df_comparison = update(14, results, rep("continuous", 2))
+df_comparison = update(14, results, rep("continuous", 2), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(14, df14_yp, outcome)
+```
+
 
 ## YS
 
@@ -1421,8 +1649,13 @@ df14_ys = df14_ys %>%
 
 results = analyze_rct(df14_ys, outcome)
 
-df_comparison = update(14, results, c(rep("continuous", length(outcome)-5), rep("binary", 5)))
+df_comparison = update(14, results, c(rep("continuous", length(outcome)-5), rep("binary", 5)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(14, df14_ys, outcome)
+```
+
 
 # Trial 15
 
@@ -1431,6 +1664,8 @@ df_comparison = update(14, results, c(rep("continuous", length(outcome)-5), rep(
 ```{r}
 df15 = read_rds("cleaned_data/trial15.rds")
 ```
+
+## YP
 
 ```{r}
 df15_yp = df15 %>% 
@@ -1450,8 +1685,13 @@ outcome = df15_yp %>% select(starts_with("YP")) %>% names()
 
 results = analyze_rct(df15_yp, outcome)
 
-df_comparison = update(15, results, rep("continuous", length(outcome)))
+df_comparison = update(15, results, rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(15, df15_yp, outcome)
+```
+
 
 ## YS
 
@@ -1473,8 +1713,13 @@ outcome = df15_ys %>% select(starts_with("YS")) %>% names()
 
 results = analyze_rct(df15_ys, outcome)
 
-df_comparison = update(15, results, rep("continuous", length(outcome)))
+df_comparison = update(15, results, rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(15, df15_ys, outcome)
+```
+
 
 # Trial 16
 
@@ -1512,8 +1757,13 @@ outcome = df16_yp %>% select(starts_with("YP")) %>% names()
 
 results = analyze_rct(df16_yp, outcome)
 
-df_comparison = update(16, results, rep("continuous", length(outcome)))
+df_comparison = update(16, results, rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(16, df16_yp, outcome)
+```
+
 
 ## YS
 
@@ -1544,8 +1794,13 @@ outcome = df16_ys %>% select(starts_with("YS")) %>% names()
 
 results = analyze_rct(df16_ys, outcome)
 
-df_comparison = update(16, results, rep("continuous", length(outcome)))
+df_comparison = update(16, results, rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(16, df16_ys, outcome)
+```
+
 
 # Trial 17
 
@@ -1584,6 +1839,11 @@ results = analyze_rct(df17_yp, "YP_delta_LDL_24w")
 df_comparison = update(17, results, "continuous")
 ```
 
+```{r}
+df_bench = update_bench(17, df17_yp, "YP_delta_LDL_24w")
+```
+
+
 ## YS
 
 ```{r}
@@ -1614,6 +1874,11 @@ results = analyze_rct(df17_ys, outcome)
 
 df_comparison = update(17, results, rep("continuous", 3))
 ```
+
+```{r}
+df_bench = update_bench(17, df17_ys, outcome)
+```
+
 
 # Trial 18
 
@@ -1652,6 +1917,11 @@ results = analyze_rct(df18_yp, c("YP_time_to_disengaged_12m", "YP_prop_time_in_c
 df_comparison = update(18, results, c("time to event", "continuous proportion"))
 ```
 
+```{r}
+df_bench = update_bench(18, df18_yp, c("YP_time_to_disengaged_12m", "YP_prop_time_in_care_12m"))
+```
+
+
 ## YS
 
 ```{r}
@@ -1681,7 +1951,11 @@ outcome = df18_ys %>% select(starts_with("YS")) %>% names()
 
 results = analyze_rct(df18_ys, outcome)
 
-df_comparison = update(18, results, rep("continuous", length(outcome)))
+df_comparison = update(18, results, rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
+```
+
+```{r}
+# df_bench = update_bench(18, df18_ys, outcome)
 ```
 
 # Trial 19
@@ -1721,6 +1995,11 @@ results = analyze_rct(df19_yp, "YP_FHVP_CVP_GRADIENT")
 df_comparison = update(19, results, "continuous")
 ```
 
+```{r}
+# df_bench = update_bench(19, df19_yp, "YP_FHVP_CVP_GRADIENT")
+```
+
+
 ## YS
 
 ```{r}
@@ -1753,6 +2032,10 @@ df19_ys = df19_ys %>%
 results = analyze_rct(df19_ys, outcome)
 
 df_comparison = update(19, results, c(rep("continuous", length(outcome)-1), "binary"))
+```
+
+```{r}
+# df_bench = update_bench(19, df19_ys, outcome)
 ```
 
 # Trial 20
@@ -1792,6 +2075,11 @@ results = analyze_rct(df20_yp, "YP_IWT_minutes_12w")
 df_comparison = update(20, results, "continuous")
 ```
 
+```{r}
+df_bench = update_bench(20, df20_yp, "YP_IWT_minutes_12w")
+```
+
+
 ## YS
 
 ```{r}
@@ -1818,8 +2106,13 @@ anyNA(df20_ys)
 ```{r}
 outcome = df20_ys %>% select(starts_with("YS")) %>% names()
 
-df_comparison = update(20, analyze_rct(df20_ys, outcome), rep("continuous", length(outcome)))
+df_comparison = update(20, analyze_rct(df20_ys, outcome), rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(20, df20_ys, outcome)
+```
+
 
 # Trial 21
 
@@ -1855,8 +2148,13 @@ anyNA(df21_yp)
 ```{r}
 outcome = "YP_days_to_tb_initiation"
 
-df_comparison = update(21, analyze_rct(df21_yp, outcome), "time to event")
+df_comparison = update(21, analyze_rct(df21_yp, outcome), "time to event", SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(21, df21_yp, outcome)
+```
+
 
 ## YS
 
@@ -1888,8 +2186,13 @@ outcome = df21_ys %>% select(starts_with("YS"), -YS_mortality) %>% names()
 df21_ys = df21_ys %>%
   mutate(across(all_of(outcome), as.numeric))
 
-df_comparison = update(21, analyze_rct(df21_ys, outcome), c(rep("binary", 3), "continuous"))
+df_comparison = update(21, analyze_rct(df21_ys, outcome), c(rep("binary", 3), "continuous"), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(21, df21_ys, outcome)
+```
+
 
 # Trial 22
 
@@ -1927,8 +2230,13 @@ anyNA(df22_yp)
 covariates = df22_yp %>% select(starts_with("X")) %>% names()
 covariates = c(covariates, "n_participants")
 
-df_comparison = update(22, analyze_rct(df22_yp, "YP_Birthwgt", covariates), "continuous")
+df_comparison = update(22, analyze_rct(df22_yp, "YP_Birthwgt", covariates), "continuous", SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(22, df22_yp, "YP_Birthwgt", covariates)
+```
+
 
 # Trial 23
 
@@ -1965,6 +2273,11 @@ anyNA(df23_yp)
 df_comparison = update(23, analyze_rct(df23_yp, c("YP_time_28d", "YP_time_90d")), c("time to event", "time to event"))
 ```
 
+```{r}
+df_bench = update_bench(23, df23_yp, c("YP_time_28d", "YP_time_90d"))
+```
+
+
 ## YS
 
 ```{r}
@@ -1994,6 +2307,11 @@ outcome = df23_ys %>% select(starts_with("YS")) %>% names()
 
 df_comparison = update(23, analyze_rct(df23_ys, outcome), rep("continuous", length(outcome)))
 ```
+
+```{r}
+df_bench = update_bench(23, df23_ys, outcome)
+```
+
 
 # Trial 24
 
@@ -2032,8 +2350,13 @@ anyNA(df24_yp)
 ```{r}
 results = analyze_rct(df24_yp, "YP_catheterized")
 
-df_comparison = update(24, results, "binary")
+df_comparison = update(24, results, "binary", SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(24, df24_yp, "YP_catheterized")
+```
+
 
 ## YS
 
@@ -2064,8 +2387,13 @@ anyNA(df24_ys)
 ```{r}
 outcome = df24_ys %>% select(starts_with("YS")) %>% names()
 
-df_comparison = update(24, analyze_rct(df24_ys, outcome), rep("continuous", length(outcome)))
+df_comparison = update(24, analyze_rct(df24_ys, outcome), rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(24, df24_ys, outcome)
+```
+
 
 # Trial 25
 
@@ -2103,8 +2431,13 @@ anyNA(df25_yp)
 ```{r}
 outcome = df25_yp %>% select(starts_with("YP")) %>% names()
 
-df_comparison = update(25, analyze_rct(df25_yp, outcome), rep("continuous", length(outcome)))
+df_comparison = update(25, analyze_rct(df25_yp, outcome), rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(25, df25_yp, outcome)
+```
+
 
 # Trial 26
 
@@ -2145,8 +2478,13 @@ anyNA(df26_yp)
 ```{r}
 outcome = df26_yp %>% select(starts_with("YP")) %>% names()
 
-df_comparison = update(26, analyze_rct(df26_yp, outcome), c("continuous", "categorical", "categorical"))
+df_comparison = update(26, analyze_rct(df26_yp, outcome), c("continuous", "categorical", "categorical"), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(26, df26_yp, outcome)
+```
+
 
 ## YS
 
@@ -2175,8 +2513,13 @@ anyNA(df26_ys)
 ```{r}
 outcome = df26_ys %>% select(starts_with("YS"), -YS_delta_viral_load_6m) %>% names()
 
-df_comparison = update(26, analyze_rct(df26_ys, outcome), rep("continuous", length(outcome)))
+df_comparison = update(26, analyze_rct(df26_ys, outcome), rep("continuous", length(outcome)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(26, df26_ys, outcome)
+```
+
 
 # Trial 27
 
@@ -2222,6 +2565,11 @@ outcome = df27_yp %>% select(starts_with("YP")) %>% names()
 
 df_comparison = update(27, analyze_rct(df27_yp, outcome), c("categorical", "binary","continuous"))
 ```
+
+```{r}
+df_bench = update_bench(27, df27_yp, outcome)
+```
+
 
 ## YS
 
@@ -2271,6 +2619,11 @@ outcome = df27_ys %>% select(starts_with("YS")) %>% names()
 df_comparison = update(27, analyze_rct(df27_ys, outcome), c(rep("continuous", 2), "binary", "continuous"))
 ```
 
+```{r}
+df_bench = update_bench(27, df27_ys, outcome)
+```
+
+
 # Trial 28
 
 ## Load Data
@@ -2307,8 +2660,13 @@ anyNA(df28_yp)
 ```
 
 ```{r}
-df_comparison = update(28, analyze_rct(df28_yp, "YP_ContrSBP_6m"), "binary")
+df_comparison = update(28, analyze_rct(df28_yp, "YP_ContrSBP_6m"), "binary", SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(28, df28_yp, "YP_ContrSBP_6m")
+```
+
 
 ## YS
 ```{r}
@@ -2337,8 +2695,13 @@ df28_ys = df28_ys %>%
 
 df_comparison = update(28, analyze_rct(df28_ys, outcome), 
                        c(rep("continuous", 7), "binary", "continuous", "binary", 
-                         "continuous", "continuous"))
+                         "continuous", "continuous"), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(28, df28_ys, outcome)
+```
+
 
 
 # Trial 29
@@ -2396,8 +2759,13 @@ df29_yp  = df29_yp %>%
   mutate(across(all_of(outcome), as.numeric))
 
 df_comparison = update(29, analyze_rct(df29_yp, outcome),
-                       c("continuous", "binary", rep("continuous", 4)))
+                       c("continuous", "binary", rep("continuous", 4)), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(29, df29_yp, outcome)
+```
+
 
 ## YS
 ```{r}
@@ -2427,9 +2795,12 @@ anyNA(df29_ys)
 outcome = df29_ys %>% select(starts_with("YS")) %>% names()
 
 df_comparison = update(29, analyze_rct(df29_ys, outcome),
-                       rep("continuous", 2))
+                       rep("continuous", 2), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
 
+```{r}
+# df_bench = update_bench(29, df29_ys, outcome)
+```
 
 
 # Trial 30
@@ -2465,8 +2836,13 @@ anyNA(df30_yp)
 ```
 
 ```{r}
-df_comparison = update(30, analyze_rct(df30_yp, "YP_Adherence"), "continuous")
+df_comparison = update(30, analyze_rct(df30_yp, "YP_Adherence"), "continuous", SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(30, df30_yp, "YP_Adherence")
+```
+
 
 ## YS
 ```{r}
@@ -2496,8 +2872,13 @@ anyNA(df30_ys)
 outcome = df30_ys %>% select(starts_with("YS")) %>% names()
 
 df_comparison = update(30, analyze_rct(df30_ys, outcome),
-                       rep("continuous", 7))
+                       rep("continuous", 7), SL_methods = c("SL.rpart", "SL.ranger"))
 ```
+
+```{r}
+# df_bench = update_bench(30, df30_ys, outcome)
+```
+
 
 
 # Export
@@ -2506,8 +2887,12 @@ df_comparison = update(30, analyze_rct(df30_ys, outcome),
 write_xlsx(df_comparison, "cleaned_data/meta_data_comparison.xlsx")
 ```
 
-# Plot
 
+```{r}
+write_xlsx(df_bench, "cleaned_data/meta_data_benchmark.xlsx")
+```
+
+# Summary Data
 ```{r}
 df_new = df_comparison %>%
   mutate(
@@ -2529,6 +2914,40 @@ df_new = df_new %>%
     point_est_diff_SL = `The difference between unadjusted and Super Learner point estimates`
   )
 ```
+
+Variance Summary
+```{r}
+df_summary = df_new %>%
+  group_by(outcome_group) %>%
+  summarise(
+    # ANCOVA precision‐gain
+    mean_prec_gain_AC     = mean(precision_gain_AC, na.rm = TRUE),
+    sd_prec_gain_AC       = sd(precision_gain_AC,   na.rm = TRUE),
+    # ANCOVA robust vs model‐based variance ratio (original)
+    mean_var_ratio_AC      = mean(variance_ratio_AC,  na.rm = TRUE),
+    sd_var_ratio_AC       = sd(variance_ratio_AC,    na.rm = TRUE),
+    # # ANCOVA variance‐ratio *outlier‐removed*
+    # mean_var_AC_no   = {
+    #   v   = variance_ratio_AC
+    #   lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
+    #   ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
+    #   mean(v[v >= lb & v <= ub], na.rm=TRUE)
+    # },
+    # sd_var_AC_no     = {
+    #   v   = variance_ratio_AC
+    #   lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
+    #   ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
+    #   sd(v[v >= lb & v <= ub], na.rm=TRUE)
+    # },
+    # SuperLearner precision‐gain
+    mean_prec_gain_SL     = mean(precision_gain_SL,  na.rm = TRUE),
+    sd_prec_gain_SL       = sd(precision_gain_SL,    na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(df_summary)
+```
+
 
 ## Violin Plot
 
@@ -2633,7 +3052,7 @@ ggplot(df_new, aes(x = outcome_group, y = point_est_diff_SL)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 ```
-# More Plots
+## More Plots
 
 ```{r}
 library(ggplot2)

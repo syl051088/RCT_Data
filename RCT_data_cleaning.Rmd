@@ -361,7 +361,7 @@ df4_final = df4 %>%
     X_P3NP_0w = p3np0
   ) %>%
   mutate(
-    Treatment = recode(treatment,
+    Treatment = dplyr::recode(treatment,
                        "A" = "VD",
                        "B" = "Placebo"),
     
@@ -2795,6 +2795,9 @@ df30_final = df30_demo %>%
 # trial 30
 write_csv(df30_final, "cleaned_data/trial30.csv")
 write_rds(df30_final, "cleaned_data/trial30.rds")
+```
+```{r}
+str(df7)
 ```
 
 

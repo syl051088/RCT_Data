@@ -1394,3 +1394,80 @@ example_nnet_rct_tuning = function() {
 # )
 ```
 
+```{r}
+analyze_rct_sl_manual = function(data,
+                                 treatment_col   = "Treatment",
+                                 outcome_cols,
+                                 covariate_cols,
+                                 reference_arm   = NULL) {
+  require(dplyr)
+  
+  n    <- nrow(data)
+  arms <- unique(data[[treatment_col]])
+  if (is.null(reference_arm)) reference_arm <- arms[1]
+  if (!(reference_arm %in% arms))
+    stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  
+  # overall treatment propensities
+  pi_tab <- prop.table(table(data[[treatment_col]]))
+  
+  # build all (Outcome, Treatment≠reference) pairs
+  combos <- expand.grid(
+    Outcome   = outcome_cols,
+    Treatment = setdiff(arms, reference_arm),
+    stringsAsFactors = FALSE
+  )
+  
+  out <- lapply(seq_len(nrow(combos)), function(i) {
+    Ycol <- combos$Outcome[i]
+    arm  <- combos$Treatment[i]
+    pair <- c(reference_arm, arm)
+    
+    # renormalize propensities for this two-arm subproblem
+    pi_pair <- pi_tab[pair] / sum(pi_tab[pair])
+    names(pi_pair) <- pair
+    
+    # prepare storage
+    dr_mean <- matrix(NA_real_, nrow = n, ncol = 2, dimnames = list(NULL, pair))
+    dr_lm   <- dr_mean
+    
+    for (a in pair) {
+      sel_tr <- data[[treatment_col]] == a
+      Y_tr   <- data[[Ycol]][sel_tr]
+      X_tr   <- data[sel_tr, covariate_cols, drop = FALSE]
+      X_all  <- data[,        covariate_cols, drop = FALSE]
+      
+      # SL.mean: intercept only
+      mu_hat <- mean(Y_tr, na.rm = TRUE)
+      eta_mean <- rep(mu_hat, n)
+      
+      # SL.lm: linear regression
+      fit_lm  <- lm(Y_tr ~ ., data = X_tr)
+      eta_lm  <- predict(fit_lm, newdata = X_all)
+      
+      # AIPW‐style DR for each learner
+      A_i <- as.integer(data[[treatment_col]] == a)
+      dr_mean[, a] <- A_i/pi_pair[a] * (data[[Ycol]] - eta_mean) + eta_mean
+      dr_lm[,   a] <- A_i/pi_pair[a] * (data[[Ycol]] - eta_lm  ) + eta_lm
+    }
+    
+    # differences & SE
+    D_mean <- dr_mean[, arm] - dr_mean[, reference_arm]
+    D_lm   <- dr_lm[,   arm] - dr_lm[,   reference_arm]
+    
+    tibble(
+      Outcome        = Ycol,
+      Treatment      = arm,
+      Control        = reference_arm,
+      SL.mean_est    = round(mean(D_mean),  3),
+      SL.mean_se     = round(sqrt(var(D_mean)/n), 3),
+      SL.lm_est      = round(mean(D_lm),    3),
+      SL.lm_se       = round(sqrt(var(D_lm)/n),   3)
+    )
+  })
+  
+  bind_rows(out)
+}
+```
+
+
