@@ -2286,7 +2286,6 @@ df25_final = df25 %>%
     YS_PDQ39SI_8w  = PDQ39SI_POST,
     YS_UPDRS11_8w  = UPDRS11_POST,
     YS_UPDRS111_8w = UPDRS111_POST,
-    YS_BMI_8w      = BMI_POST,
     YS_DelayedGTT_0w  = Delayed_WGTT_PRE,
     YS_BM_less3_0w    = BM_less3perweek_PRE,
     Treatment = relevel(factor(Treatment), ref="Placebo"),
@@ -2327,7 +2326,6 @@ df26_final = df26 %>%
     X_Socialsupport_0m  = Socialsupport,
     X_Adherence_0m   = Baselineadherencepercent,
     X_CD4_0m         = BaselineCD4count,
-    X_viral_load_0m  = Baselineviralload,
     X_weight_0m      = Baselineweight,
     X_TB_status_0m   = BaselineTBStatus,
     X_OI_index_0m    = BaselineOIindex
@@ -2344,7 +2342,6 @@ df26_final = df26 %>%
   # 4. Secondary outcomes at 6 months
   mutate(
     YS_delta_CD4_6m         = `CD4count@6months` - X_CD4_0m,
-    YS_delta_viral_load_6m  = `Viralload@6months` - X_viral_load_0m,
     YS_delta_weight_6m      = `Weight@6months` - X_weight_0m,
     YS_delta_TB_status_6m   = `TBStatus@6months` - X_TB_status_0m,
     YS_delta_OI_index_6m    = `OIindex@6months` - X_OI_index_0m,
@@ -2782,7 +2779,7 @@ write_rds(df30_final, "cleaned_data/trial30.rds")
 ```
 
 ```{r}
-str(df10)
+str(df27)
 ```
 
 

@@ -649,7 +649,7 @@ results = analyze_rct(df12)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(12, rep("continuous", n))
+df_comparison = update_df(12, c("binary", rep("continuous", n - 1)))
 ```
 
 # Trial 13
@@ -666,7 +666,7 @@ results = analyze_rct(df13)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(13, rep("continuous", n))
+df_comparison = update_df(13, c("binary", rep("continuous", 9), "binary", "binary", rep("continuous", 5)))
 ```
 
 # Trial 14
@@ -683,7 +683,7 @@ results = analyze_rct(df14)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(14, rep("continuous", n))
+df_comparison = update_df(14, c(rep("continuous", n-4), rep("binary", 4)))
 ```
 
 # Trial 15
@@ -754,7 +754,7 @@ results = analyze_rct(df18)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(18, rep("continuous", n))
+df_comparison = update_df(18, c("time to event", "binary", rep("continuous", n-2)))
 ```
 
 
@@ -772,7 +772,7 @@ results = analyze_rct(df19)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(19, rep("continuous", n))
+df_comparison = update_df(19, c(rep("continuous", n-1), "binary"))
 ```
 
 
@@ -808,7 +808,7 @@ results = analyze_rct(df21)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(21, rep("continuous", n))
+df_comparison = update_df(21, c("binary", "time to event", rep("binary", 4), "continuous"))
 ```
 
 
@@ -844,7 +844,7 @@ results = analyze_rct(df23)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(23, rep("continuous", n))
+df_comparison = update_df(23, c("binary", "time to event", "binary", "time to event", rep("continuous", n - 4)))
 ```
 
 
@@ -862,7 +862,7 @@ results = analyze_rct(df24)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(24, rep("continuous", n))
+df_comparison = update_df(24, "binary")
 ```
 
 
@@ -880,7 +880,7 @@ results = analyze_rct(df25)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(25, rep("continuous", n))
+df_comparison = update_df(25, c(rep("continuous", n-2), "binary", "binary"))
 ```
 
 
@@ -898,7 +898,7 @@ results = analyze_rct(df26)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(26, rep("continuous", n))
+df_comparison = update_df(26, c("continuous", "binary", "categorical", rep("continuous", n-3)))
 ```
 
 
@@ -916,7 +916,8 @@ results = analyze_rct(df27)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(27, rep("continuous", n))
+df_comparison = update_df(27, c("categorical", "binary", "continuous", "categorical",
+                                "continuous", "continuous", "binary", "continuous"))
 ```
 
 
@@ -1022,18 +1023,18 @@ df_summary = df_new %>%
     mean_var_ratio_AC      = mean(variance_ratio_AC,  na.rm = TRUE),
     sd_var_ratio_AC       = sd(variance_ratio_AC,    na.rm = TRUE),
     # # ANCOVA variance‐ratio *outlier‐removed*
-    # mean_var_AC_no   = {
-    #   v   = variance_ratio_AC
-    #   lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
-    #   ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
-    #   mean(v[v >= lb & v <= ub], na.rm=TRUE)
-    # },
-    # sd_var_AC_no     = {
-    #   v   = variance_ratio_AC
-    #   lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
-    #   ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
-    #   sd(v[v >= lb & v <= ub], na.rm=TRUE)
-    # },
+    mean_var_AC_no   = {
+      v   = variance_ratio_AC
+      lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
+      ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
+      mean(v[v >= lb & v <= ub], na.rm=TRUE)
+    },
+    sd_var_AC_no     = {
+      v   = variance_ratio_AC
+      lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
+      ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
+      sd(v[v >= lb & v <= ub], na.rm=TRUE)
+    },
     # SuperLearner precision‐gain
     mean_prec_gain_SL     = mean(precision_gain_SL,  na.rm = TRUE),
     sd_prec_gain_SL       = sd(precision_gain_SL,    na.rm = TRUE)
