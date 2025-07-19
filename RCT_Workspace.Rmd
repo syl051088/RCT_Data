@@ -1470,4 +1470,721 @@ analyze_rct_sl_manual = function(data,
 }
 ```
 
+```{r}
+analyze_rct = function(df,
+                               outcome_cols,
+                               covariate_col = NULL,
+                               treatment_col = "Treatment",
+                               adj_method = "ANCOVA",
+                               K = 5,
+                               SL_methods = c("SL.glm", "SL.rpart", "SL.ranger"),
+                               n_cores = parallel::detectCores() - 1,
+                               seed = 123) {
+  
+  require(dplyr)
+  require(RobinCar)
+  require(tidyr)
+  require(DescTools)
+  
+  # Set seed once at the beginning for reproducibility
+  set.seed(seed)
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = grep("^X_", names(df), value = TRUE)
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+  mutate(across(
+    all_of(covariates),
+    ~ if (is.numeric(.)) {
+        replace(., is.na(.), mean(., na.rm = TRUE))
+      } else if (is.factor(.)) {
+        replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+      }
+  ))
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  # Process each outcome separately to maximize sample size
+  all_results = vector("list", length(outcome_cols))
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Filter data: keep only rows with non-missing outcome, treatment, and covariates
+    complete_vars = c(outcome, treatment_col, covariates)
+    df_complete = df[complete.cases(df[, complete_vars, drop = FALSE]), ]
+    
+    cat("Outcome:", outcome, "- Sample size:", nrow(df_complete), 
+        "(", nrow(df) - nrow(df_complete), "rows removed due to missing data)\n")
+    
+    # Check if we have enough data
+    if (nrow(df_complete) < 20) {
+      warning("Very small sample size (n=", nrow(df_complete), ") for outcome: ", outcome)
+    }
+    
+    # Fit traditional models on complete data
+    coef_unadj = coef(summary(lm(
+      reformulate(treatment_col, outcome), df_complete
+    )))
+    coef_ancova = coef(summary(lm(reformulate(
+      c(treatment_col, covariates), outcome
+    ), df_complete)))
+    
+    # Extract treatment effects
+    treat_idx_unadj = grep(treat_pattern, rownames(coef_unadj))
+    treat_idx_ancova = grep(treat_pattern, rownames(coef_ancova))
+    
+    # Create results for this outcome
+    n_treat = length(treat_idx_unadj)
+    treatment_levels = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
+    
+    outcome_results = tibble(
+      Outcome = rep(outcome, n_treat),
+      Treatment = treatment_levels,
+      Control = rep(control_level, n_treat),
+      N = rep(nrow(df_complete), n_treat),  # Add sample size info
+      # Unadjusted
+      Est_UN = coef_unadj[treat_idx_unadj, 1],
+      SE_UN = coef_unadj[treat_idx_unadj, 2],
+      # ANCOVA
+      Est_AC = coef_ancova[treat_idx_ancova, 1],
+      SE_AC = coef_ancova[treat_idx_ancova, 2]
+    )
+    
+    # RobinCar on complete data
+    rc_fit = suppressWarnings(
+      robincar_linear(
+        df_complete,
+        treatment_col,
+        outcome,
+        covariate_cols = covariates,
+        adj_method = adj_method,
+        contrast_h = "diff"
+      )
+    )
+    rc_result = rc_fit$contrast$result
+    
+    # Add RobinCar results
+    outcome_results$Est_RC = rc_result$estimate
+    outcome_results$SE_RC = rc_result$se
+    
+    # SuperLearner on complete data for this outcome
+    sl_res = analyze_rct_sl(
+      data = df_complete,
+      outcome_cols = outcome,
+      covariate_cols = covariates,
+      treatment_col = treatment_col,
+      reference_arm = control_level,
+      K = K,
+      SL_methods = SL_methods,
+      n_cores = n_cores
+    )
+    
+    # Add SuperLearner results
+    outcome_results$Est_SL = sl_res$Est_SL
+    outcome_results$SE_SL = sl_res$SE_SL
+    
+    all_results[[i]] = outcome_results
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results) %>%
+    # Round for cleaner output
+    mutate(across(starts_with("Est_"), ~ round(.x, 3)),
+           across(starts_with("SE_"), ~ round(.x, 3))) %>%
+    # Reorder columns
+    select(
+      Outcome,
+      Treatment,
+      Control,
+      Est_RC,
+      SE_RC,
+      Est_AC,
+      SE_AC,
+      Est_UN,
+      SE_UN,
+      Est_SL,
+      SE_SL
+    )
+  
+  return(final_results)
+}
+```
+
+
+```{r}
+## 1. Data-generating process
+sim_one_rct <- function(n = 200,
+                        pi_t = 0.5,
+                        tau  = 0.5,
+                        sigma = 1) {
+  X1 <- rnorm(n)
+  A  <- rbinom(n, 1, pi_t)
+  Y  <- tau * A + 0.3 * X1 + rnorm(n, 0, sigma)
+  data.frame(
+    Treatment = factor(A, levels = 0:1,
+                       labels = c("Control", "Active")),
+    Y  = Y,
+    X1 = X1
+  )
+}
+
+## 2. Run one replicate
+run_once <- function(dat) {
+  res <- analyze_rct_sl(
+    data           = dat,
+    outcome_cols   = "Y",
+    covariate_cols = "X1",
+    reference_arm  = "Control",
+    SL_methods     = c("SL.glm"),
+    n_cores        = 1       # ⬅ inner loop is serial
+  )
+  c(est = res$Est_SL, se = res$SE_SL)
+}
+
+## 3. Set up outer parallel loop
+B      <- 100    # number of datasets
+n_subj <- 200    # subjects per dataset
+
+# Set up cluster only once
+n_cores_outer = parallel::detectCores() - 1
+cl = makeCluster(n_cores_outer)
+registerDoParallel(cl)
+
+# Run outer loop in parallel
+set.seed(123)
+results_mat <- foreach(b = 1:B, .combine = rbind,
+                       .packages = c("SuperLearner", "dplyr")) %dopar% {
+  set.seed(123 + b)  # reproducibility per replicate
+  dat = sim_one_rct(n = n_subj)
+  run_once(dat)
+}
+
+# Clean up
+stopCluster(cl)
+
+## 4. Post-process and diagnostics
+results_df <- as.data.frame(results_mat)
+names(results_df) = c("Est_SL", "SE_SL")
+
+true_tau <- 0.5
+mc_sd    <- sd(results_df$Est_SL)
+mean_se  <- mean(results_df$SE_SL)
+ratio    <- mean_se / mc_sd
+
+list(
+  MonteCarlo_SD = mc_sd,
+  Mean_SE       = mean_se,
+  Ratio         = ratio,
+  True_Tau      = true_tau,
+  Bias          = mean(results_df$Est_SL) - true_tau
+)
+```
+
+```{r}
+sim_one_rct_multiarm <- function(n = 300,
+                                 probs = c(1/3, 1/3, 1/3),  # equal assignment
+                                 tau = 0.5,
+                                 sigma = 1) {
+  X1 <- rexp(n, rate = 1)
+  A  <- sample(0:2, size = n, replace = TRUE, prob = probs)
+
+  # Define treatment effect: tau × level
+  Y  <- tau * A + X1^2 + rnorm(n, 0, sigma)
+
+  data.frame(
+    Treatment = factor(A, levels = 0:2,
+                       labels = c("Control", "Medium", "High")),
+    Y = Y,
+    X1 = X1
+  )
+}
+
+# Wrapper to run one replicate
+run_once <- function(dat) {
+  res <- analyze_rct_sl(
+    data           = dat,
+    outcome_cols   = "Y",
+    covariate_cols = "X1",
+    reference_arm  = "Control",
+    SL_methods     = c("SL.glm"),
+    n_cores        = 1
+  )
+  # return each treatment arm vs control
+  unlist(res[, c("Est_SL", "SE_SL")])
+}
+
+B <- 200
+n_subj <- 300
+n_cores_outer <- parallel::detectCores() - 1
+cl <- makeCluster(n_cores_outer)
+registerDoParallel(cl)
+
+set.seed(123)
+results_mat <- foreach(b = 1:B, .combine = rbind,
+                       .packages = c("SuperLearner", "dplyr")) %dopar% {
+  set.seed(123 + b)
+  dat = sim_one_rct_multiarm(n = n_subj)
+  run_once(dat)
+}
+
+stopCluster(cl)
+
+results_df <- as.data.frame(results_mat)
+names(results_df) <- c("Est_Med", "SE_Med", "Est_High", "SE_High")
+
+true_tau <- 0.5
+true_diff_med = 0.5
+true_diff_high = 1.0
+
+list(
+  MonteCarlo_SD_Med  = sd(results_df$Est_Med),
+  MonteCarlo_SD_High = sd(results_df$Est_High),
+  Mean_SE_Med  = mean(results_df$SE_Med),
+  Mean_SE_High = mean(results_df$SE_High),
+  Ratio_Med  = mean(results_df$SE_Med) / sd(results_df$Est_Med),
+  Ratio_High = mean(results_df$SE_High) / sd(results_df$Est_High),
+  Bias_Med   = mean(results_df$Est_Med) - true_diff_med,
+  Bias_High  = mean(results_df$Est_High) - true_diff_high
+)
+```
+
+```{r}
+
+# ──────────────────────────────────────────────────────────────
+# 2.  Main function
+# ──────────────────────────────────────────────────────────────
+analyze_rct_sl <- function(data,
+                           treatment_col  = "Treatment",
+                           outcome_cols,
+                           covariate_cols,
+                           reference_arm  = NULL,
+                           K              = 5,
+                           SL_methods     = c("SL.glm", "SL.rpart",
+                                              "SL.ranger", "SL.mean",
+                                              "SL.nnect"),
+                           n_cores        = parallel::detectCores() - 1) {
+  
+    require(dplyr)
+  require(SuperLearner)
+  require(foreach)
+  require(doSNOW)
+  require(doRNG)
+  
+safe_SL_fit <- function(Y, X, newX, SL.library, family,
+                        outcome_name, arm_name, fold_k) {
+
+  if (length(Y) < 2)
+    stop("Fold ", fold_k, ", arm '", arm_name,
+         "' has <2 training rows (", length(Y), ").")
+
+  if (ncol(X) == 0)
+    stop("Fold ", fold_k, ", arm '", arm_name,
+         "' training design matrix has 0 covariates.")
+
+  # ---------- Try full SuperLearner call ---------------------------------
+  fit <- try(
+    SuperLearner(Y = Y, X = X, newX = newX,
+                 family = family, SL.library = SL.library,
+                 verbose = FALSE),
+    silent = TRUE
+  )
+
+if (inherits(fit, "try-error")) {
+
+  fail_log <- character(0)
+
+  for (alg in SL.library) {
+    err <- try({
+      wrapper_fun <- get(alg, envir = asNamespace("SuperLearner"))
+      wrapper_fun(Y = Y, X = X, newX = newX, family = family)$pred[1]
+    }, silent = TRUE)
+
+    if (inherits(err, "try-error"))
+      fail_log <- c(fail_log,
+                    paste0("  ", alg, ": ERROR – ",
+                           conditionMessage(attr(err, "condition"))))
+    else
+      fail_log <- c(fail_log, paste0("  ", alg, ": OK"))
+  }
+
+  stop("Fold ", fold_k, ", arm '", arm_name, "', outcome '",
+       outcome_name, "': SuperLearner error – ",
+       conditionMessage(attr(fit, 'condition')), "\n",
+       paste(fail_log, collapse = "\n"))
+}
+
+  fit$SL.predict
+}
+    
+
+  n     <- nrow(data)
+  arms  <- levels(data[[treatment_col]])
+  if (is.null(reference_arm)) reference_arm <- arms[1]
+
+  n_arm <- table(data[[treatment_col]])
+  K_max <- min(n_arm) - 2L
+  if (K_max < 1L) stop("Smallest arm has fewer than 3 obs; cannot cross-fit.")
+  if (K > K_max) {
+    message("Reducing K from ", K, " to safe value ", K_max)
+    K <- K_max
+  }
+
+  ## --------- stratified folds --------------------------------------------
+  splits <- vector("list", K)
+  for (a in arms) {
+    idx_a  <- which(data[[treatment_col]] == a)
+    fold_a <- sample(rep(seq_len(K), length.out = length(idx_a)))
+    for (k in seq_len(K))
+      splits[[k]] <- c(splits[[k]], idx_a[fold_a == k])
+  }
+
+  ## --------- set parallel backend (inner) --------------------------------
+  if (n_cores > 1) {
+    cl <- makeCluster(n_cores)
+    registerDoSNOW(cl)
+    registerDoRNG()
+    on.exit(stopCluster(cl), add = TRUE)
+  } else {
+    registerDoSEQ()
+  }
+
+  pi_tab <- prop.table(n_arm)
+
+  combos <- expand.grid(Outcome   = outcome_cols,
+                        Treatment = setdiff(arms, reference_arm),
+                        stringsAsFactors = FALSE)
+
+  results <- foreach(
+    i = seq_len(nrow(combos)),
+    .combine = dplyr::bind_rows,
+    .packages = c("dplyr","SuperLearner")
+  ) %dopar% {
+
+    Y   <- combos$Outcome[i]
+    arm <- combos$Treatment[i]
+    pair_arms <- c(reference_arm, arm)
+    pi_pair   <- pi_tab[pair_arms]
+
+    full_preds <- matrix(NA_real_, nrow = n, ncol = 2,
+                         dimnames = list(NULL, pair_arms))
+
+    for (k in seq_len(K)) {
+      val_ix   <- splits[[k]]
+      train_ix <- if (K == 1) val_ix else setdiff(seq_len(n), val_ix)
+
+      for (a in pair_arms) {
+        sel_tr <- train_ix[data[[treatment_col]][train_ix] == a]
+
+        eta_hat <- safe_SL_fit(
+          Y            = data[[Y]][sel_tr],
+          X            = data[sel_tr, covariate_cols, drop = FALSE],
+          newX         = data[val_ix, covariate_cols, drop = FALSE],
+          SL.library   = SL_methods,
+          family       = gaussian(),
+          outcome_name = Y,
+          arm_name     = a,
+          fold_k       = k
+        )
+
+        A_k <- as.integer(data[[treatment_col]][val_ix] == a)
+        full_preds[val_ix, a] <-
+          A_k / pi_pair[a] * (data[[Y]][val_ix] - eta_hat) + eta_hat
+      }
+    }
+
+    D_i <- full_preds[, arm] - full_preds[, reference_arm]
+    tibble(
+      Outcome   = Y,
+      Treatment = arm,
+      Control   = reference_arm,
+      Est_SL    = mean(D_i),
+      SE_SL     = sqrt(var(D_i) / n)
+    )
+  }
+
+  results
+}
+```
+
+```{r}
+for (i in 1:30) {
+  df_name = paste0("df", i)
+  df      = get(df_name)
+  
+  results = analyze_rct(df)
+  outcomes = unique(results$Outcome)
+  
+  df_comparison = update_df(
+    trial_no     = i,
+    outcome_type = rep("continuous", length(outcomes))
+  )
+}
+```
+
+```{r}
+for (i in 27:30) {
+  cat("-------------------Trial", i, "-------------------\n")
+  df_name = paste0("df", i)
+  df      = get(df_name)
+  
+  results = analyze_rct(df)
+  outcomes = unique(results$Outcome)
+  
+  df_comparison = update_df(
+    trial_no     = i,
+    outcome_type = rep("continuous", length(outcomes))
+  )
+}
+```
+
+
+# calibration check
+```{r}
+sim_one_rct_multiarm <- function(n = 600,
+                                 probs = c(1/3, 1/2, 1/6),
+                                 tau   = 0.5,
+                                 sigma = 1) {
+  ## Covariate
+  X1 <- rnorm(n)                 # N(0, 1)
+
+  ## Treatment assignment: 0 = Control, 1 = Medium, 2 = High
+  A  <- sample(0:2, n, TRUE, probs)
+
+  ## Outcome model
+  Y  <- tau * A + 0.3 * X1 + rnorm(n, 0, sigma)
+
+  data.frame(
+    Treatment = factor(A, levels = 0:2,
+                       labels = c("Control", "Medium", "High")),
+    Y  = Y,
+    X1 = X1
+  )
+}
+```
+
+
+```{r}
+sim_one_rct_multiarm <- function(n     = 600,
+                                 probs = c(1/3,1/3,1/3),
+                                 tau   = 0.5,
+                                 sigma = 1) {
+  X1 <- rexp(n, rate = 1)
+  A  <- sample(0:2, size = n, replace = TRUE, prob = probs)
+  Y  <- tau * A + X1^2 + rnorm(n, 0, sigma)
+
+  data.frame(
+    Treatment = factor(A, levels = 0:2,
+                       labels = c("Control","Medium","High")),
+    Y  = Y,
+    X1 = X1
+  )
+}
+```
+
+```{r}
+sim_one_rct_multiarm <- function(n     = 600,
+                                   probs = c(0.45, 0.35, 0.20),   # n0 = 270, n1 = 210, n2 = 120
+                                   tau   = 0.5,
+                                   sigma = 1) {
+
+  ## Covariate:  Gamma(shape = 2, scale = 1); mean = 2,  var = 2
+  X1 <- rgamma(n, shape = 2, scale = 1)
+
+  ## Treatment: 0 = Control, 1 = Medium, 2 = High
+  A  <- sample(0:2, n, TRUE, probs)
+
+  ## Beta(α=2, β=5) noise, re-centered and rescaled to variance = σ²
+  eps_raw  <- rbeta(n, 2, 5)            # mean = 2/7, var = (2·5) / (7²·8) = 10 / 392 ≈ 0.02551
+  eps      <- (eps_raw - 2/7) / sqrt(10/392) * sigma
+
+  ## Outcome: linear treat + sqrt transform of Gamma + noise
+  Y <- tau * A + 0.6 * X1 + eps
+
+  data.frame(
+    Treatment = factor(A, levels = 0:2,
+                       labels = c("Control", "Medium", "High")),
+    Y  = Y,
+    X1 = X1
+  )
+}
+
+```
+
+
+
+```{r}
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. Monte Carlo: outer loop parallel, inner serial (n_cores = 1)
+# ──────────────────────────────────────────────────────────────────────────────
+B      <- 200
+n_subj <- 600
+cl     <- makeCluster(parallel::detectCores() - 1)
+registerDoParallel(cl)
+
+set.seed(123)
+results_mat <- foreach(b = 1:B, .combine = rbind,
+                       .packages = c("SuperLearner","dplyr","doSNOW","doRNG","quadprog")) %dopar% {
+  set.seed(123 + b)
+  dat <- sim_one_rct_multiarm(n = n_subj)
+
+  res <- analyze_rct_sl(
+    data           = dat,
+    outcome_cols   = "Y",
+    covariate_cols = "X1",
+    reference_arm  = "Control",
+    SL_methods     = c("SL.glm"),
+    n_cores        = 1
+  )
+
+  # extract Medium and High vs Control
+  c(
+    est_med  = res$Est_SL[res$Treatment == "Medium"],
+    se_med   = res$SE_SL[ res$Treatment == "Medium"],
+    est_high = res$Est_SL[res$Treatment == "High"],
+    se_high  = res$SE_SL[ res$Treatment == "High"]
+  )
+}
+
+stopCluster(cl)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. Assemble results into a data frame
+# ──────────────────────────────────────────────────────────────────────────────
+results_df <- as.data.frame(results_mat)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 5. Diagnostics: compute sd(est), mean(SE), mean(est), and true est
+# ──────────────────────────────────────────────────────────────────────────────
+# Medium vs Control
+sd_est_med    <- sd(results_df$est_med)
+mean_se_med   <- mean(results_df$se_med)
+mean_est_med  <- mean(results_df$est_med)
+true_est_med  <- 0.5
+
+# High vs Control
+sd_est_high   <- sd(results_df$est_high)
+mean_se_high  <- mean(results_df$se_high)
+mean_est_high <- mean(results_df$est_high)
+true_est_high <- 1.0
+
+list(
+  # Medium
+  sd_est_med    = sd_est_med,
+  mean_se_med   = mean_se_med,
+  mean_est_med  = mean_est_med,
+  true_est_med  = true_est_med,
+  # High
+  sd_est_high   = sd_est_high,
+  mean_se_high  = mean_se_high,
+  mean_est_high = mean_est_high,
+  true_est_high = true_est_high
+)
+
+```
+
+## update_bench()
+
+```{r}
+update_bench = function(trial_no,
+                        data,
+                        outcome_cols,
+                        covariate_cols  = NULL,
+                        treatment_col   = "Treatment",
+                        K               = 5,
+                        n_cores         = parallel::detectCores() - 1,
+                        seed            = 123,
+                        df              = df_bench) {
+  require(dplyr)
+  
+  # 1) fit everything with SL.lm (to compare to ANCOVA)
+  res_lm = analyze_rct(
+    df             = data,
+    outcome_cols   = outcome_cols,
+    covariate_col  = covariate_cols,
+    treatment_col  = treatment_col,
+    SL_methods     = c("SL.lm"),
+    K              = K,
+    n_cores        = n_cores,
+    seed           = seed
+  )
+  
+  res_lm = res_lm %>%
+    transmute(
+      Trial_No               = trial_no,
+      Treatment,
+      Control,
+      Outcome,
+      ANCOVA_est             = Est_AC,
+      ANCOVA_model_based_se  = SE_AC,
+      SL.lm_est              = Est_SL,
+      SL.lm_se               = SE_SL
+    )
+  
+  # 2) fit everything with SL.mean (to compare to Unadjusted)
+  res_mean = analyze_rct(
+    df             = data,
+    outcome_cols   = outcome_cols,
+    covariate_col  = covariate_cols,
+    treatment_col  = treatment_col,
+    SL_methods     = c("SL.mean"),
+    K              = K,
+    n_cores        = n_cores,
+    seed           = seed
+  )
+  
+  res_mean = res_mean %>%
+    transmute(
+      Outcome,
+      Treatment,
+      Control,
+      Unadjust_est  = Est_UN,
+      Unadjust_se   = SE_UN,
+      SL.mean_est   = Est_SL,
+      SL.mean_se    = SE_SL
+    )
+  
+  # 3) join the two pieces and reorder
+  new_rows = res_lm %>%
+    left_join(res_mean, by = c("Outcome","Treatment","Control")) %>%
+    select(
+      Trial_No,
+      Treatment,
+      Control,
+      Outcome,
+      ANCOVA_est,
+      SL.lm_est,
+      ANCOVA_model_based_se,
+      SL.lm_se,
+      Unadjust_est,
+      SL.mean_est,
+      Unadjust_se,
+      SL.mean_se
+    )
+  
+  # 4) replace or append into your master df
+  for (i in seq_len(nrow(new_rows))) {
+    row      = new_rows[i, ]
+    match_ix = which(
+      df$Trial_No  == row$Trial_No &
+      df$Outcome   == row$Outcome  &
+      df$Treatment == row$Treatment &
+      df$Control   == row$Control
+    )
+    if (length(match_ix) > 0) {
+      df[match_ix[1], ] = row
+    } else {
+      df = bind_rows(df, row)
+    }
+  }
+  
+  df
+}
+```
 

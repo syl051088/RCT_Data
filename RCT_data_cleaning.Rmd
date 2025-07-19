@@ -1169,7 +1169,6 @@ df12_final = df12 %>%
     # Secondary outcomes (YS_)
     YS_haz06_24m                     = haz06,
     YS_diet_diversity_24m            = rowSums(select(., matches("^e[1-7]$")), na.rm = TRUE),
-    YS_caregiver_depression_24m      = as.integer(SRQ > 7),
     YS_caregiver_child_interaction_24m = rowMeans(select(., matches("^MICS_.*_sb2$")), na.rm = TRUE)
   ) %>%
   mutate(
@@ -1202,7 +1201,6 @@ df12_cluster = df12_final %>%
     # Secondary outcomes
     YS_haz06_24m                       = mean(YS_haz06_24m,                     na.rm = TRUE),
     YS_diet_diversity_24m              = mean(YS_diet_diversity_24m,            na.rm = TRUE),
-    YS_caregiver_depression_24m        = Mode(YS_caregiver_depression_24m, na.rm = TRUE),
     YS_caregiver_child_interaction_24m = mean(YS_caregiver_child_interaction_24m, na.rm = TRUE),
     
     # Baseline numeric covariates
@@ -1237,7 +1235,7 @@ df12_cluster = df12_final %>%
 
 df12_final = df12_final %>% 
   mutate(
-    across(c(YP_stunting_24m, YS_caregiver_depression_24m, X_sex_0m, X_bornearly_0m, X_mother_age_cat_0m, 
+    across(c(YP_stunting_24m, X_sex_0m, X_bornearly_0m, X_mother_age_cat_0m, 
              X_father_primary_0m, X_mother_primary_0m), as_factor)
   )
 
@@ -1803,11 +1801,6 @@ df19_final = df19 %>%
            into = c("X_CHILD_PUGH_CLASS_0d", "X_CHILD_PUGH_SCORE_0d"),
            sep = " ") %>% 
   mutate(
-    YS_ARF_PREVALENCE_28d = as.integer(
-      any(c_across(starts_with("YS_CREATININE_")) / X_CREATININE_0d >= 1.5, na.rm = TRUE)
-      |
-      any(c_across(starts_with("YS_CREATININE_")) - X_CREATININE_0d    >= 0.3, na.rm = TRUE)
-    ),
     X_CHILD_PUGH_SCORE_0d = as.numeric(X_CHILD_PUGH_SCORE_0d)
   ) %>%
   ungroup() %>%
@@ -1916,12 +1909,11 @@ df21 = read.csv("raw_data/21/21.csv")
 ## Cleaning
 ```{r}
 df21_final = df21%>%
-    rename(
+    mutate(
     # Treatment arm
     Treatment                         = group,
     
     # Baseline covariates (prefix X_)
-    X_cough_0d                           = cough,
     X_duration_of_cough_weeks_0d            = duration_of_cough_weeks,
     X_night_sweats_0d                    = night_sweats,
     X_weight_loss_0d                     = weight_loss,
@@ -1929,11 +1921,10 @@ df21_final = df21%>%
     X_reported_hiv_status_0d             = reported_hiv_status,
     X_antiretroviral_therapy_0d          = taking_antiretoviral_therapy,
     X_eq5d_0d                         = euro_qol_5q_5d_3l_zimbabwe_tariff,
-    X_cxr_done_0d                        = cxr_done,
-    X_cad4tbv5_score_0d                  = cad4t_bv5_score,
+    X_cad4tbv5_score_0d                  = as.numeric(cad4t_bv5_score),
     X_cad4tbv5_above_threshold_0d        = cad4t_bv5_above_threshold,
     X_sputum_xpert_done_0d               = sputum_xpert_done,
-    X_sputum_xpert_result_0d             = sputum_xpert_result,
+
     
     # Primary outcomes (prefix YP_)
     YP_tb_treatment_initiation        = primary_outcome_tb_treatment_initiation,
@@ -1950,7 +1941,8 @@ df21_final = df21%>%
     Treatment = relevel(factor(Treatment), ref="SOC"),
     across(c(YP_tb_treatment_initiation, YS_undiagnosed_tb, YS_same_day_tb_treatment, 
              YS_undiagnosed_hiv, YS_mortality, X_night_sweats_0d, X_weight_loss_0d,
-             X_fever_0d, X_reported_hiv_status_0d, X_cad4tbv5_above_threshold_0d, X_sputum_xpert_done_0d), as_factor)
+             X_fever_0d, X_reported_hiv_status_0d, X_cad4tbv5_above_threshold_0d, X_sputum_xpert_done_0d,
+             X_antiretroviral_therapy_0d), as_factor)
   ) %>% 
   select(
     Treatment,
@@ -2408,10 +2400,7 @@ df27_final = df27 %>%
     YS_min_SpO2                  = as.numeric(`Minimal SpO2`),
     YS_pain_PACU                 = as.numeric(`Tolerance PACU`),
     YS_endocrine_status_3m       = as.numeric(`Endocrine healing`),
-    ## Guessed baseline covariates
-    `X_BMI>35_0d`                        = `BMI>35`,
-    X_pregnancy_0d                  = Pregnancy,
-    X_lung_disease_0d               = `Lung disease`,
+
     X_redo_surgery_0d               = Redo,
     X_Tv_0d                         = Tv,
     X_FiO2_0d                       = as.numeric(Fio2),
@@ -2506,7 +2495,6 @@ df28_final = df28 %>%
     X_ContrDBP_0m           = ContrDBP,   
     YS_ContrDBP_6m          = FUContrDBP,
     
-    X_ControlledBP_0m       = ControlledBP,
     YS_ControlledBP_6m      = FUControlledBP,
     
     X_TotalScoreA_0m        = TotalScoreA,
@@ -2757,10 +2745,6 @@ df30_final = df30_demo %>%
       rowSums(is.na(select(., X_DaysSince1:X_DaysSince5))) > 0, 
       1L, 
       0L
-    ),
-    # mean days between sessions
-    YS_MeanDaysBetween = rowMeans(
-      select(., X_DaysSince1:X_DaysSince5)
     )
   ) %>%
   
@@ -2796,8 +2780,9 @@ df30_final = df30_demo %>%
 write_csv(df30_final, "cleaned_data/trial30.csv")
 write_rds(df30_final, "cleaned_data/trial30.rds")
 ```
+
 ```{r}
-str(df7)
+str(df10)
 ```
 
 
