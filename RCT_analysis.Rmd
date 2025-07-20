@@ -976,6 +976,89 @@ n = length(unique(results$Outcome))
 df_comparison = update_df(30, rep("continuous", n))
 ```
 
+# Trial 31
+## Load Data
+
+```{r}
+df31 = read_rds("cleaned_data/trial31.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df31)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(31, c("continuous", "binary"))
+```
+
+# Trial 32
+## Load Data
+
+```{r}
+df32 = read_rds("cleaned_data/trial32.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df32)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(32, c("binary", "binary", "binary", "binary"))
+```
+
+# Trial 33
+## Load Data
+
+```{r}
+df33 = read_rds("cleaned_data/trial33.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df33)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(33, c("continuous", "binary"))
+```
+# Trial 34
+## Load Data
+
+```{r}
+df34 = read_rds("cleaned_data/trial34.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df34)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(34, c("binary", "continuous", rep("binary", 6)))
+```
+
+# Trial 35
+## Load Data
+
+```{r}
+df35 = read_rds("cleaned_data/trial35.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df35)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binary"))
+```
 
 # Export
 
@@ -1019,22 +1102,23 @@ df_summary = df_new %>%
     # ANCOVA precision‐gain
     mean_prec_gain_AC     = mean(precision_gain_AC, na.rm = TRUE),
     sd_prec_gain_AC       = sd(precision_gain_AC,   na.rm = TRUE),
+    
     # ANCOVA robust vs model‐based variance ratio (original)
-    mean_var_ratio_AC      = mean(variance_ratio_AC,  na.rm = TRUE),
-    sd_var_ratio_AC       = sd(variance_ratio_AC,    na.rm = TRUE),
-    # # ANCOVA variance‐ratio *outlier‐removed*
-    mean_var_AC_no   = {
-      v   = variance_ratio_AC
-      lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
-      ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
-      mean(v[v >= lb & v <= ub], na.rm=TRUE)
+    mean_var_ratio_AC     = mean(variance_ratio_AC, na.rm = TRUE),
+    sd_var_ratio_AC       = sd(variance_ratio_AC,   na.rm = TRUE),
+    
+    # ANCOVA variance-ratio *extreme high outlier removed only*
+    mean_var_AC_no = {
+      v  = variance_ratio_AC
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      mean(v[v <= ub], na.rm = TRUE)
     },
-    sd_var_AC_no     = {
-      v   = variance_ratio_AC
-      lb  = quantile(v, 0.25, na.rm=TRUE) - 1.5 * IQR(v, na.rm=TRUE)
-      ub  = quantile(v, 0.75, na.rm=TRUE) + 1.5 * IQR(v, na.rm=TRUE)
-      sd(v[v >= lb & v <= ub], na.rm=TRUE)
+    sd_var_AC_no = {
+      v  = variance_ratio_AC
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      sd(v[v <= ub], na.rm = TRUE)
     },
+
     # SuperLearner precision‐gain
     mean_prec_gain_SL     = mean(precision_gain_SL,  na.rm = TRUE),
     sd_prec_gain_SL       = sd(precision_gain_SL,    na.rm = TRUE)
@@ -1112,19 +1196,16 @@ ggplot(df_new, aes(x = outcome_group, y = precision_gain_SL)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 
-# 5. Precision Gain Plot (Super Learner, Outliers Removed)
+# 5. Precision Gain Plot (Super Learner, High Outliers Removed)
 ggplot(df_new %>%
-         filter(between(
-           precision_gain_SL,
-           quantile(precision_gain_SL, 0.25, na.rm = TRUE) - 1.5 * IQR(precision_gain_SL, na.rm = TRUE),
-           quantile(precision_gain_SL, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_SL, na.rm = TRUE)
-         )),
+         filter(precision_gain_SL <= 
+                  quantile(precision_gain_SL, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_SL, na.rm = TRUE)),
        aes(x = outcome_group, y = precision_gain_SL)) +
   geom_violin(trim = FALSE, fill = "lightcyan", alpha = 0.6) +
   geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
   geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
   labs(
-    title = "Super Learner vs Unadjusted Precision Gain (Outliers Removed)",
+    title = "Super Learner vs Unadjusted Precision Gain (High Outliers Removed)",
     x = "Outcome Group",
     y = "Variance Ratio"
   ) +

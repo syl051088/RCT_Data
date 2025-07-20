@@ -2778,8 +2778,383 @@ write_csv(df30_final, "cleaned_data/trial30.csv")
 write_rds(df30_final, "cleaned_data/trial30.rds")
 ```
 
+
+# Trial 31
+## Load Data
 ```{r}
-str(df27)
+df31_Clinical = read_xlsx("raw_data/31/31_Clinical.xlsx", na = c("", "NA", "null", "NULL", "999"))
+df31_Demo = read_xlsx("raw_data/31/31_Demo.xlsx", na = c("", "NA", "null", "NULL", "999"))
+df31_Outcome = read_xlsx("raw_data/31/31_Outcome.xlsx", na = c("", "NA", "null", "NULL", "999"))
+df31_Site = read_xlsx("raw_data/31/31_Site.xlsx", na = c("", "NA", "null", "NULL", "999"))
 ```
+
+## Cleaning
+```{r}
+df31 = df31_Clinical %>% 
+  full_join(
+    df31_Demo, 
+    by = "Participant ID"
+  ) %>%
+  full_join(
+    df31_Outcome, 
+    by = "Participant ID"
+  )
+
+df31 = df31 %>%
+  left_join(df31_Site, by = c("Site Number" = "Site")) %>%
+  rename(
+    RawTreatment = `Tx or Ctrl`,
+    ClusterID    = `Site Number`
+  ) %>%
+  # Recode treatment values to study-specific names, set HIC Alone as reference
+  mutate(
+    Treatment = as_factor(
+      recode(RawTreatment,
+             `0` = "HIC",
+             `1` = "TASSH + HIC",
+             .default = as.character(RawTreatment))
+    ),
+    Treatment = fct_relevel(Treatment, "HIC")
+  )
+
+# Compute outcomes and covariates with proper suffixes
+df31_final = df31 %>%
+  mutate(
+    # Outcomes
+    pre_YP_SBP_6m     = `SBP 6 Months` - `SBP Baseline`,
+    YP_delta_SBP_12m  = `SBP 12 Months` - `SBP Baseline`,
+    YS_BP_control_12m = as_factor(ifelse(`SBP 12 Months` < 140 & `DBP 12 Months` < 90, 1, 0)),
+    # Baseline covariates
+    X_SBP_0m          = `SBP Baseline`,
+    X_DBP_0m          = `DBP Baseline`,
+    X_CV_Risk_0m      = as_factor(`CV Risk`),
+    X_BMI_0m          = BMI,
+    X_BMI_Class_0m    = as_factor(`BMI Classification`),
+    X_PhysAct_0m      = `Physical Activity`,
+    X_Age_0m          = Age,
+    X_Gender_0m       = as_factor(Gender),
+    X_EduLevel_0m     = as_factor(`Education Level`),
+    X_EmpStatus_0m    = as_factor(`Employment Status`),
+    X_Literacy_0m     = as_factor(Literacy),
+    X_Smoking_0m      = as_factor(Smoking),
+    # Site covariates
+    X_Cohort_0m       = as_factor(`Cohort #`),
+    X_RuralUrban_0m   = as_factor(`Rural/Urban`),
+    X_Doctors_0m      = `Doctors Available`,
+    X_Nurses_0m       = `Nurses Available`
+  ) %>%
+  select(
+    ClusterID, Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+# 4. Aggregate to cluster-level summary
+df31_cluster = df31_final %>%
+  group_by(ClusterID) %>%
+  summarise(
+    ClusterID         = first(ClusterID),
+    Treatment         = fct_relevel(
+                            as_factor(Mode(as.character(Treatment))),
+                            "HIC"),
+    n_participants    = n(),
+    # Outcome means
+    pre_YP_SBP_6m     = if(all(is.na(pre_YP_SBP_6m))) NA_real_ else mean(pre_YP_SBP_6m, na.rm=TRUE),
+    YP_delta_SBP_12m  = if(all(is.na(YP_delta_SBP_12m))) NA_real_ else mean(YP_delta_SBP_12m, na.rm=TRUE),
+    YS_BP_control_12m = if(all(is.na(pre_YP_SBP_6m))) NA_real_ else mean(as.numeric(YS_BP_control_12m)-1, na.rm=TRUE),
+    # Numeric covariates
+    X_SBP_0m          = if(all(is.na(X_SBP_0m))) NA_real_ else mean(X_SBP_0m, na.rm=TRUE),
+    X_DBP_0m          = if(all(is.na(X_DBP_0m))) NA_real_ else mean(X_DBP_0m, na.rm=TRUE),
+    X_BMI_0m          = if(all(is.na(X_BMI_0m))) NA_real_ else mean(X_BMI_0m, na.rm=TRUE),
+    X_PhysAct_0m      = if(all(is.na(X_PhysAct_0m))) NA_real_ else mean(X_PhysAct_0m, na.rm=TRUE),
+    X_Age_0m          = if(all(is.na(X_Age_0m))) NA_real_ else mean(X_Age_0m, na.rm=TRUE),
+    X_Doctors_0m      = if(all(is.na(X_Doctors_0m))) NA_real_ else mean(X_Doctors_0m, na.rm=TRUE),
+    X_Nurses_0m       = if(all(is.na(X_Nurses_0m))) NA_real_ else mean(X_Nurses_0m, na.rm=TRUE),
+    # Factor covariates
+    X_CV_Risk_0m      = as_factor(Mode(as.character(X_CV_Risk_0m), na.rm=TRUE)),
+    X_BMI_Class_0m    = as_factor(Mode(as.character(X_BMI_Class_0m), na.rm=TRUE)),
+    X_Gender_0m       = as_factor(Mode(as.character(X_Gender_0m), na.rm=TRUE)),
+    X_EduLevel_0m     = as_factor(Mode(as.character(X_EduLevel_0m), na.rm=TRUE)),
+    X_EmpStatus_0m    = as_factor(Mode(as.character(X_EmpStatus_0m), na.rm=TRUE)),
+    X_Literacy_0m     = as_factor(Mode(as.character(X_Literacy_0m), na.rm=TRUE)),
+    X_Smoking_0m      = as_factor(Mode(as.character(X_Smoking_0m), na.rm=TRUE)),
+    X_Cohort_0m       = as_factor(Mode(as.character(X_Cohort_0m), na.rm=TRUE)),
+    X_RuralUrban_0m   = as_factor(Mode(as.character(X_RuralUrban_0m), na.rm=TRUE)),
+  ) %>%
+  ungroup() %>% 
+  select(
+    ClusterID, Treatment, n_participants,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+```
+
+
+
+## Output Data
+
+```{r}
+# trial 31
+write_csv(df31_cluster, "cleaned_data/trial31.csv")
+write_rds(df31_cluster, "cleaned_data/trial31.rds")
+
+write_csv(df31_final, "cleaned_data/Clustered_RCT/cluster31.csv")
+write_rds(df31_final, "cleaned_data/Clustered_RCT/cluster31.rds")
+```
+
+
+# Trial 32
+## Load Data
+```{r}
+df32 = read_dta("raw_data/32/32.dta")
+```
+
+
+## Cleaning
+```{r}
+df32_final = df32 %>%
+  mutate(
+    # Treatment label
+    Treatment = case_when(
+      arm == 0 ~ "Sotrovimab",
+      arm == 1 ~ "Bamlanivimab/Etesevimab",
+      arm == 2 ~ "Casirivimab/Imdevimab"
+    ),
+    
+    # Primary outcome (composite event)
+    YP_Progression_binary = as_factor(outcome_global),
+
+    # Secondary outcomes
+    YS_Symptom_duration_30d   = TotalDsympt,
+    YS_Death_14d          = outcome1,
+    YS_Hospital_14d       = outcome2,
+    YS_Oxygen_14d = as_factor(outcome3),
+
+    # Covariates
+    X_variant_0d             = variant,
+    X_IgG_0d                 = IgG,
+    X_vaccine_status_0d      = NewVax,
+    X_BMI_cat_0d             = BMI_CAT,
+    X_immunodef_0d           = immunodeficency,
+    X_renal_0d               = renal,
+    X_diabetes_0d            = diabetes,
+    X_CVD_0d                 = CVD,
+    X_bpco_0d                = bpco,
+    X_liver_0d               = liver
+  ) %>%
+  mutate(
+    Treatment = relevel(factor(Treatment), ref = "Casirivimab/Imdevimab"),
+    across(c(X_variant_0d, X_IgG_0d, X_vaccine_status_0d, X_BMI_cat_0d, 
+             X_immunodef_0d, X_renal_0d, X_diabetes_0d, X_CVD_0d, X_bpco_0d, 
+             X_bpco_0d, X_liver_0d, YS_Death_14d,
+             YS_Hospital_14d), as_factor)
+  ) %>% 
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+```
+## Output Data
+
+```{r}
+# trial 32
+write_csv(df32_final, "cleaned_data/trial32.csv")
+write_rds(df32_final, "cleaned_data/trial32.rds")
+```
+
+# Trial 33
+## Load Data
+```{r}
+df33 = read_xlsx("raw_data/33/33.xlsx")
+```
+
+## Cleaning
+```{r}
+df33_final = df33 %>%
+  rename(RawTreatment = Intervention) %>%
+  mutate(
+    Treatment = recode(RawTreatment,
+                       `2` = "Control",
+                       `1` = "Reframing"),
+    Treatment = fct_relevel(as_factor(Treatment), "Control")
+  )
+
+# 3. Rename outcomes and include all baseline covariates from Table 1
+df33_final = df33_final %>%
+  mutate(
+    # Outcomes
+    YP_TM_total_score      = TM_total_score,
+    YS_willing_participate = as_factor(Decision),
+    # Baseline covariates
+    X_age_0w               = age,
+    X_Gender_0w            = as_factor(gender),
+    X_Ethnicity_0w         = as_factor(ethni),
+    X_Race_0w              = as_factor(race),
+    X_Education_0w         = as_factor(schooling),
+    X_Employment_0w        = as_factor(employment),
+    X_DiseaseGroup_0w      = as_factor(DxGroup),
+    X_Volunteer_0w         = as_factor(cdro_volunteer)
+  ) %>%
+  select(
+    Treatment,
+    YP_TM_total_score,
+    YS_willing_participate,
+    X_age_0w,
+    X_Gender_0w,
+    X_Ethnicity_0w,
+    X_Race_0w,
+    X_Education_0w,
+    X_Employment_0w,
+    X_DiseaseGroup_0w,
+    X_Volunteer_0w
+  )
+
+```
+
+## Output Data
+
+```{r}
+# trial 33
+write_csv(df33_final, "cleaned_data/trial33.csv")
+write_rds(df33_final, "cleaned_data/trial33.rds")
+```
+
+
+# Trial 34
+## Load Data
+```{r}
+df34 = read_csv("raw_data/34/34.csv", na = c("", "NA", "null", "NULL", "999"))
+```
+
+## Cleaning
+```{r}
+df34_final = df34 %>%
+  rename(RawTreatment = TX) %>%
+  mutate(
+    Treatment = recode(RawTreatment,
+                       `0` = "Placebo",
+                       `1` = "Synbiotic"),
+    Treatment = fct_relevel(as_factor(Treatment), "Placebo")
+  ) %>%
+
+  # 3. Compute outcomes and covariates
+  mutate(
+    # Primary outcome: composite sepsis or death within 60 days
+    YP_sepsisdeath_60d = as_factor(SEPSISDEATH),
+ # Secondary outcome: weight change delta at 60d
+    YS_delta_wt_60d       = WTDIFF,
+    # Secondary outcomes: infection types
+    YS_sepsisB            = as_factor(SEPSISB),         # culture-negative sepsis
+    YS_sepsisC            = as_factor(SEPSISC),         # culture-positive/LRTI sepsis
+    YS_diarrhea           = as_factor(DIARRHEA),
+    YS_omphalitis         = as_factor(OMPHA),
+    YS_local_inf          = as_factor(LOCINF),
+    YS_abscess            = as_factor(ABSCESS),
+
+    # Baseline covariates at enrollment day
+    X_mom_age_0d       = MOMAGE,                     # maternal age
+    X_parity_0d        = MOMPAR,                     # maternal parity
+    X_placebirth_0d    = as_factor(DELIV),           # place of delivery
+    X_deliveredby_0d   = as_factor(Delivered_by),    # birth attendant
+    X_deliverymode_0d  = as_factor(DELIV_MODE),      # delivery mode
+    X_birthwt_0d       = BWT,                        # birth weight (g)
+    X_breastfed_0d     = as_factor(BFEED),           # breastfeeding initiation
+    X_colostrum_0d     = as_factor(Colostrum_Given), # colostrum given
+    X_cowmilk_0d       = as_factor(Cow_milk_60d),    # cow milk at 60d
+    X_honey_0d         = as_factor(Honey),           # honey given
+    X_formula_0d       = as_factor(Infant_formula),  # formula feeding
+    X_waterboil_0d     = as_factor(Water_boil),      # boiled water given
+    X_waterunboil_0d   = as_factor(Water_unboil),    # unboiled water
+    X_vitamindrops_0d  = as_factor(Vitamin_drops),    # vitamin drops
+    X_treattime_0d     = as_factor(ADMIN),           # treatment time
+    X_sex_0d           = as_factor(Sex_of_Infant),   # infant sex
+    X_twins_0d         = as_factor(Twins),           # twin birth indicator
+    X_wt_0d      = Weight_Enroll                # weight at enrollment (g)
+  ) %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+
+```
+
+## Output Data
+```{r}
+# trial 34
+write_csv(df34_final, "cleaned_data/trial34.csv")
+write_rds(df34_final, "cleaned_data/trial34.rds")
+```
+
+# Trial 35
+## Load Data
+```{r}
+df35 = read_sav("raw_data/35/35.sav")
+```
+## Cleaning
+```{r}
+df35_final = df35 %>%
+  mutate(
+    Treatment = factor(Group,
+                       levels = c(2, 1),
+                       labels = c("Control", "Exercise"))
+  ) %>%
+  rename(
+    X_preg_BMI_0w            = Pre_preg_BMI,
+    X_BMI_0w                 = Pre_BMI,
+    X_PGWB_index_0w          = Pre_PGWB_index,
+    X_Anxiety_0w             = Pre_Anxiety,
+    X_Depressed_0w           = Pre_Depressed,
+    X_Pos_Wellbeing_0w       = Pre_Pos_Wellbeing,
+    X_Self_control_0w        = Pre_Self_control,
+    X_General_Health_0w      = Pre_General_Health,
+    X_Vitality_0w            = Pre_Vitality,
+    YP_delta_Total_weight_gain_delivery = Total_weight_gain,
+    YS_IOM_delivery          = IOM,
+    YS_GDM_WHO_delivery      = GDM_WHO_post,
+    YS_BMI_37w               = Post_BMI,
+    YS_BMI_postPP            = Postpart_BMI
+  ) %>%
+  rename_with(
+    .cols = starts_with("Diff_"),
+    .fn   = ~ str_replace(., "^Diff_", "YS_delta_")
+  ) %>%
+  mutate(
+        YS_IOM_delivery     = factor(YS_IOM_delivery,
+                                 levels = c(0, 1),
+                                 labels = c("Not exceed IOM", "Exceeded IOM"))
+  ) %>% 
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# trial 35
+write_csv(df35_final, "cleaned_data/trial35.csv")
+write_rds(df35_final, "cleaned_data/trial35.rds")
+```
+
+
+# test
+```{r}
+str(df35_final)
+```
+
+
 
 
