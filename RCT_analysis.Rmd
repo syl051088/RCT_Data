@@ -341,8 +341,8 @@ analyze_rct = function(df,
   # Combine all outcomes
   final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
     # Round for cleaner output
-    mutate(across(starts_with("Est_"), ~ round(.x, 3)),
-           across(starts_with("SE_"), ~ round(.x, 3))) %>%
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5))) %>%
     # Reorder columns
     select(
       Outcome,
@@ -744,7 +744,8 @@ df_comparison = update_df(17, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df18 = read_rds("cleaned_data/trial18.rds")
+df18 = read_rds("cleaned_data/trial18.rds") %>% 
+  select(-YP_event_disengaged_12m)
 ```
 
 ## Process
@@ -754,7 +755,7 @@ results = analyze_rct(df18)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(18, c("time to event", "binary", rep("continuous", n-2)))
+df_comparison = update_df(18, c("time to event", rep("continuous", n-1)))
 ```
 
 
@@ -798,7 +799,8 @@ df_comparison = update_df(20, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df21 = read_rds("cleaned_data/trial21.rds")
+df21 = read_rds("cleaned_data/trial21.rds") %>% 
+  select(-YP_tb_treatment_initiation)
 ```
 
 ## Process
@@ -808,7 +810,7 @@ results = analyze_rct(df21)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(21, c("binary", "time to event", rep("binary", 4), "continuous"))
+df_comparison = update_df(21, c("time to event", rep("binary", 4), "continuous"))
 ```
 
 
@@ -834,7 +836,8 @@ df_comparison = update_df(22, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df23 = read_rds("cleaned_data/trial23.rds")
+df23 = read_rds("cleaned_data/trial23.rds") %>% 
+  select(-YP_event_28d, -YP_event_90d)
 ```
 
 ## Process
@@ -844,7 +847,7 @@ results = analyze_rct(df23)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(23, c("binary", "time to event", "binary", "time to event", rep("continuous", n - 4)))
+df_comparison = update_df(23, c("time to event", "time to event", rep("continuous", n - 2)))
 ```
 
 
@@ -1059,6 +1062,154 @@ n = length(unique(results$Outcome))
 
 df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binary"))
 ```
+# Trial 36
+## Load Data
+
+```{r}
+df36 = read_rds("cleaned_data/trial36.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df36)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(36, rep("continuous", n))
+```
+# Trial 37
+## Load Data
+
+```{r}
+df37 = read_rds("cleaned_data/trial37.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df37)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(37, rep("binary", n))
+```
+
+# Trial 38
+## Load Data
+
+```{r}
+df38 = read_rds("cleaned_data/trial38.rds") %>% 
+  select(-YP_event_flag)
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df38)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(38, c("time to event", "continuous", "continuous"))
+```
+
+
+# Trial 39
+## Load Data
+
+```{r}
+df39 = read_rds("cleaned_data/trial39.rds") %>% 
+  select(-YP_event_flag)
+```
+
+
+## Process
+
+```{r}
+results = analyze_rct(df39)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(39, c("time to event"))
+```
+
+# Trial 40
+## Load Data
+
+```{r}
+df40 = read_rds("cleaned_data/trial40.rds") %>% 
+  select(-YP_success_flag,  -YS_attempt1_time, -YS_attempt2_time, -YS_attempt3_time,
+         -YS_attempt1_success, -YS_attempt2_success, -YS_attempt3_success, -YS_attempt2_assigned,-YS_attempt3_assigned)
+```
+
+
+## Process
+
+```{r}
+results = analyze_rct(df40)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(40, c("time to event", "continuous", "continuous", "binary", "continuous",
+                                "continuous", "binary"))
+```
+
+# Trial 41
+## Load Data
+
+```{r}
+df41 = read_rds("cleaned_data/trial41.rds")
+```
+
+
+## Process
+
+```{r}
+results = analyze_rct(df41)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(41, c(rep("binary", 5)))
+```
+
+
+# Trial 42
+## Load Data
+
+```{r}
+df42 = read_rds("cleaned_data/trial42.rds") %>% 
+  select(-YP_onset_sensory_censor, -YS_med_duration, -YS_med_duration_censor)
+```
+
+
+## Process
+
+```{r}
+results = analyze_rct(df42)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(42, c("time to event", rep("continuous", n-1)))
+```
+
+# Trial 43
+## Load Data
+
+```{r}
+df43 = read_rds("cleaned_data/trial43.rds") %>% 
+  select(-YP_preterm_flag)
+```
+
+
+## Process
+
+```{r}
+results = analyze_rct(df43)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(43, c("time to event", rep("continuous", 3), "binary"))
+```
 
 # Export
 
@@ -1107,21 +1258,21 @@ df_summary = df_new %>%
     mean_var_ratio_AC     = mean(variance_ratio_AC, na.rm = TRUE),
     sd_var_ratio_AC       = sd(variance_ratio_AC,   na.rm = TRUE),
     
-    # ANCOVA variance-ratio *extreme high outlier removed only*
-    mean_var_AC_no = {
-      v  = variance_ratio_AC
+ # ── SuperLearner precision-gain *outlier removed* ─────────────────────
+    mean_prec_gain_SL = {
+      v  = precision_gain_SL
       ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
       mean(v[v <= ub], na.rm = TRUE)
     },
-    sd_var_AC_no = {
-      v  = variance_ratio_AC
+    sd_prec_gain_SL   = {
+      v  = precision_gain_SL
       ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
       sd(v[v <= ub], na.rm = TRUE)
     },
 
     # SuperLearner precision‐gain
-    mean_prec_gain_SL     = mean(precision_gain_SL,  na.rm = TRUE),
-    sd_prec_gain_SL       = sd(precision_gain_SL,    na.rm = TRUE)
+    mean_prec_gain_SL_full     = mean(precision_gain_SL,  na.rm = TRUE),
+    sd_prec_gain_SL_full       = sd(precision_gain_SL,    na.rm = TRUE)
   ) %>%
   ungroup()
 

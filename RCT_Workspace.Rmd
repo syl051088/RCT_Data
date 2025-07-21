@@ -2020,12 +2020,13 @@ sim_one_rct_multiarm <- function(n     = 600,
 
 
 ```{r}
+library(doParallel)
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. Monte Carlo: outer loop parallel, inner serial (n_cores = 1)
 # ──────────────────────────────────────────────────────────────────────────────
 B      <- 200
 n_subj <- 600
-cl     <- makeCluster(parallel::detectCores() - 1)
+cl     <- makeCluster(parallel::detectCores() - 2)
 registerDoParallel(cl)
 
 set.seed(123)
@@ -2088,8 +2089,63 @@ list(
 )
 
 ```
+## inner parallel
+```{r}
+B        = 200
+n_subj   = 600
+n_cores  = parallel::detectCores() - 2  # for inner parallel use
 
-## update_bench()
+# ────────────────────────────────────────────────────────────────
+# 2. Run simulations serially, each using parallel inside
+# ────────────────────────────────────────────────────────────────
+set.seed(123)
+results_list = vector("list", B)
+
+for (b in 1:B) {
+  set.seed(123 + b)
+  dat = sim_one_rct_multiarm(n = n_subj)
+
+  res = analyze_rct_sl(
+    data           = dat,
+    outcome_cols   = "Y",
+    covariate_cols = "X1",
+    reference_arm  = "Control",
+    SL_methods     = c("SL.glm"),
+    n_cores        = n_cores   # <-- inner parallelism happens here
+  )
+
+  results_list[[b]] = c(
+    est_med  = res$Est_SL[res$Treatment == "Medium"],
+    se_med   = res$SE_SL[ res$Treatment == "Medium"],
+    est_high = res$Est_SL[res$Treatment == "High"],
+    se_high  = res$SE_SL[ res$Treatment == "High"]
+  )
+}
+
+# ────────────────────────────────────────────────────────────────
+# 3. Combine results
+# ────────────────────────────────────────────────────────────────
+results_df = bind_rows(results_list)
+
+# ────────────────────────────────────────────────────────────────
+# 4. Diagnostics
+# ────────────────────────────────────────────────────────────────
+list(
+  # Medium
+  sd_est_med    = sd(results_df$est_med),
+  mean_se_med   = mean(results_df$se_med),
+  mean_est_med  = mean(results_df$est_med),
+  true_est_med  = 0.5,
+
+  # High
+  sd_est_high   = sd(results_df$est_high),
+  mean_se_high  = mean(results_df$se_high),
+  mean_est_high = mean(results_df$est_high),
+  true_est_high = 1.0
+)
+```
+
+# update_bench()
 
 ```{r}
 update_bench = function(trial_no,
