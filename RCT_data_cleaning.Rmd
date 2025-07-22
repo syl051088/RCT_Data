@@ -3858,18 +3858,147 @@ write_rds(df43_final, "cleaned_data/trial43.rds")
 
 # Trial 44
 ## Load Data
+```{r}
+df44 = read_xlsx("raw_data/44/44.xlsx")
+```
 
 ## Cleaning
+```{r}
+df44_final = df44 %>%
+  filter(is.na(`reson for drop`)) %>% 
+  mutate(
+    X_Age_0m       = Age,
+    X_Sex_0m       = as_factor(Sex),
+    X_Ht_0m        = Ht,
+    X_Wt_0m        = Wt,
+    X_BMI_0m       = BMI,
+    X_Duration_0m  = Duration,
+    X_Diagnosis_0m  = as_factor(Diagnosis),
+    X_Pain_0m = `Pre Pain`,
+    
+    
+    vascular = if_else(is.na(vascular), 0, vascular),
+    
+    YP_intravascular = as.factor(vascular),
+    
+    YS_Pain_1m = `Post Pain`,
+    YS_During_Pain = `During Pain`,
+    YS_PGIC_1m = PGIC,
+    
+    Treatment = factor(if_else(Group == 0, "Conventional", "Alternative")),
+    Treatment = relevel(Treatment, ref = "Conventional")
+  ) %>% 
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
+
+
 
 ## Output Data
+```{r}
+# trial 44
+write_csv(df44_final, "cleaned_data/trial44.csv")
+write_rds(df44_final, "cleaned_data/trial44.rds")
+```
+
 
 
 # Trial 45
 ## Load Data
+```{r}
+df45 = read_csv("raw_data/45/45.csv")
+```
 
 ## Cleaning
+```{r}
+df45_final = df45 %>%
+  rename(Treatment = discount) %>%
+  mutate(
+    Treatment = factor(
+      Treatment,
+      levels = c("0%", "15%", "30%"),
+      labels = c("0% Discount", "15% Discount", "30% Discount")
+    ),
+    Treatment = relevel(Treatment, ref = "0% Discount")
+  )
+
+# 4. Rename & factor PPT‐info covariates
+df45_final = df45_final %>%
+  mutate(
+    X_income_group_0w  = factor(income_group),
+    X_covid_present_0w = factor(covid_present),
+    X_store_0w         = factor(covid_present),
+    X_store_type_0w    = factor(store_type)
+  )
+primaries = c("fruit","veg","noncalbev", "soda", "bottledwater", "seltzerwater")
+
+# 5. Helper function to map raw names → cleaned names
+rename_timepoint = function(nms) {
+  out = nms
+
+  # – Visit 2 (_post → pre_YP/_YS_<var>_8w)
+  is_v2 = str_ends(nms, "_pre")
+  v2_vars = str_remove(nms[is_v2], "_pre")
+  out[is_v2] = if_else(
+    v2_vars %in% primaries,
+    paste0("X_", v2_vars, "_8w"),
+    paste0("X_", v2_vars, "_8w")
+  )
+
+  # – Visit 3 (_change → YP_delta/_YS_delta_<var>_24w)
+  is_chg = str_ends(nms, "_change")
+  chg_vars = str_remove(nms[is_chg], "_change")
+  out[is_chg] = if_else(
+    chg_vars %in% primaries,
+    paste0("YP_delta_", chg_vars, "_24w"),
+    paste0("YS_delta_", chg_vars, "_24w")
+  )
+
+  out
+}
+
+# 6. Apply renaming to all _pre, _post, _change columns
+df45_final = df45_final %>%
+  rename_with(.fn = Vectorize(rename_timepoint))
+
+# 7. Reorder: Treatment, all YP_, all YS_, then all X_
+df45_final = df45_final %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  ) %>% 
+  select(
+        -X_percentfat_8w,
+    -YS_delta_percentfat_24w,
+    -X_bmi_cat_8w,
+    -X_ssb_8w,
+    -YS_delta_ssb_24w,
+    -X_kg_8w,
+    -YS_delta_kg_24w,
+    -X_ffm_8w,
+    -YS_delta_ffm_24w,
+    -X_noncalbev_8w,
+    -X_ed_minus_8w,
+    -X_ed_fv_minus_8w,
+    -X_soda_ds_minus_8w,
+    -X_covid_present_0w
+  )
+```
+
 
 ## Output Data
+```{r}
+# trial 45
+write_csv(df45_final, "cleaned_data/trial45.csv")
+write_rds(df45_final, "cleaned_data/trial45.rds")
+```
+
 
 
 # Trial 46

@@ -1211,6 +1211,46 @@ n = length(unique(results$Outcome))
 df_comparison = update_df(43, c("time to event", rep("continuous", 3), "binary"))
 ```
 
+# Trial 44
+## Load Data
+
+```{r}
+df44 = read_rds("cleaned_data/trial44.rds")
+```
+
+
+## Process
+
+```{r}
+results = analyze_rct(df44)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(44, c("binary", rep("continuous", 3)))
+```
+
+# Trial 45
+## Load Data
+
+```{r}
+df45 = read_rds("cleaned_data/trial45.rds") %>% 
+  select(-YS_delta_icedtea_24w, -YS_delta_alcohol_24w, -YS_delta_salty_24w,
+         -YS_delta_fats_24w, -YS_delta_ldl_24w, -YS_delta_tg_24w)
+```
+
+
+## Process
+
+```{r}
+results = analyze_rct(df45)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(45, c(rep("continuous", n)))
+```
+
+
+
 # Export
 
 ```{r}
@@ -1356,7 +1396,7 @@ ggplot(df_new %>%
   geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
   geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
   labs(
-    title = "Super Learner vs Unadjusted Precision Gain (High Outliers Removed)",
+    title = "Super Learner vs Unadjusted Precision Gain \n(High Outliers Removed)",
     x = "Outcome Group",
     y = "Variance Ratio"
   ) +
