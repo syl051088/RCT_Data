@@ -4000,26 +4000,161 @@ write_rds(df45_final, "cleaned_data/trial45.rds")
 ```
 
 
+```{r}
+write_csv(df46, "raw_data/46/46_2.csv")
+```
 
 # Trial 46
 ## Load Data
+```{r}
+df46 = read_csv2("raw_data/46/46.csv")
+```
 
 ## Cleaning
-
+```{r}
+df46_final = df46 %>%
+  mutate(
+    Treatment = `Group (0=control group; 1=intervention group)`,
+    YP_Total_points = `Total points`,
+    YS_Patient_interaction_points = `Patient interaction: points`,
+    YS_Inspection_points = `Inspection: points`,
+    YS_Pulses_points = `Pulses: points`,
+    YS_Auscultation_points = `Auscultation: points`,
+    YS_Cardiac_findings_points = `Cardiac findings: points`,
+    X_Age_0y = factor(`Age in years (grouped into ranges for anonymization)`),
+    X_OtherPracExp_cvPE_0w = `other practical experience in cv PE (0=no; 1=yes)`,
+    X_FacCourseOnCardioWard_0w = `Faculty lead PE course on cardiology ward (0=no; 1=yes)`,
+    X_SameFaculty4of5_0w = `Same faculty member teaching faculty course in 4 or more of the 5 session (0=no; 1=yes)`,
+    X_TimePrepFollowup_0min = `Time for preparation and follow up during faculty lead PE course (1=up to 30 minutes; 2=30-59 minutes; 3=60-120 minutes; 4=more than 120 minutes)`,
+    X_PrepSkillsExam_0min = `Preparation for skills examination (0=No preparation; 1=up to 30 minutes; 2=30 to 59 minutes; 3=60-120 minutes; 4=more than 120 minutes)`,
+    X_Prep_Textbooks_0w = `Preparation using textbooks  (0=no; 1=yes)`,
+    X_Prep_Internet_0w = `Preparation using the internet  (0=no; 1=yes)`,
+    X_Prep_LectureScripts_0w = `Preparation using lecture scripts/lectures (0=no; 1=yes)`
+  ) %>%
+  mutate(
+        Treatment = factor(Treatment,
+                       levels = c(0,1),
+                       labels = c("Control","Simulator_PE")),
+    Treatment = relevel(Treatment, ref = "Control"),
+    X_OtherPracExp_cvPE_0w = factor(X_OtherPracExp_cvPE_0w, levels = c(0,1), labels = c("No","Yes")),
+    X_FacCourseOnCardioWard_0w = factor(X_FacCourseOnCardioWard_0w, levels = c(0,1), labels = c("No","Yes")),
+    X_SameFaculty4of5_0w = factor(X_SameFaculty4of5_0w, levels = c(0,1), labels = c("No","Yes")),
+    X_TimePrepFollowup_0min = factor(X_TimePrepFollowup_0min),
+    X_PrepSkillsExam_0min = factor(X_PrepSkillsExam_0min),
+    X_Prep_Textbooks_0w = factor(X_Prep_Textbooks_0w, levels = c(0,1), labels = c("No","Yes")),
+    X_Prep_Internet_0w = factor(X_Prep_Internet_0w, levels = c(0,1), labels = c("No","Yes")),
+    X_Prep_LectureScripts_0w = factor(X_Prep_LectureScripts_0w, levels = c(0,1), labels = c("No","Yes"))
+  ) %>%
+  select(
+    Treatment,
+    YP_Total_points,
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 ## Output Data
 
+```{r}
+# trial 46
+write_csv(df46_final, "cleaned_data/trial46.csv")
+write_rds(df46_final, "cleaned_data/trial46.rds")
+```
 
 
 # Trial 47
 ## Load Data
+```{r}
+df47 = read_xlsx("raw_data/47/47.xlsx", na = c("", ".", "NULL", "null", "md", "nc", "pf", "protocol finalized"))
+```
 
 ## Cleaning
+```{r}
+df47_final = df47 %>%
+  # Drop ID columns
+  select(-Plot_ID) %>% 
+  mutate(
+    Treatment             = Gr,
+    X_gender_0h           = factor(Gn),
+    X_age_range_0h        = factor(Ag),
+    X_weight_range_0h     = factor(We),
+    X_wheezing_0h         = factor(PW),
+    X_resp_hosp_0h        = factor(PRH),
+    X_protocol_ED_0h      = factor(Em),
+    X_external_transfer_0h= factor(Trn),
+    X_viral_panel_0h      = factor(VP),
+    YP_intubation         = It,
+    YS_death              = De,
+    YS_sedation_days      = SDu,
+    YS_enteral_tube_days  = factor(ETu),
+    YS_nasal_pressure_injury = factor(NPI),
+    YS_PICU_LOS_days      = factor(PLOS),
+    YS_hospital_LOS_days  = factor(HLOS),
+    YS_mech_vent_days     = MV,
+    YS_antibiotic         = factor(ATB),
+    X_PIM_score_0h        = PIM,
+    X_duration_hrs_0h     = TD
+  ) %>%
+  mutate(
+    Treatment       = factor(Treatment, levels = c("NIV","HFNC")),
+    Treatment       = relevel(Treatment, ref = "NIV"),
+    YP_intubation   = factor(YP_intubation, levels = c("n","y"), labels = c("No","Yes")),
+    YS_death        = factor(YS_death, levels = c("n","y"), labels = c("No","Yes"))
+  )
+
+# 3. Rename repeated vitals: X_<metric>_0h for baseline, pre_YS_<metric>_<h>h thereafter
+vitals = list(
+  "HR_"      = "heart_rate",
+  "RR_"      = "resp_rate",
+  "SpO2_"    = "SpO2",
+  "WD_"      = "WD_score",
+  "FiO2_"    = "FiO2",
+  "L\\.min_" = "flow_lpm",
+  "IPAP_"    = "IPAP",
+  "EPAP_"    = "EPAP"
+)
+for(pat in names(vitals)){
+  metric = vitals[[pat]]
+  for(col in grep(paste0("^", pat, "[0-9]+$"), names(df47_final), value=TRUE)){
+    t = sub(pat, "", col)
+    new_name = if(t == "0") {
+      paste0("X_", metric, "_0h")
+    } else if(t == "96") {
+      paste0("YS_", metric, "_", t, "h")
+    } else {
+      paste0("pre_YS_", metric, "_", t, "h")
+    }
+    df47_final = rename(df47_final, !!new_name := !!sym(col))
+  }
+}
+
+# 5. Final ordering and output
+df47_final = df47_final %>%
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("pre_YS_"),
+    starts_with("X_")
+  )
+
+
+```
 
 ## Output Data
+
+```{r}
+# trial 47
+write_csv(df47_final, "cleaned_data/trial47.csv")
+write_rds(df47_final, "cleaned_data/trial47.rds")
+```
+
 
 
 # Trial 48
 ## Load Data
+```{r}
+df47 = survival::pbc
+```
 
 ## Cleaning
 

@@ -1249,6 +1249,42 @@ n = length(unique(results$Outcome))
 df_comparison = update_df(45, c(rep("continuous", n)))
 ```
 
+# Trial 46
+## Load Data
+
+```{r}
+df46 = read_rds("cleaned_data/trial46.rds")
+```
+
+## Process
+
+```{r}
+results = analyze_rct(df46)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(46, c(rep("continuous", n)))
+```
+
+
+# Trial 47
+## Load Data
+
+```{r}
+df47 = read_rds("cleaned_data/trial47.rds")
+```
+
+
+
+## Process
+
+```{r}
+results = analyze_rct(df47)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(47, c(rep("binary", n)))
+```
 
 
 # Export
