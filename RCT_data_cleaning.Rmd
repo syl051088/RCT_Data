@@ -4153,33 +4153,333 @@ write_rds(df47_final, "cleaned_data/trial47.rds")
 # Trial 48
 ## Load Data
 ```{r}
-df47 = survival::pbc
+df48 = read_csv("raw_data/48/48.csv")
 ```
 
 ## Cleaning
+```{r}
+df48_final = df48 %>%
+  rename(
+    Treatment = Condition,
+    ClusterID = SchoolID
+  ) %>%
+  mutate(
+    Treatment = factor(Treatment,
+                       levels = c(0, 1),
+                       labels = c("Control", "ToolsOfMind")),
+    Treatment = relevel(Treatment, ref = "Control")
+  ) %>%
+  select(-ID) %>%
+  mutate(
+    # Convert any character columns to factors (categorical variables)
+    across(where(is.character), as.factor)
+  ) %>%
+  rename(
+    X_lw_ws_0m            = lw_ws,
+    X_ap_ws_0m            = ap_ws,
+    X_dotP_biasG_0m       = dotP_biasG,
+    X_ravens_sum_score_0m = ravens_sum_score,
+    X_RCN_MeanTime_R_0m   = RCN_MeanTime_R,
+    X_rdots_rt_mean_0m    = rdots_rt_mean,
+    X_EF_meanZ_0m         = EF_meanZ,
+    X_EF2_RT_0m           = EF2_RT
+  ) %>%
+  rename(
+    YP_lw_ws_5m        = lw_ws.2,
+    YP_ap_ws_5m        = ap_ws.2,
+    YP_ew_ss_5m        = ew_ss.2
+  ) %>%
+  rename(
+    post_YP_ew_raw_G1 = ew_raw.G1,
+    post_YP_lw_ws_G1  = lw_ws.G1,
+    post_YP_ap_ws_G1  = ap_ws.G1
+  ) %>%
+  rename(
+    YS_dotP_biasG_5m       = dotP_biasG.2,
+    YS_fb_p2_percCorr_5m   = fb_p2_percCorr.2,
+    YS_ravens_sum_score_5m = ravens_sum_score.2,
+    YS_RCN_MeanTime_R_5m   = RCN_MeanTime_R.2,
+    YS_rdots_rt_mean_5m    = rdots_rt_mean.2,
+    YP_EF3_RT_5m           = EF3_RT.2,
+    X_EF2_perccorr_0m     = EF2_perccorr,
+    YP_EF3_perccorr_5m     = EF3_perccorr.2
+  ) %>%
+  rename(
+    X_amy_1r_0m   = amy_1r,
+    X_amy_2r_0m   = amy_2r,
+    X_amy_3r_0m   = amy_3r,
+    X_cort_1r_0m  = cort_1r,
+    X_cort_2r_0m  = cort_2r,
+    X_cort_3r_0m  = cort_3r,
+    YS_amy_1r_5m   = amy_1r.2,
+    YS_amy_2r_5m   = amy_2r.2,
+    YS_amy_3r_5m   = amy_3r.2,
+    YS_cort_1r_5m  = cort_1r.2,
+    YS_cort_2r_5m  = cort_2r.2,
+    YS_cort_3r_5m  = cort_3r.2
+  ) %>%
+  mutate(
+    X_AgeMonths_0m    = AGE,
+    X_Sex_0m             = factor(Sex),
+    X_ParentEd__0m      = factor(ParentEd_R),
+    X_FreeReduced_0m   = FreeReduced_R,
+    X_pv_sum_0m = pv_sum,
+  ) %>%
+  rename(
+    X_Time1_h_0m = Time1_h,
+    X_Time2_h_0m = Time2_h,
+    X_Time3_h_0m = Time3_h,
+    YS_Time1_h_5m = Time1.2_h,
+    YS_Time2_h_5m = Time2.2_h,
+    YS_Time3_h_5m = Time3.2_h
+  ) %>% 
+  select(ClusterID, Treatment, 
+               starts_with("YP"),
+         starts_with("post_YP"),
+               starts_with("YS"),
+               starts_with("X"))
+
+
+# 13. Aggregate to cluster level: numeric → mean, factor → mode
+df48_cluster = df48_final %>%
+  group_by(ClusterID) %>%
+  summarise(
+    across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
+    across(where(is.factor), ~ Mode(.x, na.rm = TRUE)[1]),
+    .groups = "drop"
+  ) %>% 
+  select(ClusterID, Treatment, 
+               starts_with("YP"),
+               starts_with("YS"),
+               starts_with("X"))
+
+```
 
 ## Output Data
+```{r}
+# trial 48
+write_csv(df48_cluster, "cleaned_data/trial48.csv")
+write_rds(df48_cluster, "cleaned_data/trial48.rds")
 
+write_csv(df48_final, "cleaned_data/Clustered_RCT/cluster48.csv")
+write_rds(df48_final, "cleaned_data/Clustered_RCT/cluster48.rds")
+```
 
 # Trial 49
 ## Load Data
+```{r}
+df49 = read_csv2("raw_data/49/49_old.csv",  locale = locale(encoding = "Latin1"))
+```
 
 ## Cleaning
+```{r}
+df49_final = df49 %>% 
+  rename(Treatment = Random) %>%                       # README: 1 = intervention, 2 = control :contentReference[oaicite:7]{index=7}
+  mutate(
+    Treatment = factor(Treatment,
+                       levels = c(2, 1),
+                       labels = c("Control", "OralStimulation")),
+    Treatment = relevel(Treatment, ref = "Control")
+  ) %>%
+  
+  ## ─── 3) Drop ID column ──────────────────────────────────────────────────────
+  select(-id) %>%
+  
+  ## ─── 4) Primary outcomes (YP_) ──────────────────────────────────────────────
+  rename(
+    YP_prof      = prof,        # proficiency – primary EF endpoint :contentReference[oaicite:8]{index=8}
+    YP_txtr      = txtr,        # transfer-rate                          :contentReference[oaicite:9]{index=9}
+    YP_da        = da,          # overall transfer                       :contentReference[oaicite:10]{index=10}
+    YS_t_sondad  = t_sondad     # transition-time days                   :contentReference[oaicite:11]{index=11},
+    
+  ) %>%
+  
+  ## ─── 5) Secondary outcomes (YS_) ────────────────────────────────────────────
+  rename(
+    YS_OFS_level1 = `nível1`,
+    YS_OFS_level2 = `nível2`,
+    YS_OFS_level3 = `nível3`,
+    YS_OFS_level4 = `nível4`,
+    YS_length_stay = internad
+  ) %>%
+  # daily oral-volume trajectory (D11–D18 → 1d–8d)
+  rename_with(~ str_replace_all(.x, c(
+      "^d11$" = "YS_volume_1d",
+      "^d12$" = "YS_volume_2d",
+      "^d13$" = "YS_volume_3d",
+      "^d14$" = "YS_volume_4d",
+      "^d15$" = "YS_volume_5d",
+      "^d16$" = "YS_volume_6d",
+      "^d17$" = "YS_volume_7d",
+      "^d18$" = "YS_volume_8d"
+  )), .cols = matches("^d1[1-8]$")) %>%                    # :contentReference[oaicite:12]{index=12}
+  
+  ## ─── 6) Covariates (X_)  ───────────────────────────────────────────────────
+  rename(
+    X_sex_0d            = sexo,
+    X_gestAge_0w        = ig,
+    X_birthWt_0d        = pn,
+    X_Apgar5_0d         = apgar_5,
+    X_Apgar10_0d        = apgar_10,
+    X_MechVent_0d       = vm,
+    X_NIMechVent_0d     = vmni,
+    X_CPAP_0d           = cpap,
+    X_SGA_0d            = pig,
+    X_AGA_0d            = aig,
+    X_RDS_0d            = sdr,
+    X_CPAP_prog_0d      = cpap_prog,
+    X_Caffeine_0d       = cafe_aval,
+    X_PMA_assess_0w     = igc_aval,
+    X_Wt_assess_0d      = peso_aval,
+    X_NGT_0d            = sng,
+    X_OGT_0d            = sog,
+    X_OGT_Kangaroo_0d   = sogc,
+    X_start_oral_0d     = start_oral,
+    YS_full_oral      = full_oral,
+    X_PMA_fullFeeds_0w  = igc_vo_plena,
+    X_PMA_discharge_0w  = igc_alta,
+    X_fullBF_discharge_0d = smec_alta,
+    X_Wt_discharge_0d   = peso_alta,
+    X_HR_0d     = fc_incial,
+    X_O2sat_0d    = sat_ini,
+    YS_HR_final = fc_final,
+    X_O2sat_final    = sat_final,
+  ) %>%
+  mutate(
+    across(
+      c(X_sex_0d, X_MechVent_0d, YS_OFS_level1, YS_OFS_level2, YS_OFS_level3,
+        YS_OFS_level4, X_NIMechVent_0d, X_CPAP_0d, X_SGA_0d, X_AGA_0d), 
+      as_factor
+    )
+  ) %>% 
+mutate(across(
+    where(~ n_distinct(.) == 2),
+    ~ factor(.)
+  )) %>% 
+  
+  ## ─── 8) Re-order columns  ──────────────────────────────────────────────────
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),   # none in this set but keeps ordering rule
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
+```{r}
+# trial 49
+write_csv(df49_final, "cleaned_data/trial49.csv")
+write_rds(df49_final, "cleaned_data/trial49.rds")
+```
 
 # Trial 50
 ## Load Data
+```{r}
+df50 = read_xlsx("raw_data/50/50.xlsx", na=c("."))
+```
 
 ## Cleaning
+```{r}
+df50_final = df50 %>% 
+  rename(
+    Treatment = Stim,               # 1 = Emotional video, 2 = Assessment
+    ClusterID = Gruppe              # teaching cluster of 10–12 students
+  ) %>%
+  mutate(
+    Treatment = factor(Treatment,
+                       levels = c(2, 1),
+                       labels = c("Assessment", "EmotionalVideo")),
+    Treatment = relevel(Treatment, ref = "Assessment"),
+    ClusterID = factor(ClusterID)
+  ) %>%
+  # Primary outcomes (depth & rate at 1-week, T2)
+  rename(
+    YP_depth_1w = mDT_mm2,          # mean compression depth (T2)
+    YP_rate_1w  = mFreq2            # mean compression rate  (T2)
+  ) %>%
+  # Baseline (T1) → covariates
+  rename(
+    X_depth_0w = mDT_mm1,           # baseline depth
+    X_rate_0w  = mFreq1             # baseline rate
+  ) %>%
+  # 6-month follow-up (T3) → post-YP
+  rename(
+    post_YP_depth_6m = mDT_mm3,     # depth 6 m
+    post_YP_rate_6m  = mFreq3       # rate  6 m
+  ) %>%
+  # Key secondary quality endpoints
+  rename(
+    YS_depthPctOK_1w = K_DTk2_percent,   # % comps correct depth, T2
+    YS_rateQual_1w   = mFreq2_korr2,     # 0/1/2 quality code, T2
+    YS_depthPctOK_6m = K_DTk3_percent,   # % comps correct depth, T3
+    YS_rateQual_6m   = mFreq3_korr3      # 0/1/2 quality code, T3
+  ) %>%
+  rename(
+    X_age_0y                = Age,   # age in yrs
+    X_sex_0d                = Sex,   # 1 = ♀, 2 = ♂
+    X_priorMedKnow_0d       = Vorw   # 1 = without, 2 = with
+  ) %>%
+  mutate(
+    X_sex_0d          = factor(X_sex_0d, levels = c(1, 2),
+                               labels = c("Female", "Male")),
+    X_priorMedKnow_0d = factor(X_priorMedKnow_0d, levels = c(1, 2),
+                               labels = c("No", "Yes"))
+  ) %>%
+  # character → factor
+  mutate(across(where(is.character) &
+                  !starts_with("YP_") & !starts_with("YS_"),
+                factor)) %>%
+  # numeric 0/1 or 2-level → factor
+  {
+    num = names(.)[sapply(., is.numeric)]
+    bin = num[sapply(.[num], \(x) n_distinct(na.omit(x)) == 2)]
+    mutate(., across(all_of(bin), factor))
+  } %>%
+  select(
+    ClusterID,
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+df50_cluster =
+  df50_final %>%
+  group_by(ClusterID) %>%
+  summarise(
+    across(where(is.numeric), mean, na.rm = TRUE),
+    across(where(is.factor),  ~ Mode(.x, na.rm = TRUE)[1]),
+    .groups = "drop"
+  ) %>%
+  select(
+    ClusterID,
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+```
 
 ## Output Data
 
+```{r}
+# trial 50
+write_csv(df50_cluster, "cleaned_data/trial50.csv")
+write_rds(df50_cluster, "cleaned_data/trial50.rds")
+
+write_csv(df50_final, "cleaned_data/Clustered_RCT/cluster50.csv")
+write_rds(df50_final, "cleaned_data/Clustered_RCT/cluster50.rds")
+```
 
 # test
-```{r}
-str(df36_final)
-```
+
 
 
 

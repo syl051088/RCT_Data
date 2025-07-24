@@ -293,6 +293,7 @@ analyze_rct = function(df,
       Outcome = rep(outcome, n_treat),
       Treatment = treatment_levels,
       Control = rep(control_level, n_treat),
+      N = rep(nrow(df_complete), n_treat),
       # Unadjusted
       Est_UN = coef_unadj[treat_idx_unadj, 1],
       SE_UN = coef_unadj[treat_idx_unadj, 2],
@@ -346,6 +347,7 @@ analyze_rct = function(df,
     # Reorder columns
     select(
       Outcome,
+      N,
       Treatment,
       Control,
       Est_RC,
@@ -360,6 +362,7 @@ analyze_rct = function(df,
   
   return(final_results)
 }
+
 ```
 
 ## update_df()
@@ -384,6 +387,7 @@ update_df = function(trial_no,
     left_join(outcome_type_map, by = "Outcome") %>%
     mutate(
       Trial_No = trial_no,
+      Sample_Size = as.numeric(N),
       Contrast = contrast,
       ANCOVA_est = Est_RC,
       ANCOVA_robust_se = SE_RC,
@@ -405,6 +409,7 @@ update_df = function(trial_no,
     ) %>%
     select(
       Trial_No,
+      Sample_Size,
       Treatment,
       Control,
       Contrast,
@@ -446,7 +451,6 @@ update_df = function(trial_no,
 }
 ```
 
-
 # Trial 1
 
 ## Load Data
@@ -461,7 +465,6 @@ results = analyze_rct(df1)
 
 df_comparison = update_df(1, rep("continuous", 15))
 ```
-
 
 # Trial 2
 
@@ -1286,6 +1289,68 @@ n = length(unique(results$Outcome))
 df_comparison = update_df(47, c(rep("binary", n)))
 ```
 
+# Trial 48
+## Load Data
+
+```{r}
+df48 = read_rds("cleaned_data/trial48.rds") %>% 
+  select(-YP_ap_ws_5m, -YP_ew_ss_5m, -YP_EF3_RT_5m, -YP_EF3_perccorr_5m, -YS_fb_p2_percCorr_5m, -YS_ravens_sum_score_5m, -YS_RCN_MeanTime_R_5m, -YS_Time1_h_5m)
+```
+
+
+
+## Process
+
+```{r}
+results = analyze_rct(df48)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(48, c(rep("continuous", n)))
+```
+
+
+# Trial 49
+## Load Data
+
+```{r}
+df49 = read_rds("cleaned_data/trial49.rds") %>% 
+    select(-YS_t_sondad, -YS_full_oral)
+```
+
+
+
+## Process
+
+```{r}
+results = analyze_rct(df49)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("continuous", 9)))
+```
+
+
+# Trial 50
+## Load Data
+
+```{r}
+df50 = read_rds("cleaned_data/trial50.rds")
+```
+
+
+
+## Process
+
+```{r}
+results = analyze_rct(df50)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(50, rep("continuous", n))
+```
+
+
 
 # Export
 
@@ -1359,11 +1424,31 @@ print(df_summary)
 ## Violin Plot
 
 ```{r}
-# 1. Precision Gain Plot (ANCOVA)
+# Create sample size categories for better visualization
+df_new <- df_new %>%
+  mutate(
+    sample_size_cat = case_when(
+      Sample_Size < 50 ~ "Small (<50)",
+      Sample_Size < 100 ~ "Medium (50-99)", 
+      Sample_Size < 500 ~ "Large (100-499)",
+      TRUE ~ "Very Large (≥500)"
+    ),
+    sample_size_cat = factor(sample_size_cat, 
+                           levels = c("Small (<50)", "Medium (50-99)", "Large (100-499)", "Very Large (≥500)")),
+    # Log-transform for size mapping (less skewed)
+    log_sample_size = log10(Sample_Size)
+  )
+
+# Color palette for sample size categories
+size_colors <- c("Small (<50)" = "#d73027", "Medium (50-99)" = "#fc8d59", 
+                "Large (100-499)" = "#91bfdb", "Very Large (≥500)" = "#4575b4")
+
+# 1. Precision Gain Plot (ANCOVA) - Using color instead of size
 ggplot(df_new, aes(x = outcome_group, y = precision_gain_AC)) +
   geom_violin(trim = FALSE, fill = "lightblue", alpha = 0.6) +
-  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
   labs(
     title = "ANCOVA vs Unadjusted Precision Gain",
     x = "Outcome Group",
@@ -1374,11 +1459,12 @@ ggplot(df_new, aes(x = outcome_group, y = precision_gain_AC)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 
-# 2. Point Estimate Difference Plot (ANCOVA)
+# 2. Point Estimate Difference Plot (ANCOVA) - Using color
 ggplot(df_new, aes(x = outcome_group, y = point_est_diff_AC)) +
   geom_violin(trim = FALSE, fill = "lightgreen", alpha = 0.6) +
-  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
   labs(
     title = "Unadjusted vs ANCOVA Point Estimate Difference",
     x = "Outcome Group",
@@ -1389,11 +1475,12 @@ ggplot(df_new, aes(x = outcome_group, y = point_est_diff_AC)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 
-# 3. Variance Estimator Difference Plot (ANCOVA)
+# 3. Variance Estimator Difference Plot (ANCOVA) - Using color
 ggplot(df_new, aes(x = outcome_group, y = variance_ratio_AC)) +
   geom_violin(trim = FALSE, fill = "lightcoral", alpha = 0.6) +
-  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
   labs(
     title = "Robust vs Model-Based Variance Ratio (ANCOVA)",
     x = "Outcome Group",
@@ -1408,11 +1495,12 @@ ggplot(df_new, aes(x = outcome_group, y = variance_ratio_AC)) +
 ## Super Learner Plots
 ##################################
 
-# 4. Precision Gain Plot (Super Learner)
+# 4. Precision Gain Plot (Super Learner) - Using color
 ggplot(df_new, aes(x = outcome_group, y = precision_gain_SL)) +
   geom_violin(trim = FALSE, fill = "lightcyan", alpha = 0.6) +
-  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
   labs(
     title = "Super Learner vs Unadjusted Precision Gain",
     x = "Outcome Group",
@@ -1423,14 +1511,15 @@ ggplot(df_new, aes(x = outcome_group, y = precision_gain_SL)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 
-# 5. Precision Gain Plot (Super Learner, High Outliers Removed)
+# 5. Precision Gain Plot (Super Learner, High Outliers Removed) - Using color
 ggplot(df_new %>%
          filter(precision_gain_SL <= 
                   quantile(precision_gain_SL, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_SL, na.rm = TRUE)),
        aes(x = outcome_group, y = precision_gain_SL)) +
   geom_violin(trim = FALSE, fill = "lightcyan", alpha = 0.6) +
-  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
   labs(
     title = "Super Learner vs Unadjusted Precision Gain \n(High Outliers Removed)",
     x = "Outcome Group",
@@ -1441,11 +1530,12 @@ ggplot(df_new %>%
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 
-# 6. Point Estimate Difference Plot (Super Learner)
+# 6. Point Estimate Difference Plot (Super Learner) - Using color
 ggplot(df_new, aes(x = outcome_group, y = point_est_diff_SL)) +
   geom_violin(trim = FALSE, fill = "lightpink", alpha = 0.6) +
-  geom_jitter(width = 0.15, alpha = 0.4, color = "black") +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
   labs(
     title = "Unadjusted vs Super Learner Point Estimate Difference",
     x = "Outcome Group",

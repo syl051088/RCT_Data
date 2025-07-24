@@ -2244,3 +2244,147 @@ update_bench = function(trial_no,
 }
 ```
 
+# analyze_RCT()
+```{r}
+analyze_rct = function(df,
+                       outcome_cols = NULL,
+                       covariate_col = NULL,
+                       treatment_col = "Treatment",
+                       adj_method = "ANCOVA",
+                       K = 5,
+                       SL_methods = c("SL.glm", "SL.rpart", "SL.ranger", "SL.mean", "SL.nnet"),
+                       n_cores = parallel::detectCores() - 2,
+                       seed = 123) {
+
+  require(dplyr)
+  require(RobinCar)
+  require(tidyr)
+  require(DescTools)
+
+  set.seed(seed)
+
+  ## ── 1. Detect outcomes ─────────────────────────────────────────────────────
+  if (is.null(outcome_cols)) {
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+
+    ys_valid = ys_cols[
+      sapply(df[ys_cols], \(x) is.numeric(x) || (is.factor(x) && nlevels(x) == 2))
+    ]
+
+    outcome_cols = c(yp_cols, ys_valid)
+    cat("Auto-detected", length(outcome_cols), "outcome columns:",
+        paste(outcome_cols, collapse = ", "), "\n")
+  }
+
+  ## ── 2. Assemble covariates ─────────────────────────────────────────────────
+  covariates = if (is.null(covariate_col)) {
+    tmp = names(df)[startsWith(names(df), "X_")]
+    if ("n_participants" %in% names(df)) tmp = c(tmp, "n_participants")
+    tmp
+  } else covariate_col
+
+  ## fill missing in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~
+      if (is.numeric(.x)) replace(.x, is.na(.x), mean(.x, na.rm = TRUE))
+      else if (is.factor(.x)) replace(.x, is.na(.x), Mode(.x, na.rm = TRUE)[1])
+    ))
+
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+
+  ## ── 3. Loop over outcomes ──────────────────────────────────────────────────
+  all_results = list()
+  for (outcome in outcome_cols) {
+
+    ## skip if >30 % missing
+    if ((missing_prop <- mean(is.na(df[[outcome]]))) > 0.30) {
+      cat("REMOVED outcome:", outcome, "- Missing proportion:",
+          round(missing_prop, 3), "(> 0.3)\n")
+      next
+    }
+
+    complete_vars = c(outcome, treatment_col, covariates)
+    idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[idx, , drop = FALSE]
+    N = nrow(df_complete)         # <── NEW
+
+    cat("Outcome:", outcome, "- Sample size:", N,
+        "(", nrow(df) - N, "rows removed)\n")
+
+    ## remove degenerate factors
+    valid_covariates = covariates[
+      !sapply(covariates, \(cov)
+        is.factor(df_complete[[cov]]) &&
+        nlevels(droplevels(df_complete[[cov]])) <= 1)
+    ]
+
+    df_complete[[outcome]] = as.numeric(df_complete[[outcome]])
+
+    ## unadjusted & ANCOVA
+    coef_unadj  = coef(summary(lm(reformulate(treatment_col, outcome), df_complete)))
+    coef_ancova = coef(summary(lm(reformulate(c(treatment_col, valid_covariates),
+                                              outcome), df_complete)))
+    treat_idx_unadj  = which(startsWith(rownames(coef_unadj),  treatment_col))
+    treat_idx_ancova = which(startsWith(rownames(coef_ancova), treatment_col))
+
+    ## packaging results
+    n_treat = length(treat_idx_unadj)
+    treatment_levels = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
+
+    outcome_res = tibble(
+      Outcome   = rep(outcome, n_treat),
+      N         = rep(N,       n_treat),          # <── NEW COLUMN
+      Treatment = treatment_levels,
+      Control   = rep(control_level, n_treat),
+      Est_RC = NA_real_, SE_RC = NA_real_,        # place-holders
+      Est_AC = coef_ancova[treat_idx_ancova, 1],
+      SE_AC  = coef_ancova[treat_idx_ancova, 2],
+      Est_UN = coef_unadj[treat_idx_unadj, 1],
+      SE_UN  = coef_unadj[treat_idx_unadj, 2],
+      Est_SL = NA_real_, SE_SL = NA_real_
+    )
+
+    ## RobinCar
+    rc_fit = suppressWarnings(
+      robincar_linear(df_complete, treatment_col, outcome,
+                      covariate_cols = valid_covariates,
+                      adj_method = adj_method, contrast_h = "diff")
+    )
+    rc_out = rc_fit$contrast$result
+    outcome_res$Est_RC = rc_out$estimate
+    outcome_res$SE_RC  = rc_out$se
+
+    ## SuperLearner (wrapper not shown)
+    sl_res = analyze_rct_sl(
+      data = df_complete,
+      outcome_cols = outcome,
+      covariate_cols = valid_covariates,
+      treatment_col = treatment_col,
+      reference_arm = control_level,
+      K = K,
+      SL_methods = SL_methods,
+      n_cores = n_cores
+    )
+    outcome_res$Est_SL = sl_res$Est_SL
+    outcome_res$SE_SL  = sl_res$SE_SL
+
+    all_results[[length(all_results) + 1]] = outcome_res
+  }
+
+  if (length(all_results) == 0) stop("No valid outcomes remaining.")
+
+  ## ── 4. Combine & polish ────────────────────────────────────────────────────
+  final_results = bind_rows(all_results) %>%
+    mutate(across(starts_with("Est_"), round, 5),
+           across(starts_with("SE_"),  round, 5)) %>%
+    select(Outcome, N, Treatment, Control,
+           Est_RC, SE_RC, Est_AC, SE_AC,
+           Est_UN, SE_UN, Est_SL, SE_SL)
+
+  return(final_results)
+}
+```
+
+
