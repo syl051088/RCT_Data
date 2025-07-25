@@ -2387,4 +2387,7 @@ analyze_rct = function(df,
 }
 ```
 
+```{r}
+str(dfc1_cluster)
+```
 

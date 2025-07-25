@@ -26,7 +26,7 @@ library(DescTools)
 ## Load Data
 ```{r}
 # trial 1
-df1_sheets = import_list("raw_data/1/1.xlsx")
+df1_sheets = import_list("raw_data/Non_Clustered_RCT/1/1.xlsx")
 
 df1_base = df1_sheets[[1]]
 df1_4m = df1_sheets[[2]]
@@ -141,15 +141,15 @@ df1_final = df1_combined %>%
 ## Output Data
 ```{r}
 # write trial 1
-write_csv(df1_final, "cleaned_data/trial1.csv")
-write_rds(df1_final, "cleaned_data/trial1.rds")
+write_csv(df1_final, "cleaned_data/Non_Clustered_RCT/trial1.csv")
+write_rds(df1_final, "cleaned_data/Non_Clustered_RCT/trial1.rds")
 ```
 
 # Trial 2
 ## Load Data
 ```{r}
 # trial 2
-df2 = read_sav("raw_data/2/2.sav")
+df2 = read_sav("raw_data/Non_Clustered_RCT/2/2.sav")
 ```
 
 
@@ -214,15 +214,15 @@ df2_final = df2 %>%
 ## Output Data
 ```{r}
 # write trial 2
-write_csv(df2_final, "cleaned_data/trial2.csv")
-write_rds(df2_final, "cleaned_data/trial2.rds")
+write_csv(df2_final, "cleaned_data/Non_Clustered_RCT/trial2.csv")
+write_rds(df2_final, "cleaned_data/Non_Clustered_RCT/trial2.rds")
 ```
 
 # Trial 3
 ## Load Data
 ```{r}
 # trial 3
-df3 = read_csv("raw_data/3/3.csv")
+df3 = read_csv("raw_data/Non_Clustered_RCT/3/3.csv")
 ```
 
 
@@ -323,8 +323,8 @@ df3_final = df3 %>%
 ## Output Data
 ```{r}
 # wrtie trial 3
-write_csv(df3_final, "cleaned_data/trial3.csv")
-write_rds(df3_final, "cleaned_data/trial3.rds")
+write_csv(df3_final, "cleaned_data/Non_Clustered_RCT/trial3.csv")
+write_rds(df3_final, "cleaned_data/Non_Clustered_RCT/trial3.rds")
 ```
 
 
@@ -333,7 +333,7 @@ write_rds(df3_final, "cleaned_data/trial3.rds")
 ## Load Data
 ```{r}
 # trial 4
-df4 = read_xlsx("raw_data/4/4.xlsx")
+df4 = read_xlsx("raw_data/Non_Clustered_RCT/4/4.xlsx")
 ```
 
 ## Cleaning
@@ -391,14 +391,14 @@ df4_final = df4 %>%
 ## Output Data
 ```{r}
 # write trial 4
-write_csv(df4_final, "cleaned_data/trial4.csv")
-write_rds(df4_final, "cleaned_data/trial4.rds")
+write_csv(df4_final, "cleaned_data/Non_Clustered_RCT/trial4.csv")
+write_rds(df4_final, "cleaned_data/Non_Clustered_RCT/trial4.rds")
 ```
 
 # Trial 5
 ## Load Data
 ```{r}
-df5 = read_csv("raw_data/5/5.csv", na = c("", "NaN"))
+df5 = read_csv("raw_data/Non_Clustered_RCT/5/5.csv", na = c("", "NaN"))
 ```
 
 ## Cleaning
@@ -487,17 +487,17 @@ df5_final = df5 %>%
 ## Output Data
 ```{r}
 # write trial 5
-write_csv(df5_final, "cleaned_data/trial5.csv")
-write_rds(df5_final, "cleaned_data/trial5.rds")
+write_csv(df5_final, "cleaned_data/Non_Clustered_RCT/trial5.csv")
+write_rds(df5_final, "cleaned_data/Non_Clustered_RCT/trial5.rds")
 ```
 
 # Trial 6
 ## Load Data
 ```{r}
 # trial 6
-df6_alloc = read_excel("raw_data/6/6.xlsx", sheet = "1. Allocation")
-df6_imt   = read_excel("raw_data/6/6.xlsx", sheet = "2. IMT")
-df6_other = read_excel("raw_data/6/6.xlsx", sheet = "3. Other data")
+df6_alloc = read_excel("raw_data/Non_Clustered_RCT/6/6.xlsx", sheet = "1. Allocation")
+df6_imt   = read_excel("raw_data/Non_Clustered_RCT/6/6.xlsx", sheet = "2. IMT")
+df6_other = read_excel("raw_data/Non_Clustered_RCT/6/6.xlsx", sheet = "3. Other data")
 ```
 
 
@@ -601,8 +601,8 @@ df6_final = df6 %>%
 ## Output Data
 ```{r}
 # write trial 6
-write_csv(df6_final, "cleaned_data/trial6.csv")
-write_rds(df6_final, "cleaned_data/trial6.rds")
+write_csv(df6_final, "cleaned_data/Non_Clustered_RCT/trial6.csv")
+write_rds(df6_final, "cleaned_data/Non_Clustered_RCT/trial6.rds")
 ```
 
 
@@ -610,7 +610,7 @@ write_rds(df6_final, "cleaned_data/trial6.rds")
 ## Load Data
 ```{r}
 # trial 7
-df7 = read_excel("raw_data/7/7.xlsx", sheet = "Standard Scores")
+df7 = read_excel("raw_data/Non_Clustered_RCT/7/7.xlsx", sheet = "Standard Scores")
 ```
 
 
@@ -675,15 +675,15 @@ df7_final = df7 %>%
 ## Output Data
 ```{r}
 # write trial 7
-write_csv(df7_final, "cleaned_data/trial7.csv")
-write_rds(df7_final, "cleaned_data/trial7.rds")
+write_csv(df7_final, "cleaned_data/Non_Clustered_RCT/trial7.csv")
+write_rds(df7_final, "cleaned_data/Non_Clustered_RCT/trial7.rds")
 ```
 
 # Trial 8
 ## Load Data
 ```{r}
 # trial 8
-df8 = read_xlsx("raw_data/8/8.xlsx", na = c("Result N/A", "N/A", "EXCLUDED"))
+df8 = read_xlsx("raw_data/Non_Clustered_RCT/8/8.xlsx", na = c("Result N/A", "N/A", "EXCLUDED"))
 ```
 
 
@@ -763,14 +763,14 @@ df8_final = df8 %>%
 ## Output Data
 ```{r}
 # write trial 8
-write_csv(df8_final, "cleaned_data/trial8.csv")
-write_rds(df8_final, "cleaned_data/trial8.rds")
+write_csv(df8_final, "cleaned_data/Non_Clustered_RCT/trial8.csv")
+write_rds(df8_final, "cleaned_data/Non_Clustered_RCT/trial8.rds")
 ```
 
 # Trial 9
 ## Load Data
 ```{r}
-df9 = read_sav("raw_data/9/9.sav")
+df9 = read_sav("raw_data/Non_Clustered_RCT/9/9.sav")
 ```
 
 ## Cleaning
@@ -912,8 +912,8 @@ df9_final = df9 %>%
 ## Output Data
 ```{r}
 # trial 9
-write_csv(df9_final, "cleaned_data/trial9.csv")
-write_rds(df9_final, "cleaned_data/trial9.rds")
+write_csv(df9_final, "cleaned_data/Non_Clustered_RCT/trial9.csv")
+write_rds(df9_final, "cleaned_data/Non_Clustered_RCT/trial9.rds")
 ```
 
 
@@ -921,10 +921,10 @@ write_rds(df9_final, "cleaned_data/trial9.rds")
 ## Load Data
 ```{r}
 # trial 10
-df10_patients = read_xlsx("raw_data/10/10.xlsx", sheet = 2)
-df10_intubation = read_xlsx("raw_data/10/10.xlsx", sheet = 3)
-df10_anaes = read_xlsx("raw_data/10/10.xlsx", sheet = 4)
-df10_postop = read_xlsx("raw_data/10/10.xlsx", sheet = 5)
+df10_patients = read_xlsx("raw_data/Non_Clustered_RCT/10/10.xlsx", sheet = 2)
+df10_intubation = read_xlsx("raw_data/Non_Clustered_RCT/10/10.xlsx", sheet = 3)
+df10_anaes = read_xlsx("raw_data/Non_Clustered_RCT/10/10.xlsx", sheet = 4)
+df10_postop = read_xlsx("raw_data/Non_Clustered_RCT/10/10.xlsx", sheet = 5)
 ```
 
 
@@ -1044,8 +1044,8 @@ df10_final = df10_all %>%
 ## Output Data
 ```{r}
 # trial 10
-write_csv(df10_final, "cleaned_data/trial10.csv")
-write_rds(df10_final, "cleaned_data/trial10.rds")
+write_csv(df10_final, "cleaned_data/Non_Clustered_RCT/trial10.csv")
+write_rds(df10_final, "cleaned_data/Non_Clustered_RCT/trial10.rds")
 ```
 
 
@@ -1053,7 +1053,7 @@ write_rds(df10_final, "cleaned_data/trial10.rds")
 ## Load Data
 ```{r}
 # trial 11
-df11 = read_csv("raw_data/11/11.csv") %>% clean_names()
+df11 = read_csv("raw_data/Non_Clustered_RCT/11/11.csv") %>% clean_names()
 ```
 
 ## Cleaning
@@ -1123,142 +1123,77 @@ df11_final = df11 %>%
 ## Output Data
 ```{r}
 # trial 11
-write_csv(df11_final, "cleaned_data/trial11.csv")
-write_rds(df11_final, "cleaned_data/trial11.rds")
+write_csv(df11_final, "cleaned_data/Non_Clustered_RCT/trial11.csv")
+write_rds(df11_final, "cleaned_data/Non_Clustered_RCT/trial11.rds")
 ```
 
 
 # Trial 12
 ## Load Data
 ```{r}
-df12 = read_csv("raw_data/12/12.csv")
+df12 = read_csv("raw_data/Non_Clustered_RCT/12/12.csv", na=c("."))
 ```
 
 
 ## Cleaning
 ```{r}
 df12_final = df12 %>%
-  rename(
-    ClusterID               = cluster,
-    Treatment             = treatment,
-    
-    # Baseline covariates (0 months or 0 days)
-    X_age_0m              = age_months,
-    X_sex_0m                 = sex,
-    X_bornearly_0m           = bornearly,
-    X_mother_age_cat_0m      = motherage_bl_cat,
-    X_hh_members_cat_0m      = hhmembers_cat,
-    X_father_primary_0m      = father_primary,
-    X_mother_primary_0m      = mother_primary,
-    X_wealth_quintile_0m     = aq,
-    X_distance_0m         = km,
-    X_cluster_population_0m  = pop,
-    X_haz_0m              = haz_bl,
-    X_waz_0m              = waz_bl,
-    X_whz_0m              = whz_bl,
-    X_SRQ_0m              = SRQ_bl
-  ) %>%
+  ## 2a. Treatment (control = single-blind) ------------------------------------
   mutate(
-    # Co-primary outcomes (YP_)
-    YP_stunting_24m       = as.integer(haz06 < -2),
-    YP_cog_composite_24m  = cog_composite,
-    YP_lang_composite_24m = lang_composite,
-    YP_motor_composite_24m = motor_composite,
-    YP_se_composite_24m   = se_composite,
-    YP_ab_composite_24m   = ab_composite,
-    # Secondary outcomes (YS_)
-    YS_haz06_24m                     = haz06,
-    YS_diet_diversity_24m            = rowSums(select(., matches("^e[1-7]$")), na.rm = TRUE),
-    YS_caregiver_child_interaction_24m = rowMeans(select(., matches("^MICS_.*_sb2$")), na.rm = TRUE)
+    Treatment = factor(
+      Treatment,
+      levels = c("SingleBlind", "DoubleBlind"),
+      labels = c("SingleBlind", "DoubleBlind")
+    ),
+    Treatment = relevel(Treatment, ref = "SingleBlind")
   ) %>%
-  mutate(
-    Treatment = factor(Treatment, levels = c(0, 1), labels = c("Usual Care", "Early Childhood Development"))
-  ) %>%
-  select(
-    ClusterID,
-    Treatment,
-    starts_with("YP_"),
-    starts_with("pre_YP_"),  # none here but placeholder
-    starts_with("post_YP_"), # none here but placeholder
-    starts_with("YS_"),
-    starts_with("X_")
-  )
 
-# 3. Cluster-level aggregation with same ordering and no 'mean_' prefixes
-df12_cluster = df12_final %>%
-  group_by(ClusterID, Treatment) %>%
-  summarise(
-    n_participants = n(),
-    
-    # Co-primary outcomes
-    YP_stunting_24m        = Mode(YP_stunting_24m, na.rm = TRUE),
-    YP_cog_composite_24m   = mean(YP_cog_composite_24m,   na.rm = TRUE),
-    YP_lang_composite_24m  = mean(YP_lang_composite_24m,  na.rm = TRUE),
-    YP_motor_composite_24m = mean(YP_motor_composite_24m, na.rm = TRUE),
-    YP_se_composite_24m    = mean(YP_se_composite_24m,    na.rm = TRUE),
-    YP_ab_composite_24m    = mean(YP_ab_composite_24m,    na.rm = TRUE),
-    
-    # Secondary outcomes
-    YS_haz06_24m                       = mean(YS_haz06_24m,                     na.rm = TRUE),
-    YS_diet_diversity_24m              = mean(YS_diet_diversity_24m,            na.rm = TRUE),
-    YS_caregiver_child_interaction_24m = mean(YS_caregiver_child_interaction_24m, na.rm = TRUE),
-    
-    # Baseline numeric covariates
-    X_age_0m             = mean(X_age_0m,            na.rm = TRUE),
-    X_hh_members_cat_0m     = mean(X_hh_members_cat_0m,    na.rm = TRUE),
-    X_wealth_quintile_0m    = mean(X_wealth_quintile_0m,   na.rm = TRUE),
-    X_distance_0m           = mean(X_distance_0m,          na.rm = TRUE),
-    X_cluster_population_0m = mean(X_cluster_population_0m,na.rm = TRUE),
-    X_haz_0m             = mean(X_haz_0m,            na.rm = TRUE),
-    X_waz_0m             = mean(X_waz_0m,            na.rm = TRUE),
-    X_whz_0m             = mean(X_whz_0m,            na.rm = TRUE),
-    X_SRQ_0m             = mean(X_SRQ_0m,            na.rm = TRUE),
-    
-    # Baseline factor covariates
-    X_sex_0m              = Mode(X_sex_0m, na.rm = TRUE),
-    X_bornearly_0m        = Mode(X_bornearly_0m, na.rm = TRUE),
-    X_mother_age_cat_0m   = Mode(X_mother_age_cat_0m, na.rm = TRUE),
-    X_father_primary_0m   = Mode(X_father_primary_0m, na.rm = TRUE),
-    X_mother_primary_0m   = Mode(X_mother_primary_0m, na.rm = TRUE)
+  ## 2b. Outcomes & covariates -------------------------------------------------
+  mutate(
+    # -- Primary outcome
+    YP_ReviewScore                 = ReviewScore_Mean,
+
+    # -- Secondary outcomes
+    YS_PaperReviewed               = factor(PaperReviewed),
+    YS_RevisionInvited             = factor(RevisionInvited),
+    YS_ResubInvited                = factor(ResubInvited),
+    YS_RevOrResubInvited           = factor(RevOrResubInvited),
+    YS_NumberReviewsCompleted      = NumberReviewsCompleted,
+
+    # -- Baseline covariates (suffix “_0w”)
+    X_Year_0w                      = Year,
+    X_AuthorGender_0w              = factor(AuthorGender),
+    X_AuthorHDICat_0w              = factor(AuthorHDICat),
+    X_AuthorEnglish_0w             = factor(AuthorEnglish)
   ) %>%
-  ungroup() %>%
+
+  ## 2c. Drop the ID column ----------------------------------------------------
+  select(-ManuscriptID) %>%
+
+  ## 2e. Order columns as required --------------------------------------------
   select(
-    ClusterID,
     Treatment,
-    n_participants,
     starts_with("YP_"),
     starts_with("pre_YP_"),
     starts_with("post_YP_"),
     starts_with("YS_"),
     starts_with("X_")
   )
-
-df12_final = df12_final %>% 
-  mutate(
-    across(c(YP_stunting_24m, X_sex_0m, X_bornearly_0m, X_mother_age_cat_0m, 
-             X_father_primary_0m, X_mother_primary_0m), as_factor)
-  )
-
-df12_cluster = df12_cluster %>% 
-  mutate(
-    across(c(YP_stunting_24m, X_sex_0m, X_bornearly_0m, X_mother_age_cat_0m, X_mother_primary_0m), as_factor)
-  )
 ```
+
+
 ## Output Data
 ```{r}
 # trial 12
-write_csv(df12_cluster, "cleaned_data/trial12.csv")
-write_rds(df12_cluster, "cleaned_data/trial12.rds")
-
-write_csv(df12_final, "cleaned_data/Clustered_RCT/cluster12.csv")
-write_rds(df12_final, "cleaned_data/Clustered_RCT/cluster12.rds")
+write_csv(df12_final, "cleaned_data/Non_Clustered_RCT/trial12.csv")
+write_rds(df12_final, "cleaned_data/Non_Clustered_RCT/trial12.rds")
 ```
 
 
 # Trial 13
 ## Load Data
 ```{r}
-df13 = read_sav("raw_data/13/13.sav")
+df13 = read_sav("raw_data/Non_Clustered_RCT/13/13.sav")
 ```
 ## Cleaning
 ```{r}
@@ -1323,16 +1258,16 @@ df13_final = df13 %>%
 ## Output Data
 ```{r}
 # trial 13
-write_csv(df13_final, "cleaned_data/trial13.csv")
-write_rds(df13_final, "cleaned_data/trial13.rds")
+write_csv(df13_final, "cleaned_data/Non_Clustered_RCT/trial13.csv")
+write_rds(df13_final, "cleaned_data/Non_Clustered_RCT/trial13.rds")
 ```
 
 
 # Trial 14
 ## Load Data
 ```{r}
-df14_ae = read_csv("raw_data/14/TERECO_Public_Data_ae_long.csv")
-df14_wide = read_csv("raw_data/14/TERECO_Public_Data_wide.csv")
+df14_ae = read_csv("raw_data/Non_Clustered_RCT/14/TERECO_Public_Data_ae_long.csv")
+df14_wide = read_csv("raw_data/Non_Clustered_RCT/14/TERECO_Public_Data_wide.csv")
 ```
 
 ## Cleaning
@@ -1452,14 +1387,14 @@ df14_final = df_final %>%
 ## Output Data
 ```{r}
 # trial 14
-write_csv(df14_final, "cleaned_data/trial14.csv")
-write_rds(df14_final, "cleaned_data/trial14.rds")
+write_csv(df14_final, "cleaned_data/Non_Clustered_RCT/trial14.csv")
+write_rds(df14_final, "cleaned_data/Non_Clustered_RCT/trial14.rds")
 ```
 
 # Trial 15
 ## Load Data
 ```{r}
-df15 = read.csv("raw_data/15/15.csv")
+df15 = read.csv("raw_data/Non_Clustered_RCT/15/15.csv")
 ```
 
 ## Cleaning
@@ -1542,14 +1477,14 @@ df15_final = df15_final %>%
 ## Output Data
 ```{r}
 # trial 15
-write_csv(df15_final, "cleaned_data/trial15.csv")
-write_rds(df15_final, "cleaned_data/trial15.rds")
+write_csv(df15_final, "cleaned_data/Non_Clustered_RCT/trial15.csv")
+write_rds(df15_final, "cleaned_data/Non_Clustered_RCT/trial15.rds")
 ```
 
 # Trial 16
 ## Load Data
 ```{r}
-df16 = read_excel("raw_data/16/16.xlsx")
+df16 = read_excel("raw_data/Non_Clustered_RCT/16/16.xlsx")
 ```
 
 ## Cleaning
@@ -1610,14 +1545,14 @@ df16_final = df16_final %>%
 ## Output Data
 ```{r}
 # trial 16
-write_csv(df16_final, "cleaned_data/trial16.csv")
-write_rds(df16_final, "cleaned_data/trial16.rds")
+write_csv(df16_final, "cleaned_data/Non_Clustered_RCT/trial16.csv")
+write_rds(df16_final, "cleaned_data/Non_Clustered_RCT/trial16.rds")
 ```
 
 # Trial 17
 ## Load Data
 ```{r}
-df17 = read.csv("raw_data/17/17.csv")
+df17 = read.csv("raw_data/Non_Clustered_RCT/17/17.csv")
 ```
 
 ## Cleaning
@@ -1655,14 +1590,14 @@ df17_final = df17 %>%
 ## Output Data
 ```{r}
 # trial 17
-write_csv(df17_final, "cleaned_data/trial17.csv")
-write_rds(df17_final, "cleaned_data/trial17.rds")
+write_csv(df17_final, "cleaned_data/Non_Clustered_RCT/trial17.csv")
+write_rds(df17_final, "cleaned_data/Non_Clustered_RCT/trial17.rds")
 ```
 
 # Trial 18
 ## Load Data
 ```{r}
-df18 = read_xls("raw_data/18/18.xls")
+df18 = read_xls("raw_data/Non_Clustered_RCT/18/18.xls")
 ```
 
 
@@ -1757,14 +1692,14 @@ df18_final = df18 %>%
 ## Output Data
 ```{r}
 # trial 18
-write_csv(df18_final, "cleaned_data/trial18.csv")
-write_rds(df18_final, "cleaned_data/trial18.rds")
+write_csv(df18_final, "cleaned_data/Non_Clustered_RCT/trial18.csv")
+write_rds(df18_final, "cleaned_data/Non_Clustered_RCT/trial18.rds")
 ```
 
 # Trial 19
 ## Load Data
 ```{r}
-df19 = read_xls("raw_data/19/19.xls")
+df19 = read_xls("raw_data/Non_Clustered_RCT/19/19.xls")
 ```
 
 ## Cleaning
@@ -1829,14 +1764,14 @@ df19_final = df19 %>%
 ## Output Data
 ```{r}
 # trial 19
-write_csv(df19_final, "cleaned_data/trial19.csv")
-write_rds(df19_final, "cleaned_data/trial19.rds")
+write_csv(df19_final, "cleaned_data/Non_Clustered_RCT/trial19.csv")
+write_rds(df19_final, "cleaned_data/Non_Clustered_RCT/trial19.rds")
 ```
 
 # Trial 20
 ## load Data
 ```{r}
-df20 = read_dta("raw_data/20/20.dta")
+df20 = read_dta("raw_data/Non_Clustered_RCT/20/20.dta")
 ```
 
 ## Cleaning
@@ -1896,14 +1831,14 @@ df20_final = df20 %>%
 ## Output Data
 ```{r}
 # trial 20
-write_csv(df20_final, "cleaned_data/trial20.csv")
-write_rds(df20_final, "cleaned_data/trial20.rds")
+write_csv(df20_final, "cleaned_data/Non_Clustered_RCT/trial20.csv")
+write_rds(df20_final, "cleaned_data/Non_Clustered_RCT/trial20.rds")
 ```
 
 # Trial 21
 ## Load Data
 ```{r}
-df21 = read.csv("raw_data/21/21.csv")
+df21 = read.csv("raw_data/Non_Clustered_RCT/21/21.csv")
 ```
 
 ## Cleaning
@@ -1957,155 +1892,18 @@ df21_final = df21%>%
 ## Output Data
 ```{r}
 # trial 21
-write_csv(df21_final, "cleaned_data/trial21.csv")
-write_rds(df21_final, "cleaned_data/trial21.rds")
+write_csv(df21_final, "cleaned_data/Non_Clustered_RCT/trial21.csv")
+write_rds(df21_final, "cleaned_data/Non_Clustered_RCT/trial21.rds")
 ```
 
 # Trial 22
-## Load Data
-```{r}
-df22 = read_dta("raw_data/22/22.dta")
-```
 
-## Cleaning
-```{r}
-# 2. Individual-level cleaning & renaming
-df22_final = df22 %>%
-  # 2a. Derive Treatment and keep Cluster ID
-  mutate(
-    Treatment = Type_HC,
-    ClusterID   = Code_HC,
-    Treatment = case_when(
-      Locat_HC == 1 ~ "GDM Intervention",
-      Locat_HC == 2 ~ "Usual Care",
-      TRUE ~ NA_character_),
-  ) %>% 
-  rename(
-    X_Age_0w       = Age,        # baseline age
-    X_Gest_0w      = Gest,       # baseline gestity
-    X_Resid_0w     = Resid,      # baseline residence
-    X_GDM_ACDT_0w     = GDM_ACDT,   # history of GDM
-    X_MACRO_ACDT_0w   = MACRO_ACDT, # history of macrosomia
-    X_Weight_0w    = Weight,     # baseline weight
-    YP_Birthwgt    = Birthwgt    # primary outcome
-  )
-
-# 3. Prefix FU1–FU22 variables as pre_YS_, preserving the "_FU#" suffix
-df22_final = df22_final %>%
-  rename_with(
-    .cols = matches("_FU\\d+$"),
-    .fn   = ~ paste0("pre_YS_", .)
-  )
-
-# 4. Prefix other pre-delivery repeated measures as pre_YS_
-df22_final = df22_final %>%
-  rename_with(
-    .cols = matches("^(GA_\\d+_wgt$|Test_screen\\d+$|Diag_.*$|FBS_.*Screen$|GPP_.*$)"),
-    .fn   = ~ paste0("pre_YS_", .)
-  )
-
-# 5. Prefix postpartum measures as post_YS_
-df22_final = df22_final %>%
-  rename_with(
-    .cols = matches("^(Retest_PP$|Test_PP\\d+$|DM_PP$|Res_FBS_PP\\d+$|Res_HGPO_PP$)"),
-    .fn   = ~ paste0("post_YS_", .)
-  )
-
-# 6. Rename one-off secondary outcomes
-df22_final = df22_final %>%
-  mutate(
-    YS_GW_fin         = GW_fin,
-    YS_Term           = Term,
-    YS_Mode_del       = Mode_del,
-    YS_Comp_del       = Comp_del,
-    YS_Comp_Cat_del   = Comp_Cat_del,
-    YS_Comp_NN        = Comp_NN,
-    YS_Comp_Cat_NN    = Comp_Cat_NN,
-    YS_APGAR1         = APGAR1,
-    YS_APGAR2         = APGAR2,
-    Treatment = relevel(factor(Treatment), ref ="Usual Care"),
-    across(c(pre_YS_Test_screen2, pre_YS_Diag_FBS, pre_YS_Diag_HGPO1, 
-             pre_YS_Diag_HGPO2, pre_YS_Place_FU1, pre_YS_Tx_FU1, pre_YS_Place_FU2, 
-             pre_YS_Tx_FU2, pre_YS_Place_FU3, pre_YS_Tx_FU3, pre_YS_Place_FU4, pre_YS_Tx_FU4, 
-             pre_YS_Place_FU5, pre_YS_Tx_FU5, pre_YS_Place_FU6, pre_YS_Tx_FU6,
-              pre_YS_Tx_FU7, pre_YS_Place_FU8, pre_YS_Tx_FU8,
-             pre_YS_Place_FU9, pre_YS_Tx_FU9, pre_YS_Place_FU10, pre_YS_Tx_FU10,
-             pre_YS_Place_FU11, pre_YS_Tx_FU11, pre_YS_Place_FU12, pre_YS_Tx_FU12,
-             pre_YS_Place_FU13, pre_YS_Tx_FU13, pre_YS_Place_FU14, pre_YS_Tx_FU14,
-             pre_YS_Place_FU15, pre_YS_Tx_FU15, pre_YS_Place_FU16, pre_YS_Tx_FU16,
-             pre_YS_Place_FU17, pre_YS_Tx_FU17, pre_YS_Place_FU18, pre_YS_Tx_FU18,
-             pre_YS_Place_FU19, pre_YS_Tx_FU19, pre_YS_Place_FU20, pre_YS_Tx_FU20,
-             pre_YS_Place_FU21, pre_YS_Tx_FU21, pre_YS_Place_FU22, pre_YS_Tx_FU22,
-             post_YS_DM_PP, post_YS_Test_PP2, post_YS_Test_PP1, post_YS_Retest_PP), as_factor)
-  )
-
-# 7. Reorder columns: Treatment, Cluster, then YP_, pre_YS_, post_YS_, X_
-df22_final = df22_final %>%
-  select(
-    Treatment, ClusterID,
-    starts_with("YP_"),
-    starts_with("pre_YS_"),
-    starts_with("post_YS_"),
-    starts_with("X_")
-  )
-
-mode_vars = c("X_Resid_0w", "X_GDM_ACDT_0w", "X_MACRO_ACDT_0w")
-
-# 8. Create cluster-level summary: mean of each YP_/pre_YS_/post_YS_/X_, plus cluster size
-df22_cluster = df22_final %>%
-  group_by(ClusterID) %>%
-  summarise(
-    n_participants = n(),
-    Treatment = first(Treatment),
-    across(
-      starts_with(c("YP_", "pre_YS_", "post_YS_", "X_")),
-      ~ if (cur_column() %in% mode_vars) {
-          Mode(.x, na.rm = TRUE)
-        } else {
-          mean(.x, na.rm = TRUE)
-        }
-    )
-  ) %>% 
-  select(
-    ClusterID,
-    Treatment,
-    n_participants,
-    starts_with("YP_"),
-    starts_with("pre_YS_"),
-    starts_with("post_YS_"),
-    starts_with("X_")
-  )
-
-df22_final = df22_final %>% 
-  mutate(
-    X_Resid_0w     = factor(X_Resid_0w),      # baseline residence
-    X_GDM_ACDT_0w     = factor(X_GDM_ACDT_0w),   # history of GDM
-    X_MACRO_ACDT_0w   = factor(X_MACRO_ACDT_0w), # history of macrosomia
-  )
-
-df22_cluster = df22_cluster %>% 
-    mutate(
-    X_Resid_0w     = factor(X_Resid_0w),      # baseline residence
-    X_GDM_ACDT_0w     = factor(X_GDM_ACDT_0w),   # history of GDM
-    X_MACRO_ACDT_0w   = factor(X_MACRO_ACDT_0w), # history of macrosomia
-  )
-```
-
-## Output Data
-```{r}
-# trial 22
-write_csv(df22_cluster, "cleaned_data/trial22.csv")
-write_rds(df22_cluster, "cleaned_data/trial22.rds")
-
-write_csv(df22_final, "cleaned_data/Clustered_RCT/cluster22.csv")
-write_rds(df22_final, "cleaned_data/Clustered_RCT/cluster22.rds")
-```
 
 
 # Trial 23
 ## Load Data
 ```{r}
-df23 = read_xlsx("raw_data/23/23.xlsx")
+df23 = read_xlsx("raw_data/Non_Clustered_RCT/23/23.xlsx")
 ```
 
 ## Cleaning
@@ -2166,15 +1964,15 @@ df23_final = df23 %>%
 ## Output Data
 ```{r}
 # trial 23
-write_csv(df23_final, "cleaned_data/trial23.csv")
-write_rds(df23_final, "cleaned_data/trial23.rds")
+write_csv(df23_final, "cleaned_data/Non_Clustered_RCT/trial23.csv")
+write_rds(df23_final, "cleaned_data/Non_Clustered_RCT/trial23.rds")
 ```
 
 
 # Trial 24
 ## Load Data
 ```{r}
-df24 = read_xlsx("raw_data/24/24.xlsx")
+df24 = read_xlsx("raw_data/Non_Clustered_RCT/24/24.xlsx")
 ```
 
 ## Cleaning
@@ -2220,15 +2018,15 @@ df24_final = df24 %>%
 ## Output Data
 ```{r}
 # trial 24
-write_csv(df24_final, "cleaned_data/trial24.csv")
-write_rds(df24_final, "cleaned_data/trial24.rds")
+write_csv(df24_final, "cleaned_data/Non_Clustered_RCT/trial24.csv")
+write_rds(df24_final, "cleaned_data/Non_Clustered_RCT/trial24.rds")
 ```
 
 
 # Trial 25
 ## Load Data
 ```{r}
-df25 = read_sav("raw_data/25/25.sav")
+df25 = read_sav("raw_data/Non_Clustered_RCT/25/25.sav")
 ```
 
 ## Cleaning
@@ -2303,15 +2101,15 @@ df25_final = df25 %>%
 ## Output Data
 ```{r}
 # trial 25
-write_csv(df25_final, "cleaned_data/trial25.csv")
-write_rds(df25_final, "cleaned_data/trial25.rds")
+write_csv(df25_final, "cleaned_data/Non_Clustered_RCT/trial25.csv")
+write_rds(df25_final, "cleaned_data/Non_Clustered_RCT/trial25.rds")
 ```
 
 
 # Trial 26
 ## Load Data
 ```{r}
-df26 = read_sav("raw_data/26/26.sav")
+df26 = read_sav("raw_data/Non_Clustered_RCT/26/26.sav")
 ```
 
 ## Cleaning
@@ -2369,14 +2167,14 @@ df26_final = df26 %>%
 ## Output Data
 ```{r}
 # trial 26
-write_csv(df26_final, "cleaned_data/trial26.csv")
-write_rds(df26_final, "cleaned_data/trial26.rds")
+write_csv(df26_final, "cleaned_data/Non_Clustered_RCT/trial26.csv")
+write_rds(df26_final, "cleaned_data/Non_Clustered_RCT/trial26.rds")
 ```
 
 # Trial 27
 ## Load Data
 ```{r}
-df27 = read_xls("raw_data/27/27.xls", skip = 1)
+df27 = read_xls("raw_data/Non_Clustered_RCT/27/27.xls", skip = 1)
 ```
 
 ## Cleaning
@@ -2446,14 +2244,14 @@ df27_final = df27 %>%
 ## Output Data
 ```{r}
 # trial 27
-write_csv(df27_final, "cleaned_data/trial27.csv")
-write_rds(df27_final, "cleaned_data/trial27.rds")
+write_csv(df27_final, "cleaned_data/Non_Clustered_RCT/trial27.csv")
+write_rds(df27_final, "cleaned_data/Non_Clustered_RCT/trial27.rds")
 ```
 
 # Trial 28
 ## Load Data
 ```{r}
-df28 = read_sav("raw_data/28/28.sav")
+df28 = read_sav("raw_data/Non_Clustered_RCT/28/28.sav")
 ```
 
 ## Cleaning
@@ -2520,8 +2318,8 @@ df28_final = df28 %>%
 ## Output Data
 ```{r}
 # trial 28
-write_csv(df28_final, "cleaned_data/trial28.csv")
-write_rds(df28_final, "cleaned_data/trial28.rds")
+write_csv(df28_final, "cleaned_data/Non_Clustered_RCT/trial28.csv")
+write_rds(df28_final, "cleaned_data/Non_Clustered_RCT/trial28.rds")
 ```
 
 
@@ -2647,7 +2445,7 @@ write_rds(df29_final, "cleaned_data/Clustered_RCT/cluster29.rds")
 # Trial 30
 ## Load Data
 ```{r}
-df30_sheets = import_list("raw_data/30/30.xlsx")
+df30_sheets = import_list("raw_data/Non_Clustered_RCT/30/30.xlsx")
 df30_sheets = lapply(df30_sheets, function(df) {
   df %>%
     # 1) only replace the literal string "NA" in character columns
@@ -2774,8 +2572,8 @@ df30_final = df30_demo %>%
 ## Output Data
 ```{r}
 # trial 30
-write_csv(df30_final, "cleaned_data/trial30.csv")
-write_rds(df30_final, "cleaned_data/trial30.rds")
+write_csv(df30_final, "cleaned_data/Non_Clustered_RCT/trial30.csv")
+write_rds(df30_final, "cleaned_data/Non_Clustered_RCT/trial30.rds")
 ```
 
 
@@ -2911,7 +2709,7 @@ write_rds(df31_final, "cleaned_data/Clustered_RCT/cluster31.rds")
 # Trial 32
 ## Load Data
 ```{r}
-df32 = read_dta("raw_data/32/32.dta")
+df32 = read_dta("raw_data/Non_Clustered_RCT/32/32.dta")
 ```
 
 
@@ -2966,14 +2764,14 @@ df32_final = df32 %>%
 
 ```{r}
 # trial 32
-write_csv(df32_final, "cleaned_data/trial32.csv")
-write_rds(df32_final, "cleaned_data/trial32.rds")
+write_csv(df32_final, "cleaned_data/Non_Clustered_RCT/trial32.csv")
+write_rds(df32_final, "cleaned_data/Non_Clustered_RCT/trial32.rds")
 ```
 
 # Trial 33
 ## Load Data
 ```{r}
-df33 = read_xlsx("raw_data/33/33.xlsx")
+df33 = read_xlsx("raw_data/Non_Clustered_RCT/33/33.xlsx")
 ```
 
 ## Cleaning
@@ -3023,15 +2821,15 @@ df33_final = df33_final %>%
 
 ```{r}
 # trial 33
-write_csv(df33_final, "cleaned_data/trial33.csv")
-write_rds(df33_final, "cleaned_data/trial33.rds")
+write_csv(df33_final, "cleaned_data/Non_Clustered_RCT/trial33.csv")
+write_rds(df33_final, "cleaned_data/Non_Clustered_RCT/trial33.rds")
 ```
 
 
 # Trial 34
 ## Load Data
 ```{r}
-df34 = read_csv("raw_data/34/34.csv", na = c("", "NA", "null", "NULL", "999"))
+df34 = read_csv("raw_data/Non_Clustered_RCT/34/34.csv", na = c("", "NA", "null", "NULL", "999"))
 ```
 
 ## Cleaning
@@ -3092,14 +2890,14 @@ df34_final = df34 %>%
 ## Output Data
 ```{r}
 # trial 34
-write_csv(df34_final, "cleaned_data/trial34.csv")
-write_rds(df34_final, "cleaned_data/trial34.rds")
+write_csv(df34_final, "cleaned_data/Non_Clustered_RCT/trial34.csv")
+write_rds(df34_final, "cleaned_data/Non_Clustered_RCT/trial34.rds")
 ```
 
 # Trial 35
 ## Load Data
 ```{r}
-df35 = read_sav("raw_data/35/35.sav")
+df35 = read_sav("raw_data/Non_Clustered_RCT/35/35.sav")
 ```
 ## Cleaning
 ```{r}
@@ -3145,14 +2943,14 @@ df35_final = df35 %>%
 ## Output Data
 ```{r}
 # trial 35
-write_csv(df35_final, "cleaned_data/trial35.csv")
-write_rds(df35_final, "cleaned_data/trial35.rds")
+write_csv(df35_final, "cleaned_data/Non_Clustered_RCT/trial35.csv")
+write_rds(df35_final, "cleaned_data/Non_Clustered_RCT/trial35.rds")
 ```
 
 # Trial 36
 ## Load Data
 ```{r}
-df36 = read_xlsx("raw_data/36/36.xlsx")
+df36 = read_xlsx("raw_data/Non_Clustered_RCT/36/36.xlsx")
 ```
 
 ## Cleaning
@@ -3210,8 +3008,8 @@ df36_final = df36 %>%
 ## Output Data
 ```{r}
 # trial 36
-write_csv(df36_final, "cleaned_data/trial36.csv")
-write_rds(df36_final, "cleaned_data/trial36.rds")
+write_csv(df36_final, "cleaned_data/Non_Clustered_RCT/trial36.csv")
+write_rds(df36_final, "cleaned_data/Non_Clustered_RCT/trial36.rds")
 ```
 
 
@@ -3298,8 +3096,8 @@ df37_final = df37 %>%
 ## Output Data
 ```{r}
 # trial 37
-write_csv(df37_final, "cleaned_data/trial37.csv")
-write_rds(df37_final, "cleaned_data/trial37.rds")
+write_csv(df37_final, "cleaned_data/Non_Clustered_RCT/trial37.csv")
+write_rds(df37_final, "cleaned_data/Non_Clustered_RCT/trial37.rds")
 ```
 
 
@@ -3373,8 +3171,8 @@ df38_final = df38 %>%
 ## Output Data
 ```{r}
 # trial 38
-write_csv(df38_final, "cleaned_data/trial38.csv")
-write_rds(df38_final, "cleaned_data/trial38.rds")
+write_csv(df38_final, "cleaned_data/Non_Clustered_RCT/trial38.csv")
+write_rds(df38_final, "cleaned_data/Non_Clustered_RCT/trial38.rds")
 ```
 
 
@@ -3444,8 +3242,8 @@ df39_final = df39 %>%
 
 ```{r}
 # trial 39
-write_csv(df39_final, "cleaned_data/trial39.csv")
-write_rds(df39_final, "cleaned_data/trial39.rds")
+write_csv(df39_final, "cleaned_data/Non_Clustered_RCT/trial39.csv")
+write_rds(df39_final, "cleaned_data/Non_Clustered_RCT/trial39.rds")
 ```
 
 # Trial 40
@@ -3539,8 +3337,8 @@ df40_final = df40 %>%
 ## Output Data
 ```{r}
 # trial 40
-write_csv(df40_final, "cleaned_data/trial40.csv")
-write_rds(df40_final, "cleaned_data/trial40.rds")
+write_csv(df40_final, "cleaned_data/Non_Clustered_RCT/trial40.csv")
+write_rds(df40_final, "cleaned_data/Non_Clustered_RCT/trial40.rds")
 ```
 
 
@@ -3671,8 +3469,8 @@ df41_final = df41 %>%
 ## Output Data
 ```{r}
 # trial 41
-write_csv(df41_final, "cleaned_data/trial41.csv")
-write_rds(df41_final, "cleaned_data/trial41.rds")
+write_csv(df41_final, "cleaned_data/Non_Clustered_RCT/trial41.csv")
+write_rds(df41_final, "cleaned_data/Non_Clustered_RCT/trial41.rds")
 ```
 
 
@@ -3744,8 +3542,8 @@ df42_final = df42 %>%
 ## Output Data
 ```{r}
 # trial 42
-write_csv(df42_final, "cleaned_data/trial42.csv")
-write_rds(df42_final, "cleaned_data/trial42.rds")
+write_csv(df42_final, "cleaned_data/Non_Clustered_RCT/trial42.csv")
+write_rds(df42_final, "cleaned_data/Non_Clustered_RCT/trial42.rds")
 ```
 
 
@@ -3851,15 +3649,15 @@ df43_final = df43 %>%
 ## Output Data
 ```{r}
 # trial 43
-write_csv(df43_final, "cleaned_data/trial43.csv")
-write_rds(df43_final, "cleaned_data/trial43.rds")
+write_csv(df43_final, "cleaned_data/Non_Clustered_RCT/trial43.csv")
+write_rds(df43_final, "cleaned_data/Non_Clustered_RCT/trial43.rds")
 ```
 
 
 # Trial 44
 ## Load Data
 ```{r}
-df44 = read_xlsx("raw_data/44/44.xlsx")
+df44 = read_xlsx("raw_data/Non_Clustered_RCT/44/44.xlsx")
 ```
 
 ## Cleaning
@@ -3901,8 +3699,8 @@ df44_final = df44 %>%
 ## Output Data
 ```{r}
 # trial 44
-write_csv(df44_final, "cleaned_data/trial44.csv")
-write_rds(df44_final, "cleaned_data/trial44.rds")
+write_csv(df44_final, "cleaned_data/Non_Clustered_RCT/trial44.csv")
+write_rds(df44_final, "cleaned_data/Non_Clustered_RCT/trial44.rds")
 ```
 
 
@@ -3910,7 +3708,7 @@ write_rds(df44_final, "cleaned_data/trial44.rds")
 # Trial 45
 ## Load Data
 ```{r}
-df45 = read_csv("raw_data/45/45.csv")
+df45 = read_csv("raw_data/Non_Clustered_RCT/45/45.csv")
 ```
 
 ## Cleaning
@@ -3995,19 +3793,15 @@ df45_final = df45_final %>%
 ## Output Data
 ```{r}
 # trial 45
-write_csv(df45_final, "cleaned_data/trial45.csv")
-write_rds(df45_final, "cleaned_data/trial45.rds")
+write_csv(df45_final, "cleaned_data/Non_Clustered_RCT/trial45.csv")
+write_rds(df45_final, "cleaned_data/Non_Clustered_RCT/trial45.rds")
 ```
 
-
-```{r}
-write_csv(df46, "raw_data/46/46_2.csv")
-```
 
 # Trial 46
 ## Load Data
 ```{r}
-df46 = read_csv2("raw_data/46/46.csv")
+df46 = read_csv2("raw_data/Non_Clustered_RCT/46/46.csv")
 ```
 
 ## Cleaning
@@ -4056,15 +3850,15 @@ df46_final = df46 %>%
 
 ```{r}
 # trial 46
-write_csv(df46_final, "cleaned_data/trial46.csv")
-write_rds(df46_final, "cleaned_data/trial46.rds")
+write_csv(df46_final, "cleaned_data/Non_Clustered_RCT/trial46.csv")
+write_rds(df46_final, "cleaned_data/Non_Clustered_RCT/trial46.rds")
 ```
 
 
 # Trial 47
 ## Load Data
 ```{r}
-df47 = read_xlsx("raw_data/47/47.xlsx", na = c("", ".", "NULL", "null", "md", "nc", "pf", "protocol finalized"))
+df47 = read_xlsx("raw_data/Non_Clustered_RCT/47/47.xlsx", na = c("", ".", "NULL", "null", "md", "nc", "pf", "protocol finalized"))
 ```
 
 ## Cleaning
@@ -4144,8 +3938,8 @@ df47_final = df47_final %>%
 
 ```{r}
 # trial 47
-write_csv(df47_final, "cleaned_data/trial47.csv")
-write_rds(df47_final, "cleaned_data/trial47.rds")
+write_csv(df47_final, "cleaned_data/Non_Clustered_RCT/trial47.csv")
+write_rds(df47_final, "cleaned_data/Non_Clustered_RCT/trial47.rds")
 ```
 
 
@@ -4268,7 +4062,7 @@ write_rds(df48_final, "cleaned_data/Clustered_RCT/cluster48.rds")
 # Trial 49
 ## Load Data
 ```{r}
-df49 = read_csv2("raw_data/49/49_old.csv",  locale = locale(encoding = "Latin1"))
+df49 = read_csv2("raw_data/Non_Clustered_RCT/49/49_old.csv",  locale = locale(encoding = "Latin1"))
 ```
 
 ## Cleaning
@@ -4371,8 +4165,8 @@ mutate(across(
 ## Output Data
 ```{r}
 # trial 49
-write_csv(df49_final, "cleaned_data/trial49.csv")
-write_rds(df49_final, "cleaned_data/trial49.rds")
+write_csv(df49_final, "cleaned_data/Non_Clustered_RCT/trial49.csv")
+write_rds(df49_final, "cleaned_data/Non_Clustered_RCT/trial49.rds")
 ```
 
 # Trial 50
@@ -4467,6 +4261,7 @@ df50_cluster =
   )
 ```
 
+
 ## Output Data
 
 ```{r}
@@ -4477,6 +4272,319 @@ write_rds(df50_cluster, "cleaned_data/trial50.rds")
 write_csv(df50_final, "cleaned_data/Clustered_RCT/cluster50.csv")
 write_rds(df50_final, "cleaned_data/Clustered_RCT/cluster50.rds")
 ```
+
+
+
+# Cluster Trial 1
+## Load Data
+```{r}
+dfc1 = read_csv("raw_data/Clustered_RCT/1/1.csv")
+```
+
+
+## Cleaning
+```{r}
+dfc1_final = dfc1 %>%
+  rename(
+    ClusterID               = cluster,
+    Treatment             = treatment,
+    
+    # Baseline covariates (0 months or 0 days)
+    X_age_0m              = age_months,
+    X_sex_0m                 = sex,
+    X_bornearly_0m           = bornearly,
+    X_mother_age_cat_0m      = motherage_bl_cat,
+    X_hh_members_cat_0m      = hhmembers_cat,
+    X_father_primary_0m      = father_primary,
+    X_mother_primary_0m      = mother_primary,
+    X_wealth_quintile_0m     = aq,
+    X_distance_0m         = km,
+    X_cluster_population_0m  = pop,
+    X_haz_0m              = haz_bl,
+    X_waz_0m              = waz_bl,
+    X_whz_0m              = whz_bl,
+    X_SRQ_0m              = SRQ_bl
+  ) %>%
+  mutate(
+    # Co-primary outcomes (YP_)
+    YP_stunting_24m       = as.integer(haz06 < -2),
+    YP_cog_composite_24m  = cog_composite,
+    YP_lang_composite_24m = lang_composite,
+    YP_motor_composite_24m = motor_composite,
+    YP_se_composite_24m   = se_composite,
+    YP_ab_composite_24m   = ab_composite,
+    # Secondary outcomes (YS_)
+    YS_haz06_24m                     = haz06,
+    YS_diet_diversity_24m            = rowSums(select(., matches("^e[1-7]$")), na.rm = TRUE),
+    YS_caregiver_child_interaction_24m = rowMeans(select(., matches("^MICS_.*_sb2$")), na.rm = TRUE)
+  ) %>%
+  mutate(
+    Treatment = factor(Treatment, levels = c(0, 1), labels = c("Usual Care", "Early Childhood Development"))
+  ) %>%
+  select(
+    ClusterID,
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),  # none here but placeholder
+    starts_with("post_YP_"), # none here but placeholder
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+# 3. Cluster-level aggregation with same ordering and no 'mean_' prefixes
+dfc1_cluster = dfc1_final %>%
+  group_by(ClusterID, Treatment) %>%
+  reframe(
+    n_participants = n(),
+    
+    YP_stunting_24m        = {result = mean(YP_stunting_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    YP_cog_composite_24m   = {result = mean(YP_cog_composite_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    YP_lang_composite_24m  = {result = mean(YP_lang_composite_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    YP_motor_composite_24m = {result = mean(YP_motor_composite_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    YP_se_composite_24m    = {result = mean(YP_se_composite_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    YP_ab_composite_24m    = {result = mean(YP_ab_composite_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    
+    # Secondary outcomes
+    YS_haz06_24m                       = {result = mean(YS_haz06_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    YS_diet_diversity_24m              = {result = mean(YS_diet_diversity_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    YS_caregiver_child_interaction_24m = {result = mean(YS_caregiver_child_interaction_24m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    
+    # Baseline numeric covariates
+    X_age_0m             = {result = mean(X_age_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_hh_members_cat_0m     = {result = mean(X_hh_members_cat_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_wealth_quintile_0m    = {result = mean(X_wealth_quintile_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_distance_0m           = {result = mean(X_distance_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_cluster_population_0m = {result = mean(X_cluster_population_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_haz_0m             = {result = mean(X_haz_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_waz_0m             = {result = mean(X_waz_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_whz_0m             = {result = mean(X_whz_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_SRQ_0m             = {result = mean(X_SRQ_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    
+    # Baseline factor covariates
+    X_sex_0m              = {result = mean(X_sex_0m, na.rm = TRUE) - 1; ifelse(is.nan(result), NA, result)},
+    X_bornearly_0m        = {result = mean(X_bornearly_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_mother_age_cat_0m   = DescTools::Mode(X_mother_age_cat_0m, na.rm = TRUE),
+    X_father_primary_0m   = {result = mean(X_father_primary_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)},
+    X_mother_primary_0m   = {result = mean(X_mother_primary_0m, na.rm = TRUE); ifelse(is.nan(result), NA, result)}
+  ) %>%
+  ungroup() %>%
+  select(
+    ClusterID,
+    Treatment,
+    n_participants,
+    starts_with("YP_"),
+    starts_with("pre_YP_"),
+    starts_with("post_YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
+
+dfc1_final = dfc1_final %>% 
+  mutate(
+    across(c(YP_stunting_24m, X_sex_0m, X_bornearly_0m, X_mother_age_cat_0m, 
+             X_father_primary_0m, X_mother_primary_0m), as_factor)
+  )
+
+dfc1_cluster = dfc1_cluster %>% 
+  mutate(
+    across(c(X_mother_age_cat_0m), as_factor)
+  )
+```
+## Output Data
+```{r}
+# cluster 1
+write_csv(dfc1_cluster, "cleaned_data/Clustered_RCT/1_cluster.csv")
+write_rds(dfc1_cluster, "cleaned_data/Clustered_RCT/1_cluster.rds")
+
+write_csv(dfc1_final, "cleaned_data/Clustered_RCT/1_patient.csv")
+write_rds(dfc1_final, "cleaned_data/Clustered_RCT/1_patient.rds")
+```
+
+
+# Cluster Trial 2
+## Load Data
+```{r}
+dfc2 = read_dta("raw_data/Clustered_RCT/2/2.dta")
+```
+
+## Cleaning
+```{r}
+
+# 2. Individual-level cleaning & renaming
+dfc2_final = dfc2 %>%
+  # 2a. Derive Treatment and keep Cluster ID
+  mutate(
+    ClusterID   = Code_HC,
+    Treatment = factor(case_when(
+      Type_HC == 1 ~ "GDM Intervention",
+      Type_HC == 2 ~ "Usual Care",
+    TRUE ~ NA_character_
+    ), levels = c("Usual Care", "GDM Intervention"))
+  ) %>% 
+  mutate(
+    X_Age_0w       = Age,        # baseline age
+    X_Gest_0w      = Gest,       # baseline gestity
+    X_Resid_0w     = Resid,      # baseline residence
+    X_GDM_ACDT_0w     = GDM_ACDT,   # history of GDM
+    X_MACRO_ACDT_0w   = MACRO_ACDT, # history of macrosomia
+    X_Weight_0w    = Weight,     # baseline weight
+    YP_Birthwgt    = Birthwgt,    # primary outcome,
+    X_HC_Location_0w = factor(Locat_HC)
+  )
+
+# 3. Prefix FU1–FU22 variables as pre_YS_, preserving the "_FU#" suffix
+dfc2_final = dfc2_final %>%
+  rename_with(
+    .cols = matches("_FU\\d+$"),
+    .fn   = ~ paste0("pre_YS_", .)
+  )
+
+# 4. Prefix other pre-delivery repeated measures as pre_YS_
+dfc2_final = dfc2_final %>%
+  rename_with(
+    .cols = matches("^(GA_\\d+_wgt$|Test_screen\\d+$|Diag_.*$|FBS_.*Screen$|GPP_.*$)"),
+    .fn   = ~ paste0("pre_YS_", .)
+  )
+
+# 5. Prefix postpartum measures as post_YS_
+dfc2_final = dfc2_final %>%
+  rename_with(
+    .cols = matches("^(Retest_PP$|Test_PP\\d+$|DM_PP$|Res_FBS_PP\\d+$|Res_HGPO_PP$)"),
+    .fn   = ~ paste0("post_YS_", .)
+  )
+
+# 6. Rename one-off secondary outcomes
+dfc2_final = dfc2_final %>%
+  mutate(
+    YS_GW_fin         = GW_fin,
+    YS_Term           = Term,
+    YS_Mode_del       = Mode_del,
+    YS_Comp_del       = Comp_del,
+    YS_Comp_Cat_del   = Comp_Cat_del,
+    YS_Comp_NN        = Comp_NN,
+    YS_Comp_Cat_NN    = Comp_Cat_NN,
+    YS_APGAR1         = APGAR1,
+    YS_APGAR2         = APGAR2,
+    across(c(pre_YS_Test_screen2, pre_YS_Diag_FBS, pre_YS_Diag_HGPO1, 
+             pre_YS_Diag_HGPO2, pre_YS_Place_FU1, pre_YS_Tx_FU1, pre_YS_Place_FU2, 
+             pre_YS_Tx_FU2, pre_YS_Place_FU3, pre_YS_Tx_FU3, pre_YS_Place_FU4, pre_YS_Tx_FU4, 
+             pre_YS_Place_FU5, pre_YS_Tx_FU5, pre_YS_Place_FU6, pre_YS_Tx_FU6,
+              pre_YS_Tx_FU7, pre_YS_Place_FU8, pre_YS_Tx_FU8,
+             pre_YS_Place_FU9, pre_YS_Tx_FU9, pre_YS_Place_FU10, pre_YS_Tx_FU10,
+             pre_YS_Place_FU11, pre_YS_Tx_FU11, pre_YS_Place_FU12, pre_YS_Tx_FU12,
+             pre_YS_Place_FU13, pre_YS_Tx_FU13, pre_YS_Place_FU14, pre_YS_Tx_FU14,
+             pre_YS_Place_FU15, pre_YS_Tx_FU15, pre_YS_Place_FU16, pre_YS_Tx_FU16,
+             pre_YS_Place_FU17, pre_YS_Tx_FU17, pre_YS_Place_FU18, pre_YS_Tx_FU18,
+             pre_YS_Place_FU19, pre_YS_Tx_FU19, pre_YS_Place_FU20, pre_YS_Tx_FU20,
+             pre_YS_Place_FU21, pre_YS_Tx_FU21, pre_YS_Place_FU22, pre_YS_Tx_FU22,
+             post_YS_DM_PP, post_YS_Test_PP2, post_YS_Test_PP1, post_YS_Retest_PP), as_factor)
+  )
+
+# 7. Reorder columns: Treatment, Cluster, then YP_, pre_YS_, post_YS_, X_
+dfc2_final = dfc2_final %>%
+  select(
+    ClusterID,
+    Treatment,
+    starts_with("YP_"),
+    starts_with("pre_YS_"),
+    starts_with("post_YS_"),
+    starts_with("X_")
+  )
+
+# Convert binary factors to have proper factor structure for dfc2_final
+dfc2_final = dfc2_final %>% 
+  mutate(
+    # Convert specified variables to factors first
+    X_Resid_0w     = factor(X_Resid_0w),      # baseline residence
+    X_GDM_ACDT_0w     = factor(X_GDM_ACDT_0w),   # history of GDM
+    X_MACRO_ACDT_0w   = factor(X_MACRO_ACDT_0w), # history of macrosomia
+    # Keep all factors as factors (no conversion to numeric)
+  )
+
+# 8. Create cluster-level summary with proper aggregation rules
+dfc2_cluster = dfc2_final %>%
+  group_by(ClusterID) %>%
+  reframe(
+    n_participants = n(),
+    Treatment = first(Treatment),
+    across(
+      starts_with(c("YP_", "pre_YS_", "post_YS_", "X_")),
+      ~ if (is.numeric(.x)) {
+          # Numeric variables: use mean
+          result = mean(.x, na.rm = TRUE)
+          ifelse(is.nan(result), NA, result)
+        } else if (is.factor(.x) && length(levels(.x)) == 2) {
+          # Binary factors: convert 1,2 to 0,1 then take mean (gives proportion)
+          result = mean(as.numeric(.x) - 1, na.rm = TRUE)
+          ifelse(is.nan(result), NA, result)
+        } else if (is.factor(.x)) {
+          # Factors with 3+ levels: use Mode, keep as factor
+          mode_result = DescTools::Mode(.x, na.rm = TRUE)
+          # Ensure we return a factor with the same levels
+          factor(mode_result, levels = levels(.x))
+        } else {
+          # Fallback: convert to numeric and take mean
+          result = mean(as.numeric(.x), na.rm = TRUE)
+          ifelse(is.nan(result), NA, result)
+        }
+    )
+  ) %>% 
+  select(
+    ClusterID,
+    Treatment,
+    n_participants,
+    starts_with("YP_"),
+    starts_with("pre_YS_"),
+    starts_with("post_YS_"),
+    starts_with("X_")
+  )
+```
+
+## Output Data
+```{r}
+# cluster 2
+write_csv(dfc2_cluster, "cleaned_data/Clustered_RCT/2_cluster.csv")
+write_rds(dfc2_cluster, "cleaned_data/Clustered_RCT/2_cluster.rds")
+
+write_csv(dfc2_final, "cleaned_data/Clustered_RCT/2_patient.csv")
+write_rds(dfc2_final, "cleaned_data/Clustered_RCT/2_patient.rds")
+```
+
+
+# Cluster Trial 3
+## Load Data
+```{r}
+
+```
+
+## Cleaning
+
+## Output Data
+
+
+# Cluster Trial 4
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Cluster Trial 5
+## Load Data
+
+## Cleaning
+
+## Output Data
+
+
+# Cluster Trial 6
+## Load Data
+
+## Cleaning
+
+## Output Data
+
 
 # test
 
