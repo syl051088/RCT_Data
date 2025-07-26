@@ -141,11 +141,11 @@ analyze_rct_sl = function(data,
 ## analyze_rct()
 
 ```{r}
+
 analyze_rct = function(df,
                        outcome_cols = NULL,
                        covariate_col = NULL,
                        treatment_col = "Treatment",
-                       adj_method = "ANCOVA",
                        K = 5,
                        SL_methods = c("SL.glm", "SL.rpart", "SL.ranger", "SL.mean", "SL.nnet"),
                        n_cores = parallel::detectCores() - 2,
@@ -289,11 +289,16 @@ analyze_rct = function(df,
     n_treat = length(treat_idx_unadj)
     treatment_levels = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
     
+    # Calculate pairwise sample sizes (control + current treatment)
+    pairwise_n = sapply(treatment_levels, function(treat_level) {
+      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
+    })
+    
     outcome_results = tibble(
       Outcome = rep(outcome, n_treat),
       Treatment = treatment_levels,
       Control = rep(control_level, n_treat),
-      N = rep(nrow(df_complete), n_treat),
+      N = pairwise_n,
       # Unadjusted
       Est_UN = coef_unadj[treat_idx_unadj, 1],
       SE_UN = coef_unadj[treat_idx_unadj, 2],
@@ -302,20 +307,34 @@ analyze_rct = function(df,
       SE_AC = coef_ancova[treat_idx_ancova, 2]
     )
     
-    # RobinCar
-    rc_fit = suppressWarnings(
+    # RobinCar - run both ANCOVA and ANHECOVA
+    rc_fit_ancova = suppressWarnings(
       robincar_linear(
         df_complete,
         treatment_col,
         outcome,
         covariate_cols = valid_covariates,
-        adj_method = adj_method,
+        adj_method = "ANCOVA",
         contrast_h = "diff"
       )
     )
-    rc_result = rc_fit$contrast$result
-    outcome_results$Est_RC = rc_result$estimate
-    outcome_results$SE_RC = rc_result$se
+    rc_result_ancova = rc_fit_ancova$contrast$result
+    outcome_results$Est_RC_ANCOVA = rc_result_ancova$estimate
+    outcome_results$SE_RC_ANCOVA = rc_result_ancova$se
+    
+    rc_fit_anhecova = suppressWarnings(
+      robincar_linear(
+        df_complete,
+        treatment_col,
+        outcome,
+        covariate_cols = valid_covariates,
+        adj_method = "ANHECOVA",
+        contrast_h = "diff"
+      )
+    )
+    rc_result_anhecova = rc_fit_anhecova$contrast$result
+    outcome_results$Est_RC_ANHECOVA = rc_result_anhecova$estimate
+    outcome_results$SE_RC_ANHECOVA = rc_result_anhecova$se
     
     # SuperLearner
     sl_res = analyze_rct_sl(
@@ -350,8 +369,10 @@ analyze_rct = function(df,
       N,
       Treatment,
       Control,
-      Est_RC,
-      SE_RC,
+      Est_RC_ANCOVA,
+      SE_RC_ANCOVA,
+      Est_RC_ANHECOVA,
+      SE_RC_ANHECOVA,
       Est_AC,
       SE_AC,
       Est_UN,
@@ -370,42 +391,51 @@ analyze_rct = function(df,
 ```{r}
 update_df = function(trial_no,
                      outcome_type,
-                     rct_results = results,
+                     res1 = results,
                      contrast = "diff",
                      df = df_comparison) {
   require(dplyr)
   
   # Ensure one outcome type per unique outcome
-  unique_outcomes = unique(rct_results$Outcome)
+  unique_outcomes = unique(res1$Outcome)
   stopifnot(length(outcome_type) == length(unique_outcomes))
   
   # Build lookup table: Outcome → Outcome Type
   outcome_type_map = tibble(Outcome = unique_outcomes, `Outcome Type` = outcome_type)
   
-  # Add trial metadata and compute derived columns
-  new_rows = rct_results %>%
-    left_join(outcome_type_map, by = "Outcome") %>%
-    mutate(
-      Trial_No = trial_no,
-      Sample_Size = as.numeric(N),
-      Contrast = contrast,
-      ANCOVA_est = Est_RC,
-      ANCOVA_robust_se = SE_RC,
+  # Rename columns in res1
+  res1_renamed = res1 %>%
+    rename(
+      ANCOVA_est = Est_RC_ANCOVA,
+      ANCOVA_robust_se = SE_RC_ANCOVA,
+      ANHECOVA_est = Est_RC_ANHECOVA,
+      ANHECOVA_robust_se = SE_RC_ANHECOVA,
       ANCOVA_model_based_se = SE_AC,
       Unadjust_est = Est_UN,
       Unadjust_se = SE_UN,
       SuperLearner_est = Est_SL,
-      SuperLearner_se = SE_SL,
+      SuperLearner_se = SE_SL
+    )
+  
+  # Add trial metadata and compute derived columns
+  new_rows = res1_renamed %>%
+    left_join(outcome_type_map, by = "Outcome") %>%
+    mutate(
+      Trial_No = trial_no,
+      Sample_Size = N,
+      Contrast = contrast,
       `How much precision gain can ANCOVA provide?` =
-        (SE_RC / SE_UN) ^ 2,
+        (ANCOVA_robust_se / Unadjust_se) ^ 2,
       `The difference between unadjusted and ANCOVA point estimates` =
-        (Est_RC - Est_UN) / sqrt((SE_RC ^ 2 + SE_UN ^ 2) / 2),
+        (ANCOVA_est - Unadjust_est) / sqrt((ANCOVA_robust_se ^ 2 + Unadjust_se ^ 2) / 2),
       `The ratio between robust and model-based variance estimators` =
-        (SE_RC / SE_AC) ^ 2,
+        (ANCOVA_robust_se / ANCOVA_model_based_se) ^ 2,
       `How much precision gain can Super Learner provide?` =
-        (SE_SL / SE_UN) ^ 2,
+        (SuperLearner_se / Unadjust_se) ^ 2,
       `The difference between unadjusted and Super Learner point estimates` =
-        (Est_SL - Est_UN) / sqrt((SE_SL ^ 2 + SE_UN ^ 2) / 2)
+        (SuperLearner_est - Unadjust_est) / sqrt((SuperLearner_se ^ 2 + Unadjust_se ^ 2) / 2),
+      `How much precision gain can ANHECOVA provide?` =
+        (ANHECOVA_robust_se / Unadjust_se) ^ 2
     ) %>%
     select(
       Trial_No,
@@ -418,6 +448,8 @@ update_df = function(trial_no,
       ANCOVA_est,
       ANCOVA_robust_se,
       ANCOVA_model_based_se,
+      ANHECOVA_est,
+      ANHECOVA_robust_se,
       Unadjust_est,
       Unadjust_se,
       SuperLearner_est,
@@ -426,7 +458,8 @@ update_df = function(trial_no,
       `The difference between unadjusted and ANCOVA point estimates`,
       `The ratio between robust and model-based variance estimators`,
       `How much precision gain can Super Learner provide?`,
-      `The difference between unadjusted and Super Learner point estimates`
+      `The difference between unadjusted and Super Learner point estimates`,
+      `How much precision gain can ANHECOVA provide?`
     )
   
   # Replace existing rows if matched, append otherwise
@@ -456,7 +489,7 @@ update_df = function(trial_no,
 ## Load Data
 
 ```{r}
-df1 = read_rds("cleaned_data/trial1.rds")
+df1 = read_rds("cleaned_data/Non_Clustered_RCT/trial1.rds")
 ```
 
 ## Process
@@ -471,7 +504,7 @@ df_comparison = update_df(1, rep("continuous", 15))
 ## Load Data
 
 ```{r}
-df2 = read_rds("cleaned_data/trial2.rds")
+df2 = read_rds("cleaned_data/Non_Clustered_RCT/trial2.rds")
 
 df2 = df2 %>% select(-YP_early_7d, -YP_late_12d)
 ```
@@ -489,7 +522,7 @@ df_comparison = update_df(2, c("time to event", "binary", "binary"))
 ## Load Data
 
 ```{r}
-df3 = read_rds("cleaned_data/trial3.rds")
+df3 = read_rds("cleaned_data/Non_Clustered_RCT/trial3.rds")
 ```
 
 ## Process
@@ -506,7 +539,7 @@ df_comparison = update_df(3, c("binary", "time to event", rep("binary", 4), "con
 ## Load Data
 
 ```{r}
-df4 = read_rds("cleaned_data/trial4.rds")
+df4 = read_rds("cleaned_data/Non_Clustered_RCT/trial4.rds")
 ```
 
 ## Process
@@ -524,7 +557,7 @@ df_comparison = update_df(4, c("continuous", "continuous", "continuous", "contin
 ## Load Data
 
 ```{r}
-df5 = read_rds("cleaned_data/trial5.rds")
+df5 = read_rds("cleaned_data/Non_Clustered_RCT/trial5.rds")
 ```
 
 ## Process
@@ -541,7 +574,7 @@ df_comparison = update_df(5, c("composite binary", "continuous", rep("binary", 7
 ## Load Data
 
 ```{r}
-df6 = read_rds("cleaned_data/trial6.rds")
+df6 = read_rds("cleaned_data/Non_Clustered_RCT/trial6.rds")
 ```
 
 ## Process
@@ -558,7 +591,7 @@ df_comparison = update_df(6, c(rep("continuous", 11)))
 ## Load Data
 
 ```{r}
-df7 = read_rds("cleaned_data/trial7.rds")
+df7 = read_rds("cleaned_data/Non_Clustered_RCT/trial7.rds")
 ```
 
 ## Process
@@ -575,7 +608,7 @@ df_comparison = update_df(7, rep("continuous", 8))
 ## Load Data
 
 ```{r}
-df8 = read_rds("cleaned_data/trial8.rds")
+df8 = read_rds("cleaned_data/Non_Clustered_RCT/trial8.rds")
 
 df8 = df8 %>% select(-X_comorbidities_0d)
 ```
@@ -594,7 +627,7 @@ df_comparison = update_df(8, rep("binary", 6))
 ## Load Data
 
 ```{r}
-df9 = read_rds("cleaned_data/trial9.rds")
+df9 = read_rds("cleaned_data/Non_Clustered_RCT/trial9.rds")
 ```
 
 ## Process
@@ -611,7 +644,7 @@ df_comparison = update_df(9, c("binary", rep("continuous", 4), rep("binary", 9),
 ## Load Data
 
 ```{r}
-df10 = read_rds("cleaned_data/trial10.rds")
+df10 = read_rds("cleaned_data/Non_Clustered_RCT/trial10.rds")
 ```
 
 ## Process
@@ -625,7 +658,7 @@ df_comparison = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3)
 ## Load Data
 
 ```{r}
-df11 = read_rds("cleaned_data/trial11.rds")
+df11 = read_rds("cleaned_data/Non_Clustered_RCT/trial11.rds")
 ```
 
 ## Process
@@ -642,7 +675,7 @@ df_comparison = update_df(11, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df12 = read_rds("cleaned_data/trial12.rds")
+df12 = read_rds("cleaned_data/Non_Clustered_RCT/trial12.rds")
 ```
 
 ## Process
@@ -652,14 +685,14 @@ results = analyze_rct(df12)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(12, c("binary", rep("continuous", n - 1)))
+df_comparison = update_df(12, c(rep("binary", n)))
 ```
 
 # Trial 13
 ## Load Data
 
 ```{r}
-df13 = read_rds("cleaned_data/trial13.rds")
+df13 = read_rds("cleaned_data/Non_Clustered_RCT/trial13.rds")
 ```
 
 ## Process
@@ -676,7 +709,7 @@ df_comparison = update_df(13, c("binary", rep("continuous", 9), "binary", "binar
 ## Load Data
 
 ```{r}
-df14 = read_rds("cleaned_data/trial14.rds")
+df14 = read_rds("cleaned_data/Non_Clustered_RCT/trial14.rds")
 ```
 
 ## Process
@@ -693,7 +726,7 @@ df_comparison = update_df(14, c(rep("continuous", n-4), rep("binary", 4)))
 ## Load Data
 
 ```{r}
-df15 = read_rds("cleaned_data/trial15.rds")
+df15 = read_rds("cleaned_data/Non_Clustered_RCT/trial15.rds")
 ```
 
 ## Process
@@ -711,7 +744,7 @@ df_comparison = update_df(15, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df16 = read_rds("cleaned_data/trial16.rds")
+df16 = read_rds("cleaned_data/Non_Clustered_RCT/trial16.rds")
 ```
 
 ## Process
@@ -729,7 +762,7 @@ df_comparison = update_df(16, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df17 = read_rds("cleaned_data/trial17.rds")
+df17 = read_rds("cleaned_data/Non_Clustered_RCT/trial17.rds")
 ```
 
 ## Process
@@ -747,7 +780,7 @@ df_comparison = update_df(17, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df18 = read_rds("cleaned_data/trial18.rds") %>% 
+df18 = read_rds("cleaned_data/Non_Clustered_RCT/trial18.rds") %>% 
   select(-YP_event_disengaged_12m)
 ```
 
@@ -766,7 +799,7 @@ df_comparison = update_df(18, c("time to event", rep("continuous", n-1)))
 ## Load Data
 
 ```{r}
-df19 = read_rds("cleaned_data/trial19.rds")
+df19 = read_rds("cleaned_data/Non_Clustered_RCT/trial19.rds")
 ```
 
 ## Process
@@ -784,7 +817,7 @@ df_comparison = update_df(19, c(rep("continuous", n-1), "binary"))
 ## Load Data
 
 ```{r}
-df20 = read_rds("cleaned_data/trial20.rds")
+df20 = read_rds("cleaned_data/Non_Clustered_RCT/trial20.rds")
 ```
 
 ## Process
@@ -802,7 +835,7 @@ df_comparison = update_df(20, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df21 = read_rds("cleaned_data/trial21.rds") %>% 
+df21 = read_rds("cleaned_data/Non_Clustered_RCT/trial21.rds") %>% 
   select(-YP_tb_treatment_initiation)
 ```
 
@@ -821,7 +854,7 @@ df_comparison = update_df(21, c("time to event", rep("binary", 4), "continuous")
 ## Load Data
 
 ```{r}
-df22 = read_rds("cleaned_data/trial22.rds")
+df22 = read_rds("cleaned_data/Non_Clustered_RCT/trial22.rds")
 ```
 
 ## Process
@@ -831,7 +864,7 @@ results = analyze_rct(df22)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(22, rep("continuous", n))
+df_comparison = update_df(22, c(rep("binary", 2), "continuous", rep("binary", 2)))
 ```
 
 
@@ -839,7 +872,7 @@ df_comparison = update_df(22, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df23 = read_rds("cleaned_data/trial23.rds") %>% 
+df23 = read_rds("cleaned_data/Non_Clustered_RCT/trial23.rds") %>% 
   select(-YP_event_28d, -YP_event_90d)
 ```
 
@@ -858,7 +891,7 @@ df_comparison = update_df(23, c("time to event", "time to event", rep("continuou
 ## Load Data
 
 ```{r}
-df24 = read_rds("cleaned_data/trial24.rds")
+df24 = read_rds("cleaned_data/Non_Clustered_RCT/trial24.rds")
 ```
 
 ## Process
@@ -876,7 +909,7 @@ df_comparison = update_df(24, "binary")
 ## Load Data
 
 ```{r}
-df25 = read_rds("cleaned_data/trial25.rds")
+df25 = read_rds("cleaned_data/Non_Clustered_RCT/trial25.rds")
 ```
 
 ## Process
@@ -894,7 +927,7 @@ df_comparison = update_df(25, c(rep("continuous", n-2), "binary", "binary"))
 ## Load Data
 
 ```{r}
-df26 = read_rds("cleaned_data/trial26.rds")
+df26 = read_rds("cleaned_data/Non_Clustered_RCT/trial26.rds")
 ```
 
 ## Process
@@ -912,7 +945,7 @@ df_comparison = update_df(26, c("continuous", "binary", "categorical", rep("cont
 ## Load Data
 
 ```{r}
-df27 = read_rds("cleaned_data/trial27.rds")
+df27 = read_rds("cleaned_data/Non_Clustered_RCT/trial27.rds")
 ```
 
 ## Process
@@ -931,7 +964,7 @@ df_comparison = update_df(27, c("categorical", "binary", "continuous", "categori
 ## Load Data
 
 ```{r}
-df28 = read_rds("cleaned_data/trial28.rds")
+df28 = read_rds("cleaned_data/Non_Clustered_RCT/trial28.rds")
 ```
 
 ## Process
@@ -949,7 +982,8 @@ df_comparison = update_df(28, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df29 = read_rds("cleaned_data/trial29.rds")
+df29 = read_rds("cleaned_data/Non_Clustered_RCT/trial29.rds") %>% 
+  select(-YP_death)
 ```
 
 ## Process
@@ -959,9 +993,8 @@ results = analyze_rct(df29)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(29, rep("continuous", n))
+df_comparison = update_df(29, c("time to event", "binary", "binary", "continuous"))
 ```
-
 
 
 
@@ -969,7 +1002,7 @@ df_comparison = update_df(29, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df30 = read_rds("cleaned_data/trial30.rds")
+df30 = read_rds("cleaned_data/Non_Clustered_RCT/trial30.rds")
 ```
 
 ## Process
@@ -986,7 +1019,8 @@ df_comparison = update_df(30, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df31 = read_rds("cleaned_data/trial31.rds")
+df31 = read_rds("cleaned_data/Non_Clustered_RCT/trial31.rds") %>% 
+  select(-YP_flu_infection)
 ```
 
 ## Process
@@ -996,14 +1030,15 @@ results = analyze_rct(df31)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(31, c("continuous", "binary"))
+df_comparison = update_df(31, c("time to event", "continuous", "continuous", "binary", "binary"))
 ```
+
 
 # Trial 32
 ## Load Data
 
 ```{r}
-df32 = read_rds("cleaned_data/trial32.rds")
+df32 = read_rds("cleaned_data/Non_Clustered_RCT/trial32.rds")
 ```
 
 ## Process
@@ -1020,7 +1055,7 @@ df_comparison = update_df(32, c("binary", "binary", "binary", "binary"))
 ## Load Data
 
 ```{r}
-df33 = read_rds("cleaned_data/trial33.rds")
+df33 = read_rds("cleaned_data/Non_Clustered_RCT/trial33.rds")
 ```
 
 ## Process
@@ -1036,7 +1071,7 @@ df_comparison = update_df(33, c("continuous", "binary"))
 ## Load Data
 
 ```{r}
-df34 = read_rds("cleaned_data/trial34.rds")
+df34 = read_rds("cleaned_data/Non_Clustered_RCT/trial34.rds")
 ```
 
 ## Process
@@ -1053,7 +1088,7 @@ df_comparison = update_df(34, c("binary", "continuous", rep("binary", 6)))
 ## Load Data
 
 ```{r}
-df35 = read_rds("cleaned_data/trial35.rds")
+df35 = read_rds("cleaned_data/Non_Clustered_RCT/trial35.rds")
 ```
 
 ## Process
@@ -1069,7 +1104,7 @@ df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binar
 ## Load Data
 
 ```{r}
-df36 = read_rds("cleaned_data/trial36.rds")
+df36 = read_rds("cleaned_data/Non_Clustered_RCT/trial36.rds")
 ```
 
 ## Process
@@ -1085,7 +1120,7 @@ df_comparison = update_df(36, rep("continuous", n))
 ## Load Data
 
 ```{r}
-df37 = read_rds("cleaned_data/trial37.rds")
+df37 = read_rds("cleaned_data/Non_Clustered_RCT/trial37.rds")
 ```
 
 ## Process
@@ -1102,7 +1137,7 @@ df_comparison = update_df(37, rep("binary", n))
 ## Load Data
 
 ```{r}
-df38 = read_rds("cleaned_data/trial38.rds") %>% 
+df38 = read_rds("cleaned_data/Non_Clustered_RCT/trial38.rds") %>% 
   select(-YP_event_flag)
 ```
 
@@ -1121,7 +1156,7 @@ df_comparison = update_df(38, c("time to event", "continuous", "continuous"))
 ## Load Data
 
 ```{r}
-df39 = read_rds("cleaned_data/trial39.rds") %>% 
+df39 = read_rds("cleaned_data/Non_Clustered_RCT/trial39.rds") %>% 
   select(-YP_event_flag)
 ```
 
@@ -1140,7 +1175,7 @@ df_comparison = update_df(39, c("time to event"))
 ## Load Data
 
 ```{r}
-df40 = read_rds("cleaned_data/trial40.rds") %>% 
+df40 = read_rds("cleaned_data/Non_Clustered_RCT/trial40.rds") %>% 
   select(-YP_success_flag,  -YS_attempt1_time, -YS_attempt2_time, -YS_attempt3_time,
          -YS_attempt1_success, -YS_attempt2_success, -YS_attempt3_success, -YS_attempt2_assigned,-YS_attempt3_assigned)
 ```
@@ -1161,7 +1196,7 @@ df_comparison = update_df(40, c("time to event", "continuous", "continuous", "bi
 ## Load Data
 
 ```{r}
-df41 = read_rds("cleaned_data/trial41.rds")
+df41 = read_rds("cleaned_data/Non_Clustered_RCT/trial41.rds")
 ```
 
 
@@ -1180,7 +1215,7 @@ df_comparison = update_df(41, c(rep("binary", 5)))
 ## Load Data
 
 ```{r}
-df42 = read_rds("cleaned_data/trial42.rds") %>% 
+df42 = read_rds("cleaned_data/Non_Clustered_RCT/trial42.rds") %>% 
   select(-YP_onset_sensory_censor, -YS_med_duration, -YS_med_duration_censor)
 ```
 
@@ -1199,7 +1234,7 @@ df_comparison = update_df(42, c("time to event", rep("continuous", n-1)))
 ## Load Data
 
 ```{r}
-df43 = read_rds("cleaned_data/trial43.rds") %>% 
+df43 = read_rds("cleaned_data/Non_Clustered_RCT/trial43.rds") %>% 
   select(-YP_preterm_flag)
 ```
 
@@ -1218,7 +1253,7 @@ df_comparison = update_df(43, c("time to event", rep("continuous", 3), "binary")
 ## Load Data
 
 ```{r}
-df44 = read_rds("cleaned_data/trial44.rds")
+df44 = read_rds("cleaned_data/Non_Clustered_RCT/trial44.rds")
 ```
 
 
@@ -1236,7 +1271,7 @@ df_comparison = update_df(44, c("binary", rep("continuous", 3)))
 ## Load Data
 
 ```{r}
-df45 = read_rds("cleaned_data/trial45.rds") %>% 
+df45 = read_rds("cleaned_data/Non_Clustered_RCT/trial45.rds") %>% 
   select(-YS_delta_icedtea_24w, -YS_delta_alcohol_24w, -YS_delta_salty_24w,
          -YS_delta_fats_24w, -YS_delta_ldl_24w, -YS_delta_tg_24w)
 ```
@@ -1256,7 +1291,7 @@ df_comparison = update_df(45, c(rep("continuous", n)))
 ## Load Data
 
 ```{r}
-df46 = read_rds("cleaned_data/trial46.rds")
+df46 = read_rds("cleaned_data/Non_Clustered_RCT/trial46.rds")
 ```
 
 ## Process
@@ -1274,7 +1309,7 @@ df_comparison = update_df(46, c(rep("continuous", n)))
 ## Load Data
 
 ```{r}
-df47 = read_rds("cleaned_data/trial47.rds")
+df47 = read_rds("cleaned_data/Non_Clustered_RCT/trial47.rds")
 ```
 
 
@@ -1293,8 +1328,8 @@ df_comparison = update_df(47, c(rep("binary", n)))
 ## Load Data
 
 ```{r}
-df48 = read_rds("cleaned_data/trial48.rds") %>% 
-  select(-YP_ap_ws_5m, -YP_ew_ss_5m, -YP_EF3_RT_5m, -YP_EF3_perccorr_5m, -YS_fb_p2_percCorr_5m, -YS_ravens_sum_score_5m, -YS_RCN_MeanTime_R_5m, -YS_Time1_h_5m)
+# df48 = read_rds("cleaned_data/Non_Clustered_RCT/trial48.rds") %>% 
+#   select(-YP_ap_ws_5m, -YP_ew_ss_5m, -YP_EF3_RT_5m, -YP_EF3_perccorr_5m, -YS_fb_p2_percCorr_5m, -YS_ravens_sum_score_5m, -YS_RCN_MeanTime_R_5m, -YS_Time1_h_5m)
 ```
 
 
@@ -1302,11 +1337,11 @@ df48 = read_rds("cleaned_data/trial48.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df48)
-
-n = length(unique(results$Outcome))
-
-df_comparison = update_df(48, c(rep("continuous", n)))
+# results = analyze_rct(df48)
+# 
+# n = length(unique(results$Outcome))
+# 
+# df_comparison = update_df(48, c(rep("continuous", n)))
 ```
 
 
@@ -1314,7 +1349,7 @@ df_comparison = update_df(48, c(rep("continuous", n)))
 ## Load Data
 
 ```{r}
-df49 = read_rds("cleaned_data/trial49.rds") %>% 
+df49 = read_rds("cleaned_data/Non_Clustered_RCT/trial49.rds") %>% 
     select(-YS_t_sondad, -YS_full_oral)
 ```
 
@@ -1335,7 +1370,7 @@ df_comparison = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("con
 ## Load Data
 
 ```{r}
-df50 = read_rds("cleaned_data/trial50.rds")
+# df50 = read_rds("cleaned_data/Non_Clustered_RCT/trial50.rds")
 ```
 
 
@@ -1343,11 +1378,11 @@ df50 = read_rds("cleaned_data/trial50.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df50)
-
-n = length(unique(results$Outcome))
-
-df_comparison = update_df(50, rep("continuous", n))
+# results = analyze_rct(df50)
+# 
+# n = length(unique(results$Outcome))
+# 
+# df_comparison = update_df(50, rep("continuous", n))
 ```
 
 
