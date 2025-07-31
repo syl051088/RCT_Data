@@ -141,13 +141,13 @@ analyze_rct_sl = function(data,
 ## analyze_rct()
 
 ```{r}
-
 analyze_rct = function(df,
                        outcome_cols = NULL,
                        covariate_col = NULL,
                        treatment_col = "Treatment",
                        K = 5,
                        SL_methods = c("SL.glm", "SL.rpart", "SL.ranger", "SL.mean", "SL.nnet"),
+                       selection = FALSE,
                        n_cores = parallel::detectCores() - 2,
                        seed = 123) {
   require(dplyr)
@@ -218,13 +218,13 @@ analyze_rct = function(df,
     
     # Check missing proportion for outcome
     missing_prop = mean(is.na(df[[outcome]]))
-    if (missing_prop > 0.3) {
+    if (missing_prop > 0.4) {
       cat(
         "REMOVED outcome:",
         outcome,
         "- Missing proportion:",
         round(missing_prop, 3),
-        "(> 0.3)\n"
+        "(> 0.4)\n"
       )
       next
     }
@@ -270,7 +270,51 @@ analyze_rct = function(df,
       }
     }
     
+    # Convert outcome to numeric (needed for both variable selection and analysis)
     df_complete[[outcome]] = as.numeric(df_complete[[outcome]])
+    
+    # Variable selection: select top 3 covariates by outcome-specific correlation
+    if (selection && length(valid_covariates) > 0) {
+      if (length(valid_covariates) > 3) {
+        # Filter to numeric covariates for correlation computation
+        numeric_covariates = character(0)
+        for (cov in valid_covariates) {
+          if (is.numeric(df_complete[[cov]])) {
+            numeric_covariates = c(numeric_covariates, cov)
+          }
+        }
+        
+        if (length(numeric_covariates) >= 3) {
+          # Get correlations between this outcome and numeric covariates
+          cov_values = numeric(length(numeric_covariates))
+          names(cov_values) = numeric_covariates
+          
+          for (cov in numeric_covariates) {
+            cov_values[cov] = cor(df_complete[[outcome]], df_complete[[cov]], use = "complete.obs")
+          }
+          
+          # Select top 3 numeric covariates by absolute correlation magnitude
+          top_3_idx = order(abs(cov_values), decreasing = TRUE)[1:3]
+          selected_numeric_covariates = numeric_covariates[top_3_idx]
+          
+          # Use selected numeric covariates plus any factor covariates (up to 3 total)
+          factor_covariates = setdiff(valid_covariates, numeric_covariates)
+          all_selected = c(selected_numeric_covariates, factor_covariates)
+          valid_covariates = all_selected[1:min(3, length(all_selected))]
+          
+          cat("Variable selection for", outcome, "- Selected covariates:", 
+              paste(valid_covariates, collapse = ", "), "\n")
+        } else {
+          # If <3 numeric covariates, use all valid covariates
+          cat("Variable selection for", outcome, "- Using all", length(valid_covariates), 
+              "covariates (<3 numeric available):", paste(valid_covariates, collapse = ", "), "\n")
+        }
+      } else {
+        # If ≤3 valid covariates, use all of them
+        cat("Variable selection for", outcome, "- Using all", length(valid_covariates), 
+            "covariates (≤3):", paste(valid_covariates, collapse = ", "), "\n")
+      }
+    }
     
     
     # Fit traditional models
@@ -299,6 +343,7 @@ analyze_rct = function(df,
       Treatment = treatment_levels,
       Control = rep(control_level, n_treat),
       N = pairwise_n,
+      N_Covariates = rep(length(valid_covariates), n_treat),
       # Unadjusted
       Est_UN = coef_unadj[treat_idx_unadj, 1],
       SE_UN = coef_unadj[treat_idx_unadj, 2],
@@ -367,6 +412,7 @@ analyze_rct = function(df,
     select(
       Outcome,
       N,
+      N_Covariates,
       Treatment,
       Control,
       Est_RC_ANCOVA,
@@ -423,6 +469,7 @@ update_df = function(trial_no,
     mutate(
       Trial_No = trial_no,
       Sample_Size = N,
+      N_Covariates = N_Covariates,
       Contrast = contrast,
       `How much precision gain can ANCOVA provide?` =
         (ANCOVA_robust_se / Unadjust_se) ^ 2,
@@ -435,11 +482,14 @@ update_df = function(trial_no,
       `The difference between unadjusted and Super Learner point estimates` =
         (SuperLearner_est - Unadjust_est) / sqrt((SuperLearner_se ^ 2 + Unadjust_se ^ 2) / 2),
       `How much precision gain can ANHECOVA provide?` =
-        (ANHECOVA_robust_se / Unadjust_se) ^ 2
+        (ANHECOVA_robust_se / Unadjust_se) ^ 2,
+      `ANCOVA vs ANHECOVA variance ratio` =
+        (ANCOVA_robust_se / ANHECOVA_robust_se) ^ 2
     ) %>%
     select(
       Trial_No,
       Sample_Size,
+      N_Covariates,
       Treatment,
       Control,
       Contrast,
@@ -459,7 +509,8 @@ update_df = function(trial_no,
       `The ratio between robust and model-based variance estimators`,
       `How much precision gain can Super Learner provide?`,
       `The difference between unadjusted and Super Learner point estimates`,
-      `How much precision gain can ANHECOVA provide?`
+      `How much precision gain can ANHECOVA provide?`,
+      `ANCOVA vs ANHECOVA variance ratio`
     )
   
   # Replace existing rows if matched, append otherwise
@@ -565,7 +616,7 @@ df5 = read_rds("cleaned_data/Non_Clustered_RCT/trial5.rds")
 ```{r}
 results = analyze_rct(df5)
 
-df_comparison = update_df(5, c("composite binary", "continuous", rep("binary", 7), rep("continuous", 3), "binary"))
+df_comparison = update_df(5, c("composite binary", "continuous", rep("binary", 10), rep("continuous", 3), "binary"))
 ```
 
 
@@ -582,7 +633,9 @@ df6 = read_rds("cleaned_data/Non_Clustered_RCT/trial6.rds")
 ```{r}
 results = analyze_rct(df6)
 
-df_comparison = update_df(6, c(rep("continuous", 11)))
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(6, rep("continuous", n))
 ```
 
 
@@ -635,7 +688,7 @@ df9 = read_rds("cleaned_data/Non_Clustered_RCT/trial9.rds")
 ```{r}
 results = analyze_rct(df9)
 
-df_comparison = update_df(9, c("binary", rep("continuous", 4), rep("binary", 9), "continuous",
+df_comparison = update_df(9, c("binary", rep("continuous", 4), rep("binary", 10), "continuous",
                                rep("binary", 2), "continuous", rep("binary", 2)))
 ```
 
@@ -652,7 +705,7 @@ df10 = read_rds("cleaned_data/Non_Clustered_RCT/trial10.rds")
 ```{r}
 results = analyze_rct(df10)
 
-df_comparison = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 12)))
+df_comparison = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 15)))
 ```
 # Trial 11
 ## Load Data
@@ -901,7 +954,7 @@ results = analyze_rct(df24)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(24, "binary")
+df_comparison = update_df(24, c("binary", "continuous", "continuous"))
 ```
 
 
@@ -1048,7 +1101,7 @@ results = analyze_rct(df32)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(32, c("binary", "binary", "binary", "binary"))
+df_comparison = update_df(32, c("categorical", "binary", "binary", "binary"))
 ```
 
 # Trial 33
@@ -1098,7 +1151,8 @@ results = analyze_rct(df35)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binary"))
+df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binary",
+                                rep("continuous", 6)))
 ```
 # Trial 36
 ## Load Data
@@ -1273,7 +1327,7 @@ df_comparison = update_df(44, c("binary", rep("continuous", 3)))
 ```{r}
 df45 = read_rds("cleaned_data/Non_Clustered_RCT/trial45.rds") %>% 
   select(-YS_delta_icedtea_24w, -YS_delta_alcohol_24w, -YS_delta_salty_24w,
-         -YS_delta_fats_24w, -YS_delta_ldl_24w, -YS_delta_tg_24w)
+         -YS_delta_fats_24w, -YS_delta_ldl_24w, -YS_delta_tg_24w, -YS_delta_hba1c_24w)
 ```
 
 
@@ -1321,27 +1375,25 @@ results = analyze_rct(df47)
 
 n = length(unique(results$Outcome))
 
-df_comparison = update_df(47, c(rep("binary", n)))
+df_comparison = update_df(47, c(rep("binary", 2), "continuous", "binary"))
 ```
 
 # Trial 48
 ## Load Data
 
 ```{r}
-# df48 = read_rds("cleaned_data/Non_Clustered_RCT/trial48.rds") %>% 
-#   select(-YP_ap_ws_5m, -YP_ew_ss_5m, -YP_EF3_RT_5m, -YP_EF3_perccorr_5m, -YS_fb_p2_percCorr_5m, -YS_ravens_sum_score_5m, -YS_RCN_MeanTime_R_5m, -YS_Time1_h_5m)
+df48 = read_rds("cleaned_data/Non_Clustered_RCT/trial48.rds")
 ```
-
 
 
 ## Process
 
 ```{r}
-# results = analyze_rct(df48)
-# 
-# n = length(unique(results$Outcome))
-# 
-# df_comparison = update_df(48, c(rep("continuous", n)))
+results = analyze_rct(df48)
+
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(48, c("binary", rep("continuous", 6), rep("binary", 2)))
 ```
 
 
@@ -1370,21 +1422,20 @@ df_comparison = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("con
 ## Load Data
 
 ```{r}
-# df50 = read_rds("cleaned_data/Non_Clustered_RCT/trial50.rds")
+df50 = read_rds("cleaned_data/Non_Clustered_RCT/trial50.rds") %>% 
+  select(-YP_first_infection_event)
 ```
-
 
 
 ## Process
 
 ```{r}
-# results = analyze_rct(df50)
-# 
-# n = length(unique(results$Outcome))
-# 
-# df_comparison = update_df(50, rep("continuous", n))
-```
+results = analyze_rct(df50)
 
+n = length(unique(results$Outcome))
+
+df_comparison = update_df(50, c("time to event", "continuous"))
+```
 
 
 # Export
@@ -1417,11 +1468,15 @@ df_new = df_new %>%
     point_est_diff_AC = `The difference between unadjusted and ANCOVA point estimates`,
     variance_ratio_AC = `The ratio between robust and model-based variance estimators`,
     precision_gain_SL = `How much precision gain can Super Learner provide?`,
-    point_est_diff_SL = `The difference between unadjusted and Super Learner point estimates`
+    point_est_diff_SL = `The difference between unadjusted and Super Learner point estimates`,
+    precision_gain_ANHEC = `How much precision gain can ANHECOVA provide?`,
+    variance_ratio_AC_ANHEC = `ANCOVA vs ANHECOVA variance ratio`
   )
 ```
 
-Variance Summary
+
+
+## Variance Summary
 ```{r}
 df_summary = df_new %>%
   group_by(outcome_group) %>%
@@ -1434,7 +1489,37 @@ df_summary = df_new %>%
     mean_var_ratio_AC     = mean(variance_ratio_AC, na.rm = TRUE),
     sd_var_ratio_AC       = sd(variance_ratio_AC,   na.rm = TRUE),
     
- # ── SuperLearner precision-gain *outlier removed* ─────────────────────
+# ── ANCOVA vs ANHECOVA variance ratio *low outlier removed* ─────────────────────
+    mean_var_ratio_AC_ANHEC = {
+      v  = variance_ratio_AC_ANHEC
+      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
+      mean(v[v >= lb], na.rm = TRUE)
+    },
+    sd_var_ratio_AC_ANHEC   = {
+      v  = variance_ratio_AC_ANHEC
+      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
+      sd(v[v >= lb], na.rm = TRUE)
+    },
+    # ANCOVA vs ANHECOVA variance ratio (full)
+    mean_var_ratio_AC_ANHEC_full  = mean(variance_ratio_AC_ANHEC, na.rm = TRUE),
+    sd_var_ratio_AC_ANHEC_full    = sd(variance_ratio_AC_ANHEC,   na.rm = TRUE),
+    
+    # ── ANHECOVA precision-gain *outlier removed* ─────────────────────
+    mean_prec_gain_ANHEC = {
+      v  = precision_gain_ANHEC
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      mean(v[v <= ub], na.rm = TRUE)
+    },
+    sd_prec_gain_ANHEC   = {
+      v  = precision_gain_ANHEC
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      sd(v[v <= ub], na.rm = TRUE)
+    },
+    # ANHECOVA precision‐gain
+    mean_prec_gain_ANHEC_full  = mean(precision_gain_ANHEC, na.rm = TRUE),
+    sd_prec_gain_ANHEC_full    = sd(precision_gain_ANHEC,   na.rm = TRUE),
+    
+    # ── SuperLearner precision-gain *outlier removed* ─────────────────────
     mean_prec_gain_SL = {
       v  = precision_gain_SL
       ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
@@ -1445,19 +1530,70 @@ df_summary = df_new %>%
       ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
       sd(v[v <= ub], na.rm = TRUE)
     },
-
     # SuperLearner precision‐gain
     mean_prec_gain_SL_full     = mean(precision_gain_SL,  na.rm = TRUE),
     sd_prec_gain_SL_full       = sd(precision_gain_SL,    na.rm = TRUE)
   ) %>%
   ungroup()
-
 print(df_summary)
+```
+### Outlier Removed Table
+```{r}
+df_summary_filtered = df_new %>%
+  group_by(outcome_group) %>%
+  summarise(
+    # ANCOVA precision‐gain
+    mean_prec_gain_AC     = mean(precision_gain_AC, na.rm = TRUE),
+    sd_prec_gain_AC       = sd(precision_gain_AC,   na.rm = TRUE),
+    
+    # ANCOVA robust vs model‐based variance ratio (original)
+    mean_var_ratio_AC     = mean(variance_ratio_AC, na.rm = TRUE),
+    sd_var_ratio_AC       = sd(variance_ratio_AC,   na.rm = TRUE),
+    
+# ── ANCOVA vs ANHECOVA variance ratio *low outlier removed* ─────────────────────
+    mean_var_ratio_AC_ANHEC = {
+      v  = variance_ratio_AC_ANHEC
+      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
+      mean(v[v >= lb], na.rm = TRUE)
+    },
+    sd_var_ratio_AC_ANHEC   = {
+      v  = variance_ratio_AC_ANHEC
+      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
+      sd(v[v >= lb], na.rm = TRUE)
+    },
+    
+    # ── ANHECOVA precision-gain *outlier removed* ─────────────────────
+    mean_prec_gain_ANHEC = {
+      v  = precision_gain_ANHEC
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      mean(v[v <= ub], na.rm = TRUE)
+    },
+    sd_prec_gain_ANHEC   = {
+      v  = precision_gain_ANHEC
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      sd(v[v <= ub], na.rm = TRUE)
+    },
+    
+    # ── SuperLearner precision-gain *outlier removed* ─────────────────────
+    mean_prec_gain_SL = {
+      v  = precision_gain_SL
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      mean(v[v <= ub], na.rm = TRUE)
+    },
+    sd_prec_gain_SL   = {
+      v  = precision_gain_SL
+      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
+      sd(v[v <= ub], na.rm = TRUE)
+    }
+  ) %>%
+  ungroup()
+
+print(df_summary_filtered)
 ```
 
 
 ## Violin Plot
-
+### Use sample size
 ```{r}
 # Create sample size categories for better visualization
 df_new <- df_new %>%
@@ -1477,6 +1613,10 @@ df_new <- df_new %>%
 # Color palette for sample size categories
 size_colors <- c("Small (<50)" = "#d73027", "Medium (50-99)" = "#fc8d59", 
                 "Large (100-499)" = "#91bfdb", "Very Large (≥500)" = "#4575b4")
+
+##################################
+## ANCOVA Plots
+##################################
 
 # 1. Precision Gain Plot (ANCOVA) - Using color instead of size
 ggplot(df_new, aes(x = outcome_group, y = precision_gain_AC)) +
@@ -1527,10 +1667,88 @@ ggplot(df_new, aes(x = outcome_group, y = variance_ratio_AC)) +
         panel.grid.minor = element_blank())
 
 ##################################
+## ANCOVA vs ANHECOVA Comparison Plots
+##################################
+
+# 4. ANCOVA vs ANHECOVA Variance Ratio (Full)
+ggplot(df_new, aes(x = outcome_group, y = variance_ratio_AC_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightgray", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "ANCOVA vs ANHECOVA Variance Ratio",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 5. ANCOVA vs ANHECOVA Variance Ratio (Low Outliers Removed)
+ggplot(df_new %>%
+         filter(variance_ratio_AC_ANHEC >= 
+                  quantile(variance_ratio_AC_ANHEC, 0.25, na.rm = TRUE) - 1.5 * IQR(variance_ratio_AC_ANHEC, na.rm = TRUE)),
+       aes(x = outcome_group, y = variance_ratio_AC_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightgray", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "ANCOVA vs ANHECOVA Variance Ratio \n(Low Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+##################################
+## ANHECOVA Plots
+##################################
+
+# 6. Precision Gain Plot (ANHECOVA) - Full data
+ggplot(df_new, aes(x = outcome_group, y = precision_gain_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightyellow", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "ANHECOVA vs Unadjusted Precision Gain",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 7. Precision Gain Plot (ANHECOVA, High Outliers Removed)
+ggplot(df_new %>%
+         filter(precision_gain_ANHEC <= 
+                  quantile(precision_gain_ANHEC, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_ANHEC, na.rm = TRUE)),
+       aes(x = outcome_group, y = precision_gain_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightyellow", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "ANHECOVA vs Unadjusted Precision Gain \n(High Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+##################################
 ## Super Learner Plots
 ##################################
 
-# 4. Precision Gain Plot (Super Learner) - Using color
+# 8. Precision Gain Plot (Super Learner) - Using color
 ggplot(df_new, aes(x = outcome_group, y = precision_gain_SL)) +
   geom_violin(trim = FALSE, fill = "lightcyan", alpha = 0.6) +
   geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
@@ -1546,7 +1764,7 @@ ggplot(df_new, aes(x = outcome_group, y = precision_gain_SL)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 
-# 5. Precision Gain Plot (Super Learner, High Outliers Removed) - Using color
+# 9. Precision Gain Plot (Super Learner, High Outliers Removed) - Using color
 ggplot(df_new %>%
          filter(precision_gain_SL <= 
                   quantile(precision_gain_SL, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_SL, na.rm = TRUE)),
@@ -1565,7 +1783,7 @@ ggplot(df_new %>%
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 
-# 6. Point Estimate Difference Plot (Super Learner) - Using color
+# 10. Point Estimate Difference Plot (Super Learner) - Using color
 ggplot(df_new, aes(x = outcome_group, y = point_est_diff_SL)) +
   geom_violin(trim = FALSE, fill = "lightpink", alpha = 0.6) +
   geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
@@ -1581,6 +1799,199 @@ ggplot(df_new, aes(x = outcome_group, y = point_est_diff_SL)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 ```
+#### Efficiency Only(n)
+```{r}
+
+# Create sample size categories for better visualization
+df_new <- df_new %>%
+  mutate(
+    sample_size_cat = case_when(
+      Sample_Size < 50 ~ "Small (<50)",
+      Sample_Size < 100 ~ "Medium (50-99)", 
+      Sample_Size < 500 ~ "Large (100-499)",
+      TRUE ~ "Very Large (≥500)"
+    ),
+    sample_size_cat = factor(sample_size_cat, 
+                           levels = c("Small (<50)", "Medium (50-99)", "Large (100-499)", "Very Large (≥500)")),
+    # Log-transform for size mapping (less skewed)
+    log_sample_size = log10(Sample_Size)
+  )
+
+# Color palette for sample size categories
+size_colors <- c("Small (<50)" = "#d73027", "Medium (50-99)" = "#fc8d59", 
+                "Large (100-499)" = "#91bfdb", "Very Large (≥500)" = "#4575b4")
+
+# 1. ANCOVA Precision Gain
+ggplot(df_new, aes(x = outcome_group, y = precision_gain_AC)) +
+  geom_violin(trim = FALSE, fill = "lightblue", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "ANCOVA vs Unadjusted Precision Gain",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 2. ANHECOVA Precision Gain (Outliers Removed)
+ggplot(df_new %>%
+         filter(precision_gain_ANHEC <= 
+                  quantile(precision_gain_ANHEC, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_ANHEC, na.rm = TRUE)),
+       aes(x = outcome_group, y = precision_gain_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightyellow", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "ANHECOVA vs Unadjusted Precision Gain \n(High Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 3. Super Learner Precision Gain (Outliers Removed)
+ggplot(df_new %>%
+         filter(precision_gain_SL <= 
+                  quantile(precision_gain_SL, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_SL, na.rm = TRUE)),
+       aes(x = outcome_group, y = precision_gain_SL)) +
+  geom_violin(trim = FALSE, fill = "lightcyan", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "Super Learner vs Unadjusted Precision Gain \n(High Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 4. ANCOVA vs ANHECOVA Variance Ratio (Low Outliers Removed)
+ggplot(df_new %>%
+         filter(variance_ratio_AC_ANHEC >= 
+                  quantile(variance_ratio_AC_ANHEC, 0.25, na.rm = TRUE) - 1.5 * IQR(variance_ratio_AC_ANHEC, na.rm = TRUE)),
+       aes(x = outcome_group, y = variance_ratio_AC_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightgray", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size") +
+  labs(
+    title = "ANCOVA vs ANHECOVA Variance Ratio \n(Low Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+```
+
+#### Efficiency only(n/covaraites)
+```{r}
+# Create sample size to covariate ratio categories for better visualization
+df_new <- df_new %>%
+  mutate(
+    sample_covariate_ratio = Sample_Size / N_Covariates,
+    sample_size_cat = case_when(
+      sample_covariate_ratio < 3 ~ "Low (<3)",
+      sample_covariate_ratio < 10 ~ "Medium (3-10)", 
+      sample_covariate_ratio < 30 ~ "High (10-30)",
+      TRUE ~ "Very High (≥30)"
+    ),
+    sample_size_cat = factor(sample_size_cat, 
+                           levels = c("Low (<3)", "Medium (3-10)", "High (10-30)", "Very High (≥30)")),
+    # Log-transform for size mapping (less skewed)
+    log_sample_covariate_ratio = log10(sample_covariate_ratio)
+  )
+
+# Color palette for sample size to covariate ratio categories
+size_colors <- c("Low (<3)" = "#d73027", "Medium (3-10)" = "#fc8d59", 
+                "High (10-30)" = "#74c476", "Very High (≥30)" = "#2c7fb8")
+
+# 1. ANCOVA Precision Gain
+ggplot(df_new, aes(x = outcome_group, y = precision_gain_AC)) +
+  geom_violin(trim = FALSE, fill = "lightblue", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size / Covariates") +
+  labs(
+    title = "ANCOVA vs Unadjusted Precision Gain",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 2. ANHECOVA Precision Gain (Outliers Removed)
+ggplot(df_new %>%
+         filter(precision_gain_ANHEC <= 
+                  quantile(precision_gain_ANHEC, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_ANHEC, na.rm = TRUE)),
+       aes(x = outcome_group, y = precision_gain_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightyellow", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size / Covariates") +
+  labs(
+    title = "ANHECOVA vs Unadjusted Precision Gain \n(High Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 3. Super Learner Precision Gain (Outliers Removed)
+ggplot(df_new %>%
+         filter(precision_gain_SL <= 
+                  quantile(precision_gain_SL, 0.75, na.rm = TRUE) + 1.5 * IQR(precision_gain_SL, na.rm = TRUE)),
+       aes(x = outcome_group, y = precision_gain_SL)) +
+  geom_violin(trim = FALSE, fill = "lightcyan", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size / Covariates") +
+  labs(
+    title = "Super Learner vs Unadjusted Precision Gain \n(High Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+
+# 4. ANCOVA vs ANHECOVA Variance Ratio (Low Outliers Removed)
+ggplot(df_new %>%
+         filter(variance_ratio_AC_ANHEC >= 
+                  quantile(variance_ratio_AC_ANHEC, 0.25, na.rm = TRUE) - 1.5 * IQR(variance_ratio_AC_ANHEC, na.rm = TRUE)),
+       aes(x = outcome_group, y = variance_ratio_AC_ANHEC)) +
+  geom_violin(trim = FALSE, fill = "lightgray", alpha = 0.6) +
+  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1.5) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = size_colors, name = "Sample Size / Covariates") +
+  labs(
+    title = "ANCOVA vs ANHECOVA Variance Ratio \n(Low Outliers Removed)",
+    x = "Outcome Group",
+    y = "Variance Ratio"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
+        panel.grid.minor = element_blank())
+```
+
+
 ## More Plots
 
 ```{r}

@@ -2739,56 +2739,47 @@ write_rds(df31_final, "cleaned_data/Non_Clustered_RCT/trial31.rds")
 # Trial 32
 ## Load Data
 ```{r}
-df32 = read_dta("raw_data/Non_Clustered_RCT/32/32.dta")
+df32 = medicaldata::strep_tb
 ```
 
 
 ## Cleaning
 ```{r}
+# Replace missing values with NA
 df32_final = df32 %>%
+  # Rename treatment variable and factor with Control as reference
+  rename(Treatment = arm) %>%
+  mutate(Treatment = factor(Treatment, levels = c("Control", "Streptomycin"))) %>%
+  
+  # Create primary outcome variables (YP_ prefix)
+  # The primary outcome is radiological assessment at 6 months
   mutate(
-    # Treatment label
-    Treatment = case_when(
-      arm == 0 ~ "Sotrovimab",
-      arm == 1 ~ "Bamlanivimab/Etesevimab",
-      arm == 2 ~ "Casirivimab/Imdevimab"
-    ),
-    
-    # Primary outcome (composite event)
-    YP_Progression_binary = as_factor(outcome_global),
-
-    # Secondary outcomes
-    YS_Symptom_duration_30d   = TotalDsympt,
-    YS_Death_14d          = outcome1,
-    YS_Hospital_14d       = outcome2,
-    YS_Oxygen_14d = as_factor(outcome3),
-
-    # Covariates
-    X_variant_0d             = variant,
-    X_IgG_0d                 = IgG,
-    X_vaccine_status_0d      = NewVax,
-    X_BMI_cat_0d             = BMI_CAT,
-    X_immunodef_0d           = immunodeficency,
-    X_renal_0d               = renal,
-    X_diabetes_0d            = diabetes,
-    X_CVD_0d                 = CVD,
-    X_bpco_0d                = bpco,
-    X_liver_0d               = liver
+    YP_radiologic_6m = factor(radiologic_6m),
+    YP_considerable_improvement = factor(ifelse(radiologic_6m == "6_Considerable_improvement", 1, 0)),
+    YP_any_improvement = factor(improved)
   ) %>%
+  
+  # Create secondary outcome variables (YS_ prefix)
+  # Based on paper: bacteriological outcomes, clinical condition changes
   mutate(
-    Treatment = relevel(factor(Treatment), ref = "Casirivimab/Imdevimab"),
-    across(c(X_variant_0d, X_IgG_0d, X_vaccine_status_0d, X_BMI_cat_0d, 
-             X_immunodef_0d, X_renal_0d, X_diabetes_0d, X_CVD_0d, X_bpco_0d, 
-             X_bpco_0d, X_liver_0d, YS_Death_14d,
-             YS_Hospital_14d), as_factor)
-  ) %>% 
-  select(
-    Treatment,
-    starts_with("YP_"),
-    starts_with("YS_"),
-    starts_with("X_")
-  )
-
+    YS_strep_resistance = factor(strep_resistance),
+    YS_death = factor(ifelse(radiologic_6m == "1_Death", 1, 0))
+  ) %>%
+  
+  # Create covariate variables (X_ prefix with _0w suffix)
+  mutate(
+    X_gender_0w = factor(gender),
+    X_condition_0w = factor(baseline_condition),
+    X_temp_0w = factor(baseline_temp),
+    X_esr_0w = factor(baseline_esr),
+    X_cavitation_0w = factor(baseline_cavitation)
+  ) %>%
+  
+  # Reorder columns: Treatment first, then YP_, YS_, X_ variables
+  select(Treatment, 
+         starts_with("YP_"), 
+         starts_with("YS_"), 
+         starts_with("X_"))
 ```
 ## Output Data
 
@@ -3976,10 +3967,158 @@ write_rds(df47_final, "cleaned_data/Non_Clustered_RCT/trial47.rds")
 
 # Trial 48
 ## Load Data
+```{r}
+df48 = read_xlsx("raw_data/Non_Clustered_RCT/48/48.xlsx")
+```
 
 ## Cleaning
+```{r}
+df48_final = df48 %>% 
+  mutate(across(everything(), ~case_when(
+    . == "." ~ NA,
+    . == "NULL" ~ NA, 
+    . == "null" ~ NA,
+    . == "" ~ NA,
+    TRUE ~ .
+  ))) %>%
+  rename(Treatment = TxGroup) %>%
+  
+  # Step 3: Rename variables according to specifications
+  # Primary outcome at primary timepoint (6 months)
+  mutate(
+    YP_mite_presence_6m = `Mite +/-_t3`,    # 6 months (primary timepoint)
+    YP_mite_count_6m = as.numeric(MiteCtAvg_t3),        # 6 months (primary timepoint)
+    YP_mite_score_6m = as.numeric(MiteScAvg_t3)         # 6 months (primary timepoint)
+  ) %>%
+  
+  # Step 4: Pre-primary timepoint measurements (before 6 months)
+  mutate(
+    pre_YP_mite_presence_2m = `Mite +/-_t1`,    # 2 months 
+    pre_YP_mite_presence_4m = `Mite +/-_t2`,    # 4 months
+    pre_YP_mite_count_2m = as.numeric(MiteCtAvg_t1),        # 2 months
+    pre_YP_mite_count_4m = as.numeric(MiteCtAvg_t2),        # 4 months  
+    pre_YP_mite_score_2m = as.numeric(MiteScAvg_t1),        # 2 months
+    pre_YP_mite_score_4m = as.numeric(MiteScAvg_t2)         # 4 months
+  ) %>%
+  
+# Step 5: Create secondary outcomes - numeric conversions where needed
+  mutate(
+    # Secondary outcomes at 6 months (primary timepoint)
+    YS_otitis_6m = as.numeric(OtitisAvg_t3),                # 6 months
+    YS_CGH_6m = as.numeric(CGH_Avg_t3),                     # 6 months
+    YS_IgG_6m = as.numeric(IgG_t3),                         # 6 months
+    YS_IgE_6m = as.numeric(IgE_t3),                         # 6 months
+    YS_tumor_detected_6m = Tumor_detected_t3,
+    YS_tumor_group_6m = Tumor_group_t3,
+    
+    # Pre-primary timepoint secondary outcomes (before 6 months)
+    pre_YS_IgG_2m = as.numeric(IgG_t1),                     # 2 months
+    pre_YS_IgG_4m = as.numeric(IgG_t2),                     # 4 months
+    pre_YS_IgE_2m = as.numeric(IgE_t1),                     # 2 months
+    pre_YS_IgE_4m = as.numeric(IgE_t2)                      # 4 months
+  ) %>%
+  
+  # Step 6: Create covariates - includes all baseline measurements
+  mutate(
+    # Baseline covariates
+    X_age_group = AgeGroup,                                 # Age group (young vs mature)
+    X_sex = Sex,                                            # Sex
+    X_captures = as.numeric(`#_captures`),                  # Number of captures
+    
+    # Baseline primary outcomes become covariates
+    X_mite_presence_0w = `Mite +/-_t0`,                     # baseline
+    X_mite_count_0w = as.numeric(MiteCtAvg_t0),             # baseline
+    X_mite_score_0w = as.numeric(MiteScAvg_t0),             # baseline
+    
+    # Baseline secondary outcomes become covariates
+    X_otitis_0w = as.numeric(OtitisAvg_t0),                 # baseline
+    X_CGH_0w = as.numeric(CGH_Avg_t0),                      # baseline
+    X_IgG_0w = as.numeric(IgG_t0),                          # baseline
+    X_IgE_0w = as.numeric(IgE_t0),                          # baseline
+    X_tumor_detected_0w = Tumor_detected_t0,
+    X_tumor_group_0w = Tumor_group_t0,
+    X_carcinoma_detected_0w = Carcinoma_detected_t0,
+    X_carcinoma_group_0w = Carcinoma_group_t0,
+    
+    # Baseline ear canal assessments (covariates)
+    X_gross_proliferative_lesions_0w = GPL_YN_t0,
+    X_inflammation_0w = InflamAvg_t0,
+    X_nodular_thickening_0w = NodThickAvg_t0, 
+    X_pus_0w = Pus_YN_t0,
+    X_sebaceous_hyperplasia_0w = SebHyperpl_YN_t0,
+    X_epidermal_hyperplasia_0w = EpiHyperpl_YN_t0,
+    X_acanthosis_0w = Acanthosis_YN_t0,
+    X_hyperkeratosis_0w = Hyperker_YN_t0
+  ) %>%
+  
+  # Step 7: Convert binary and categorical variables to factors
+  mutate(
+    # Treatment (binary)
+    Treatment = factor(Treatment, levels = c(0, 1), labels = c("Untreated", "Treated")),
+    Treatment = relevel(Treatment, ref = "Untreated"),
+    
+    # Primary outcomes (binary where applicable)
+    YP_mite_presence_6m = factor(YP_mite_presence_6m),
+    
+    # Pre-primary timepoint (binary where applicable)
+    pre_YP_mite_presence_2m = factor(pre_YP_mite_presence_2m),
+    pre_YP_mite_presence_4m = factor(pre_YP_mite_presence_4m),
+    
+    # Secondary outcomes (binary where applicable)
+    YS_tumor_detected_6m = factor(YS_tumor_detected_6m),
+    YS_tumor_group_6m = factor(YS_tumor_group_6m),
+    
+    # Covariates (categorical/binary)
+    X_age_group = factor(X_age_group),
+    X_sex = factor(X_sex),
+    X_mite_presence_0w = factor(X_mite_presence_0w),
+    X_tumor_detected_0w = factor(X_tumor_detected_0w),
+    X_tumor_group_0w = factor(X_tumor_group_0w),
+    X_carcinoma_detected_0w = factor(X_carcinoma_detected_0w),
+    X_carcinoma_group_0w = factor(X_carcinoma_group_0w),
+    X_gross_proliferative_lesions_0w = factor(X_gross_proliferative_lesions_0w),
+    X_pus_0w = factor(X_pus_0w),
+    X_sebaceous_hyperplasia_0w = factor(X_sebaceous_hyperplasia_0w),
+    X_epidermal_hyperplasia_0w = factor(X_epidermal_hyperplasia_0w),
+    X_acanthosis_0w = factor(X_acanthosis_0w),
+    X_hyperkeratosis_0w = factor(X_hyperkeratosis_0w),
+    
+    # Ordinal variables as factors (inflammation, nodular thickening)
+    X_inflammation_0w = factor(X_inflammation_0w),
+    X_nodular_thickening_0w = factor(X_nodular_thickening_0w)
+  ) %>%
+  
+  # Step 8: Reorder columns as specified
+  select(
+    # Treatment first
+    Treatment,
+    
+    # Primary outcomes (YP_)
+    starts_with("YP_"),
+    
+    # Pre-primary timepoint (pre_YP_)
+    starts_with("pre_YP_"),
+    
+    # Secondary outcomes (YS_)  
+    starts_with("YS_"),
+    
+    # Pre-primary timepoint secondary outcomes (pre_YS_)
+    starts_with("pre_YS_"),
+    
+    # Covariates (X_)
+    starts_with("X_"),
+    
+    # Remove FoxID as instructed
+    -FoxID
+  )
+```
 
 ## Output Data
+```{r}
+# trial 48
+write_csv(df48_final, "cleaned_data/Non_Clustered_RCT/trial48.csv")
+write_rds(df48_final, "cleaned_data/Non_Clustered_RCT/trial48.rds")
+```
 
 # Trial 49
 ## Load Data
@@ -4093,10 +4232,77 @@ write_rds(df49_final, "cleaned_data/Non_Clustered_RCT/trial49.rds")
 
 # Trial 50
 ## Load Data
+```{r}
+df50 = survival::cgd
+```
 
 ## Cleaning
+```{r}
+# Step 1: Create baseline data (enum = 1 contains baseline characteristics)
+# Step 1: Create baseline data (enum = 1 contains baseline characteristics)
+baseline_data = df50 %>%
+  filter(enum == 1) %>%
+  select(id, center, random, treat, sex, age, height, weight, inherit, 
+         steroids, propylac, hos.cat) %>%
+  # Rename treatment variable
+  rename(Treatment = treat) %>%
+  # Factor Treatment with placebo as reference
+  mutate(Treatment = factor(Treatment, levels = c("placebo", "rIFN-g"),
+                            labels = c("Placebo", "rIFN-g"))) %>%
+  # Factor other categorical/binary variables
+  mutate(
+    X_sex_0w = factor(sex),
+    X_inherit_0w = factor(inherit),
+    X_steroids_0w = factor(steroids),
+    X_propylac_0w = factor(propylac),
+    X_hos_cat_0w = factor(hos.cat),
+    X_center_0w = factor(center),
+    X_age_0w = age,
+    X_height_0w = height,
+    X_weight_0w = weight
+  ) %>%
+  select(-sex, -inherit, -steroids, -propylac, -hos.cat, -center, -age, -height, -weight, -random)
+
+# Step 2: Create primary outcome - time to first serious infection (using proper time suffix)
+primary_outcome = df50 %>%
+  arrange(id, enum) %>%
+  group_by(id) %>%
+  summarise(
+    # Time to first event or censoring (in days, so use _d suffix)
+    YP_time_to_first_infection = first(tstop),
+    # Event indicator for first infection
+    YP_first_infection_event = factor(first(status)),
+    .groups = "drop"
+  )
+
+# Step 3: Create secondary outcomes
+# YS_1: Total number of serious infections
+secondary_outcomes = df50 %>%
+  group_by(id) %>%
+  summarise(
+    YS_total_serious_infections = sum(status),
+    .groups = "drop"
+  )
+
+# Step 5: Combine all data
+df50_final = baseline_data %>%
+  left_join(primary_outcome, by = "id") %>%
+  left_join(secondary_outcomes, by = "id") %>%
+  # Remove ID column as requested
+  select(-id) %>%
+  # Reorder columns: Treatment first, then YP_, YS_, X_ variables
+  select(Treatment, 
+         starts_with("YP_"), 
+         starts_with("YS_"), 
+         starts_with("X_"))
+```
 
 ## Output Data
+```{r}
+# trial 50
+write_csv(df50_final, "cleaned_data/Non_Clustered_RCT/trial50.csv")
+write_rds(df50_final, "cleaned_data/Non_Clustered_RCT/trial50.rds")
+```
 
 
 

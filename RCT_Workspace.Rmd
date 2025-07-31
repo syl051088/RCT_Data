@@ -2545,6 +2545,10 @@ analyze_rct = function(df,
 ```
 
 ```{r}
-str(df29_final)
+df_comparison$N_Covariates = as.numeric(df_comparison$N_Covariates)
+```
+
+```{r}
+str(df_comparison)
 ```
 

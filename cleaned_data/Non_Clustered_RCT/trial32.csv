@@ -1,312 +1,108 @@
-Treatment,YP_Progression_binary,YS_Symptom_duration_30d,YS_Death_14d,YS_Hospital_14d,YS_Oxygen_14d,X_variant_0d,X_IgG_0d,X_vaccine_status_0d,X_BMI_cat_0d,X_immunodef_0d,X_renal_0d,X_diabetes_0d,X_CVD_0d,X_bpco_0d,X_liver_0d
-Casirivimab/Imdevimab,0,3,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,negative,NA,<= 29,not present,not present,other,not present,not present,present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,present,not present
-Sotrovimab,0,24,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,1,12,1,0,0,Omicron,negative,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,5,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,15,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,other,present,present,not present
-Sotrovimab,0,23,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,10,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,3,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,18,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,13,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,8,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,19,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,16,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,present,not present,not present,not present
-Bamlanivimab/Etesevimab,0,18,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,15,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,13,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,15,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,8,0,0,0,Omicron,negative,NA,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,3,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,7,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,present,other,present,present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,5,0,0,0,Omicron,negative,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,8,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,present,not present,not present,present
-Bamlanivimab/Etesevimab,0,12,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,17,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,10,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,21,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,4,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,8,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,11,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,12,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,24,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,2,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,14,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,2,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,29,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,10,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,other,not present,not present,not present
-Sotrovimab,0,21,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,present,not present
-Bamlanivimab/Etesevimab,0,19,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,26,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,19,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,2,0,0,0,Delta,negative,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,3,0,0,0,Delta,Positive,NA,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,24,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,23,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,10,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,present,present,present,not present,not present
-Casirivimab/Imdevimab,0,17,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,14,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,15,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,6,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,5,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,14,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,6,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,24,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,5,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,4,0,0,0,Delta,negative,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,present,not present
-Sotrovimab,0,13,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,other,not present,not present,present
-Sotrovimab,0,11,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,8,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,4,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,9,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,10,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,10,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Delta,NA,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,15,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,26,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,16,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Delta,negative,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,15,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,present,not present,other,not present,present,present
-Bamlanivimab/Etesevimab,0,18,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,15,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,1,17,0,1,0,Omicron,NA,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,present,present,present,not present
-Casirivimab/Imdevimab,0,25,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,27,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,present,present
-Casirivimab/Imdevimab,0,6,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,present,present,not present,not present
-Bamlanivimab/Etesevimab,0,20,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,17,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Sotrovimab,0,6,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,5,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,other,present,not present,not present
-Casirivimab/Imdevimab,0,13,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,9,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,other,present,not present,present
-Casirivimab/Imdevimab,0,5,0,0,0,Delta,negative,NA,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,4,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,5,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,11,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,23,0,0,0,Delta,Positive,NA,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,11,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,21,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,16,0,0,0,Delta,NA,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,4,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,6,0,0,0,Delta,negative,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,32,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,2,0,0,0,Omicron,negative,NA,>= 30,present,not present,other,not present,not present,not present
-Sotrovimab,0,22,0,0,0,Delta,Positive,NA,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,7,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,7,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,18,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,>= 30,present,not present,other,present,present,not present
-Bamlanivimab/Etesevimab,0,4,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,7,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,present,not present
-Casirivimab/Imdevimab,0,3,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,present,present
-Sotrovimab,0,2,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,9,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,5,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,4,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,8,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,10,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,>= 30,present,present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,1,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,10,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,1,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,15,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,15,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,21,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,present,present,not present,not present
-Bamlanivimab/Etesevimab,0,6,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,25,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,7,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,27,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,14,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,14,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,8,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,7,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,3,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,5,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,7,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,12,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,17,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,11,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,>= 30,present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,18,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,2,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,8,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,4,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Sotrovimab,0,8,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,26,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,13,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,8,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,present,present,not present
-Casirivimab/Imdevimab,0,8,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,24,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,23,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,15,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,13,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,present,present,not present,not present
-Sotrovimab,0,23,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,13,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,>= 30,present,not present,other,not present,not present,not present
-Sotrovimab,0,12,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,>= 30,present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,21,0,0,0,Delta,negative,booster or 2 doses <= 120 days,<= 29,not present,present,other,present,not present,not present
-Casirivimab/Imdevimab,0,28,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,3,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,2,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,13,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,present,not present
-Casirivimab/Imdevimab,0,25,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Sotrovimab,0,11,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,3,0,0,0,Delta,negative,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,14,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,7,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,9,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,20,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,>= 30,present,not present,other,not present,not present,not present
-Sotrovimab,0,10,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,5,0,0,0,Delta,NA,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,present,present
-Casirivimab/Imdevimab,0,23,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,23,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,13,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,2,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,12,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,25,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,present,not present
-Bamlanivimab/Etesevimab,0,3,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,14,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,present,not present
-Sotrovimab,0,5,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,19,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,25,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,3,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,12,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Delta,negative,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,3,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,11,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,21,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,19,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,14,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,6,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,19,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,9,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,12,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,5,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,present
-Casirivimab/Imdevimab,0,4,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,6,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,13,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,6,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,5,0,0,0,Delta,negative,NA,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,21,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,2,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Sotrovimab,0,8,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,7,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,11,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,7,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,10,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,Positive,NA,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,2,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,present
-Bamlanivimab/Etesevimab,0,4,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,23,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,present
-Bamlanivimab/Etesevimab,0,6,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,present
-Sotrovimab,0,5,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,15,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,10,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,10,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,11,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,5,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,4,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,14,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,27,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,9,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,>= 30,not present,not present,other,present,not present,not present
-Sotrovimab,0,19,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,10,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,23,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,21,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,18,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,6,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,present,not present
-Sotrovimab,0,7,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,present,other,not present,not present,not present
-Sotrovimab,0,15,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,3,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,3,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Sotrovimab,0,4,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,11,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,4,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,21,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,11,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,21,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,1,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,12,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Sotrovimab,0,10,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,4,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,16,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,16,0,0,0,Delta,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,7,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,28,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,14,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,8,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,11,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Sotrovimab,0,20,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,present,not present
-Bamlanivimab/Etesevimab,0,31,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,6,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,not present,present,not present
-Bamlanivimab/Etesevimab,0,24,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,10,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,present
-Sotrovimab,0,3,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,11,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,present,not present,not present,not present
-Bamlanivimab/Etesevimab,0,4,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,8,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Sotrovimab,0,16,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,6,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,26,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,21,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,10,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,24,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,not present,present,not present
-Casirivimab/Imdevimab,0,22,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,16,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,present,not present
-Bamlanivimab/Etesevimab,0,10,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,not present,present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,20,0,0,0,Omicron,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,present,present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,>= 30,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,15,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,present,not present,not present,not present
-Bamlanivimab/Etesevimab,0,25,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,9,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,not present,not present,other,present,not present,not present
-Casirivimab/Imdevimab,0,18,0,0,0,Omicron,Positive,NA,<= 29,not present,not present,other,not present,not present,not present
-Sotrovimab,0,5,0,0,0,Delta,negative,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Casirivimab/Imdevimab,0,12,0,0,0,Omicron,negative,booster or 2 doses <= 120 days,>= 30,present,present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,5,0,0,0,Delta,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,not present,not present,not present
-Bamlanivimab/Etesevimab,0,4,0,0,0,Omicron,Positive,booster or 2 doses <= 120 days,<= 29,not present,present,other,present,not present,not present
-Bamlanivimab/Etesevimab,0,10,0,0,0,Omicron,Positive,non vacc or 1/2 doses > 120 days,<= 29,present,not present,other,present,not present,not present
+Treatment,YP_radiologic_6m,YP_considerable_improvement,YP_any_improvement,YS_strep_resistance,YS_death,X_gender_0w,X_condition_0w,X_temp_0w,X_esr_0w,X_cavitation_0w
+Control,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,1_Good,1_98-98.9F,2_11-20,yes
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,1_Good,3_100-100.9F,2_11-20,no
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,1_Good,1_98-98.9F,3_21-50,no
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,M,1_Good,1_98-98.9F,3_21-50,no
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,1_Good,2_99-99.9F,3_21-50,no
+Control,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,1_Good,3_100-100.9F,3_21-50,no
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,1_Good,2_99-99.9F,3_21-50,yes
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,M,1_Good,2_99-99.9F,3_21-50,yes
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,2_Fair,2_99-99.9F,3_21-50,yes
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,M,2_Fair,4_100F+,3_21-50,yes
+Control,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,F,2_Fair,3_100-100.9F,3_21-50,no
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,M,2_Fair,2_99-99.9F,3_21-50,yes
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,2_Fair,2_99-99.9F,3_21-50,yes
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,M,2_Fair,4_100F+,3_21-50,yes
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,2_Fair,2_99-99.9F,3_21-50,yes
+Control,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,2_Fair,3_100-100.9F,3_21-50,no
+Control,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,2_Fair,3_100-100.9F,3_21-50,no
+Control,4_No_change,0,FALSE,1_sens_0-8,0,M,2_Fair,1_98-98.9F,3_21-50,no
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,F,2_Fair,3_100-100.9F,3_21-50,no
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,M,2_Fair,3_100-100.9F,3_21-50,no
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,F,2_Fair,3_100-100.9F,3_21-50,no
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,M,2_Fair,3_100-100.9F,3_21-50,no
+Control,4_No_change,0,FALSE,1_sens_0-8,0,F,2_Fair,2_99-99.9F,4_51+,yes
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,M,2_Fair,2_99-99.9F,4_51+,no
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,F,2_Fair,2_99-99.9F,4_51+,no
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,M,2_Fair,3_100-100.9F,4_51+,yes
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,F,2_Fair,3_100-100.9F,4_51+,yes
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,M,2_Fair,3_100-100.9F,4_51+,yes
+Control,4_No_change,0,FALSE,1_sens_0-8,0,F,3_Poor,2_99-99.9F,4_51+,yes
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,F,3_Poor,4_100F+,4_51+,yes
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,M,3_Poor,4_100F+,4_51+,yes
+Control,3_Moderate_deterioration,0,FALSE,1_sens_0-8,0,F,3_Poor,4_100F+,4_51+,yes
+Control,2_Considerable_deterioration,0,FALSE,1_sens_0-8,0,M,3_Poor,4_100F+,4_51+,no
+Control,2_Considerable_deterioration,0,FALSE,1_sens_0-8,0,F,3_Poor,4_100F+,4_51+,no
+Control,2_Considerable_deterioration,0,FALSE,1_sens_0-8,0,M,3_Poor,4_100F+,4_51+,no
+Control,2_Considerable_deterioration,0,FALSE,1_sens_0-8,0,F,3_Poor,4_100F+,4_51+,no
+Control,1_Death,0,FALSE,1_sens_0-8,1,M,3_Poor,4_100F+,4_51+,no
+Control,2_Considerable_deterioration,0,FALSE,1_sens_0-8,0,F,3_Poor,4_100F+,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,4_100F+,4_51+,no
+Control,2_Considerable_deterioration,0,FALSE,1_sens_0-8,0,M,3_Poor,4_100F+,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,3_100-100.9F,4_51+,no
+Control,1_Death,0,FALSE,1_sens_0-8,1,M,3_Poor,3_100-100.9F,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,3_100-100.9F,NA,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,M,3_Poor,3_100-100.9F,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,3_100-100.9F,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,2_99-99.9F,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,4_100F+,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,M,3_Poor,4_100F+,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,4_100F+,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,M,3_Poor,4_100F+,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,F,3_Poor,4_100F+,4_51+,yes
+Control,1_Death,0,FALSE,1_sens_0-8,1,M,3_Poor,4_100F+,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,1_Good,4_100F+,2_11-20,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,F,1_Good,1_98-98.9F,2_11-20,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,1_Good,1_98-98.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,F,1_Good,1_98-98.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,1_Good,2_99-99.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,F,1_Good,2_99-99.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,1_Good,2_99-99.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,F,1_Good,2_99-99.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,2_Fair,3_100-100.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,2_mod_8-99,0,F,2_Fair,2_99-99.9F,2_11-20,no
+Streptomycin,6_Considerable_improvement,1,TRUE,2_mod_8-99,0,F,2_Fair,2_99-99.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,2_mod_8-99,0,M,2_Fair,4_100F+,3_21-50,no
+Streptomycin,5_Moderate_improvement,0,TRUE,2_mod_8-99,0,F,2_Fair,3_100-100.9F,4_51+,no
+Streptomycin,2_Considerable_deterioration,0,FALSE,3_resist_100+,0,M,2_Fair,2_99-99.9F,3_21-50,no
+Streptomycin,2_Considerable_deterioration,0,FALSE,3_resist_100+,0,F,2_Fair,4_100F+,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,M,2_Fair,2_99-99.9F,3_21-50,no
+Streptomycin,5_Moderate_improvement,0,TRUE,3_resist_100+,0,F,2_Fair,2_99-99.9F,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,M,2_Fair,2_99-99.9F,3_21-50,no
+Streptomycin,3_Moderate_deterioration,0,FALSE,3_resist_100+,0,F,2_Fair,4_100F+,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,M,2_Fair,4_100F+,3_21-50,no
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,F,2_Fair,4_100F+,4_51+,no
+Streptomycin,5_Moderate_improvement,0,TRUE,3_resist_100+,0,M,2_Fair,4_100F+,4_51+,no
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,F,2_Fair,3_100-100.9F,4_51+,no
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,F,2_Fair,3_100-100.9F,4_51+,yes
+Streptomycin,5_Moderate_improvement,0,TRUE,1_sens_0-8,0,F,2_Fair,3_100-100.9F,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,2_mod_8-99,0,F,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,5_Moderate_improvement,0,TRUE,2_mod_8-99,0,M,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,M,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,1_Death,0,FALSE,3_resist_100+,1,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,5_Moderate_improvement,0,TRUE,3_resist_100+,0,M,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,F,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,3_Moderate_deterioration,0,FALSE,3_resist_100+,0,M,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,M,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,F,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,M,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,1_Death,0,FALSE,3_resist_100+,1,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,4_No_change,0,FALSE,3_resist_100+,0,M,3_Poor,4_100F+,4_51+,yes
+Streptomycin,3_Moderate_deterioration,0,FALSE,3_resist_100+,0,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,3_Moderate_deterioration,0,FALSE,3_resist_100+,0,F,3_Poor,3_100-100.9F,4_51+,yes
+Streptomycin,2_Considerable_deterioration,0,FALSE,1_sens_0-8,0,F,3_Poor,2_99-99.9F,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,1_sens_0-8,0,M,3_Poor,4_100F+,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,2_mod_8-99,0,M,3_Poor,4_100F+,4_51+,yes
+Streptomycin,5_Moderate_improvement,0,TRUE,2_mod_8-99,0,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,M,3_Poor,4_100F+,4_51+,yes
+Streptomycin,5_Moderate_improvement,0,TRUE,3_resist_100+,0,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,2_Considerable_deterioration,0,FALSE,3_resist_100+,0,M,3_Poor,2_99-99.9F,4_51+,yes
+Streptomycin,5_Moderate_improvement,0,TRUE,3_resist_100+,0,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,3_Moderate_deterioration,0,FALSE,3_resist_100+,0,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,1_Death,0,FALSE,3_resist_100+,1,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,4_No_change,0,FALSE,3_resist_100+,0,M,3_Poor,2_99-99.9F,4_51+,yes
+Streptomycin,2_Considerable_deterioration,0,FALSE,3_resist_100+,0,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,5_Moderate_improvement,0,TRUE,3_resist_100+,0,M,3_Poor,4_100F+,4_51+,yes
+Streptomycin,2_Considerable_deterioration,0,FALSE,3_resist_100+,0,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,1_Death,0,FALSE,3_resist_100+,1,F,3_Poor,4_100F+,4_51+,yes
+Streptomycin,6_Considerable_improvement,1,TRUE,3_resist_100+,0,F,3_Poor,4_100F+,4_51+,yes
