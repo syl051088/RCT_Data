@@ -945,7 +945,6 @@ df10_pat_clean = df10_patients %>%
     X_known_DI_0d       = pre_known_DI,
     X_pathology_0d      = pre_pathology,
     X_fs_0d             = pre_fs,
-    X_oblm_0d           = pre_oblm,
     X_dtm_0d            = pre_dtm,
     X_spine_0d          = pre_spine,
     X_mallampati_0d     = pre_mallampati
@@ -1088,7 +1087,6 @@ df11_final = df11 %>%
     # ───── COVARIATES ─────
     X_age_0w = age_range,
     X_sex_0w = sex,
-    X_smoked_0w = smoked,
     X_current_smoker_0w = current_smoker,
     X_years_smoke_0w = years_smoke,
     X_pack_years_0w = pack_years,
@@ -2314,7 +2312,6 @@ df27_final = df27 %>%
     YS_pain_PACU                 = as.numeric(`Tolerance PACU`),
     YS_endocrine_status_3m       = as.numeric(`Endocrine healing`),
 
-    X_redo_surgery_0d               = Redo,
     X_Tv_0d                         = Tv,
     X_FiO2_0d                       = as.numeric(Fio2),
     X_AI_0d                         = as.numeric(AI),
@@ -2345,8 +2342,7 @@ df27_final = df27 %>%
     Treatment = relevel(factor(Treatment), ref="VCV"),
     across(c(YP_surgical_problem_bleeding, YP_bleeding_text, YP_bleeding_category3, 
              YS_vent_mode_modification, YS_hypoxemia_episodes, YS_recruitment_maneuvers,
-             X_redo_surgery_0d), as_factor),
-    X_redo_surgery_0d = as.numeric(X_redo_surgery_0d)
+             ), as_factor)
   ) %>%
   # 3. Keep only randomized patients
   filter(!is.na(Treatment)) %>%

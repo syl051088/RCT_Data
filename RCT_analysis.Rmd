@@ -276,39 +276,23 @@ analyze_rct = function(df,
     # Variable selection: select top 3 covariates by outcome-specific correlation
     if (selection && length(valid_covariates) > 0) {
       if (length(valid_covariates) > 3) {
-        # Filter to numeric covariates for correlation computation
-        numeric_covariates = character(0)
+        # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
+        cov_values = numeric(length(valid_covariates))
+        names(cov_values) = valid_covariates
+        
         for (cov in valid_covariates) {
-          if (is.numeric(df_complete[[cov]])) {
-            numeric_covariates = c(numeric_covariates, cov)
-          }
+          # Convert covariate to numeric temporarily for correlation computation
+          cov_numeric = as.numeric(df_complete[[cov]])
+          cov_values[cov] = cor(df_complete[[outcome]], cov_numeric, use = "complete.obs")
         }
         
-        if (length(numeric_covariates) >= 3) {
-          # Get correlations between this outcome and numeric covariates
-          cov_values = numeric(length(numeric_covariates))
-          names(cov_values) = numeric_covariates
-          
-          for (cov in numeric_covariates) {
-            cov_values[cov] = cor(df_complete[[outcome]], df_complete[[cov]], use = "complete.obs")
-          }
-          
-          # Select top 3 numeric covariates by absolute correlation magnitude
-          top_3_idx = order(abs(cov_values), decreasing = TRUE)[1:3]
-          selected_numeric_covariates = numeric_covariates[top_3_idx]
-          
-          # Use selected numeric covariates plus any factor covariates (up to 3 total)
-          factor_covariates = setdiff(valid_covariates, numeric_covariates)
-          all_selected = c(selected_numeric_covariates, factor_covariates)
-          valid_covariates = all_selected[1:min(3, length(all_selected))]
-          
-          cat("Variable selection for", outcome, "- Selected covariates:", 
-              paste(valid_covariates, collapse = ", "), "\n")
-        } else {
-          # If <3 numeric covariates, use all valid covariates
-          cat("Variable selection for", outcome, "- Using all", length(valid_covariates), 
-              "covariates (<3 numeric available):", paste(valid_covariates, collapse = ", "), "\n")
-        }
+        # Select top 3 by absolute correlation magnitude
+        top_3_idx = order(abs(cov_values), decreasing = TRUE)[1:3]
+        selected_covariates = valid_covariates[top_3_idx]
+        valid_covariates = selected_covariates
+        
+        cat("Variable selection for", outcome, "- Selected covariates:", 
+            paste(valid_covariates, collapse = ", "), "\n")
       } else {
         # If ≤3 valid covariates, use all of them
         cat("Variable selection for", outcome, "- Using all", length(valid_covariates), 
@@ -1593,7 +1577,7 @@ print(df_summary_filtered)
 
 
 ## Violin Plot
-### Use sample size
+### Full(n)
 ```{r}
 # Create sample size categories for better visualization
 df_new <- df_new %>%
@@ -1612,7 +1596,7 @@ df_new <- df_new %>%
 
 # Color palette for sample size categories
 size_colors <- c("Small (<50)" = "#d73027", "Medium (50-99)" = "#fc8d59", 
-                "Large (100-499)" = "#91bfdb", "Very Large (≥500)" = "#4575b4")
+                "Large (100-499)" = "#74c476", "Very Large (≥500)" = "#4575b4")
 
 ##################################
 ## ANCOVA Plots
@@ -1799,7 +1783,8 @@ ggplot(df_new, aes(x = outcome_group, y = point_est_diff_SL)) +
         plot.subtitle = element_text(hjust = 0.5, color = "gray60"),
         panel.grid.minor = element_blank())
 ```
-#### Efficiency Only(n)
+
+### Efficiency Only(n)
 ```{r}
 
 # Create sample size categories for better visualization
@@ -1819,7 +1804,7 @@ df_new <- df_new %>%
 
 # Color palette for sample size categories
 size_colors <- c("Small (<50)" = "#d73027", "Medium (50-99)" = "#fc8d59", 
-                "Large (100-499)" = "#91bfdb", "Very Large (≥500)" = "#4575b4")
+                "Large (100-499)" = "#74c476", "Very Large (≥500)" = "#4575b4")
 
 # 1. ANCOVA Precision Gain
 ggplot(df_new, aes(x = outcome_group, y = precision_gain_AC)) +
@@ -1895,7 +1880,7 @@ ggplot(df_new %>%
         panel.grid.minor = element_blank())
 ```
 
-#### Efficiency only(n/covaraites)
+### Efficiency Only(n/covaraites)
 ```{r}
 # Create sample size to covariate ratio categories for better visualization
 df_new <- df_new %>%

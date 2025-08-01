@@ -2545,10 +2545,31 @@ analyze_rct = function(df,
 ```
 
 ```{r}
-df_comparison$N_Covariates = as.numeric(df_comparison$N_Covariates)
+str(df27)
 ```
 
 ```{r}
-str(df_comparison)
+vars_to_count = c(
+  "X_surgery_0d", "X_arne_score_0d", "X_known_DI_0d", "X_pathology_0d",
+  "X_fs_0d", "X_oblm_0d", "X_dtm_0d", "X_spine_0d",
+  "X_mallampati_0d", "X_relaxant_dose_0d"
+)
+
+library(dplyr)
+
+count_tables = lapply(vars_to_count, function(var) {
+  df10 %>%
+    count(!!sym(var), name = "n") %>%
+    arrange(desc(n)) %>%
+    rename(value = !!sym(var)) %>%
+    mutate(variable = var)
+})
+
+# Combine into one big table
+final_count_table = bind_rows(count_tables) %>%
+  select(variable, value, n)
+
+# View the result
+print(final_count_table)
 ```
 
