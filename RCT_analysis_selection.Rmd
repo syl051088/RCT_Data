@@ -27,7 +27,7 @@ library(writexl)
 # Load Data
 
 ```{r}
-df_comparison_selection = df_comparison[0, ]
+df_comparison_selection = read_xlsx("cleaned_data/meta_data_comparison_selection.xlsx")
 ```
 
 # Trial 1
