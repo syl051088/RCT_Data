@@ -148,6 +148,7 @@ analyze_rct = function(df,
                        K = 5,
                        SL_methods = c("SL.glm", "SL.rpart", "SL.ranger", "SL.mean", "SL.nnet"),
                        selection = FALSE,
+                       n_select = 3,
                        n_cores = parallel::detectCores() - 2,
                        seed = 123) {
   require(dplyr)
@@ -273,9 +274,9 @@ analyze_rct = function(df,
     # Convert outcome to numeric (needed for both variable selection and analysis)
     df_complete[[outcome]] = as.numeric(df_complete[[outcome]])
     
-    # Variable selection: select top 3 covariates by outcome-specific correlation
+    # Variable selection: select top n_select covariates by outcome-specific correlation
     if (selection && length(valid_covariates) > 0) {
-      if (length(valid_covariates) > 3) {
+      if (length(valid_covariates) > n_select) {
         # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
         cov_values = numeric(length(valid_covariates))
         names(cov_values) = valid_covariates
@@ -286,17 +287,17 @@ analyze_rct = function(df,
           cov_values[cov] = cor(df_complete[[outcome]], cov_numeric, use = "complete.obs")
         }
         
-        # Select top 3 by absolute correlation magnitude
-        top_3_idx = order(abs(cov_values), decreasing = TRUE)[1:3]
-        selected_covariates = valid_covariates[top_3_idx]
+        # Select top n_select by absolute correlation magnitude
+        top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
+        selected_covariates = valid_covariates[top_idx]
         valid_covariates = selected_covariates
         
         cat("Variable selection for", outcome, "- Selected covariates:", 
             paste(valid_covariates, collapse = ", "), "\n")
       } else {
-        # If ≤3 valid covariates, use all of them
+        # If ≤n_select valid covariates, use all of them
         cat("Variable selection for", outcome, "- Using all", length(valid_covariates), 
-            "covariates (≤3):", paste(valid_covariates, collapse = ", "), "\n")
+            "covariates (≤", n_select, "):", paste(valid_covariates, collapse = ", "), "\n")
       }
     }
     
@@ -365,7 +366,7 @@ analyze_rct = function(df,
     outcome_results$Est_RC_ANHECOVA = rc_result_anhecova$estimate
     outcome_results$SE_RC_ANHECOVA = rc_result_anhecova$se
     
-    # SuperLearner
+    # SuperLearner - run ensemble and individual methods
     sl_res = analyze_rct_sl(
       data = df_complete,
       outcome_cols = outcome,
@@ -378,6 +379,37 @@ analyze_rct = function(df,
     )
     outcome_results$Est_SL = sl_res$Est_SL
     outcome_results$SE_SL = sl_res$SE_SL
+    
+    # Run individual SL methods
+    for (method in SL_methods) {
+      tryCatch({
+        sl_res_individual = analyze_rct_sl(
+          data = df_complete,
+          outcome_cols = outcome,
+          covariate_cols = valid_covariates,
+          treatment_col = treatment_col,
+          reference_arm = control_level,
+          K = K,
+          SL_methods = method,
+          n_cores = n_cores
+        )
+        # Clean method name for column naming
+        method_clean = gsub("SL\\.", "SL_", method)
+        outcome_results[[paste0("Est_", method_clean)]] = sl_res_individual$Est_SL
+        outcome_results[[paste0("SE_", method_clean)]] = sl_res_individual$SE_SL
+      }, error = function(e) {
+        # Only handle the specific "All algorithms dropped from library" error
+        if (grepl("All algorithms dropped from library", e$message)) {
+          method_clean = gsub("SL\\.", "SL_", method)
+          outcome_results[[paste0("Est_", method_clean)]] <<- NA_real_
+          outcome_results[[paste0("SE_", method_clean)]] <<- NA_real_
+          cat("WARNING: SL method", method, "failed for outcome", outcome, "- all algorithms dropped, setting to NA\n")
+        } else {
+          # Re-throw any other errors
+          stop(e)
+        }
+      })
+    }
     
     valid_outcomes = c(valid_outcomes, outcome)
     all_results[[length(valid_outcomes)]] = outcome_results
@@ -392,7 +424,7 @@ analyze_rct = function(df,
     # Round for cleaner output
     mutate(across(starts_with("Est_"), ~ round(.x, 5)),
            across(starts_with("SE_"), ~ round(.x, 5))) %>%
-    # Reorder columns
+    # Reorder columns - put individual SL methods after ensemble SL
     select(
       Outcome,
       N,
@@ -408,7 +440,8 @@ analyze_rct = function(df,
       Est_UN,
       SE_UN,
       Est_SL,
-      SE_SL
+      SE_SL,
+      everything()
     )
   
   return(final_results)
@@ -421,81 +454,240 @@ analyze_rct = function(df,
 ```{r}
 update_df = function(trial_no,
                      outcome_type,
-                     res1 = results,
+                     results1 = res1,
+                     results2 = NULL,
                      contrast = "diff",
                      df = df_comparison) {
   require(dplyr)
   
   # Ensure one outcome type per unique outcome
-  unique_outcomes = unique(res1$Outcome)
+  unique_outcomes = unique(results1$Outcome)
   stopifnot(length(outcome_type) == length(unique_outcomes))
   
   # Build lookup table: Outcome → Outcome Type
   outcome_type_map = tibble(Outcome = unique_outcomes, `Outcome Type` = outcome_type)
   
-  # Rename columns in res1
-  res1_renamed = res1 %>%
-    rename(
-      ANCOVA_est = Est_RC_ANCOVA,
-      ANCOVA_robust_se = SE_RC_ANCOVA,
-      ANHECOVA_est = Est_RC_ANHECOVA,
-      ANHECOVA_robust_se = SE_RC_ANHECOVA,
-      ANCOVA_model_based_se = SE_AC,
-      Unadjust_est = Est_UN,
-      Unadjust_se = SE_UN,
-      SuperLearner_est = Est_SL,
-      SuperLearner_se = SE_SL
-    )
+  # Helper function to process a single result set
+  process_results = function(results, suffix = "") {
+    # Create suffix for column names
+    col_suffix = if(suffix != "") paste0("_", suffix) else ""
+    
+    # Rename columns - unadjusted only created once (no suffix)
+    if (suffix == "") {
+      # Base processing includes unadjusted
+      results_renamed = results %>%
+        mutate(
+          !!paste0("ANCOVA_est", col_suffix) := Est_RC_ANCOVA,
+          !!paste0("ANCOVA_robust_se", col_suffix) := SE_RC_ANCOVA,
+          !!paste0("ANHECOVA_est", col_suffix) := Est_RC_ANHECOVA,
+          !!paste0("ANHECOVA_robust_se", col_suffix) := SE_RC_ANHECOVA,
+          !!paste0("ANCOVA_model_based_se", col_suffix) := SE_AC,
+          Unadjust_est = Est_UN,
+          Unadjust_se = SE_UN,
+          !!paste0("SL_est", col_suffix) := Est_SL,
+          !!paste0("SL_se", col_suffix) := SE_SL
+        )
+    } else {
+      # VS processing excludes unadjusted (since it's the same)
+      results_renamed = results %>%
+        mutate(
+          !!paste0("ANCOVA_est", col_suffix) := Est_RC_ANCOVA,
+          !!paste0("ANCOVA_robust_se", col_suffix) := SE_RC_ANCOVA,
+          !!paste0("ANHECOVA_est", col_suffix) := Est_RC_ANHECOVA,
+          !!paste0("ANHECOVA_robust_se", col_suffix) := SE_RC_ANHECOVA,
+          !!paste0("ANCOVA_model_based_se", col_suffix) := SE_AC,
+          !!paste0("SL_est", col_suffix) := Est_SL,
+          !!paste0("SL_se", col_suffix) := SE_SL
+        )
+    }
+    
+    # Rename individual SL method columns if they exist
+    sl_methods = c("SL_glm", "SL_rpart", "SL_ranger", "SL_mean", "SL_nnet")
+    for (method in sl_methods) {
+      est_col = paste0("Est_", method)
+      se_col = paste0("SE_", method)
+      new_est_col = paste0(method, "_est", col_suffix)
+      new_se_col = paste0(method, "_se", col_suffix)
+      
+      if (est_col %in% names(results_renamed)) {
+        results_renamed = results_renamed %>%
+          rename(!!new_est_col := !!est_col, !!new_se_col := !!se_col)
+      }
+    }
+    
+    # Add trial metadata and compute derived columns
+    results_processed = results_renamed %>%
+      left_join(outcome_type_map, by = "Outcome") %>%
+      mutate(
+        Trial_No = trial_no,
+        Sample_Size = N,
+        N_Covariates = N_Covariates,
+        Contrast = contrast
+      )
+    
+    # Add precision gains and differences - different logic for base vs VS
+    if (suffix == "") {
+      # Base processing: include unadjusted comparisons
+      results_processed = results_processed %>%
+        mutate(
+          !!paste0("How much precision gain can ANCOVA provide?", col_suffix) :=
+            (.data[[paste0("ANCOVA_robust_se", col_suffix)]] / Unadjust_se) ^ 2,
+          !!paste0("The difference between unadjusted and ANCOVA point estimates", col_suffix) :=
+            (.data[[paste0("ANCOVA_est", col_suffix)]] - Unadjust_est) / 
+            sqrt((.data[[paste0("ANCOVA_robust_se", col_suffix)]] ^ 2 + Unadjust_se ^ 2) / 2),
+          !!paste0("The ratio between robust and model-based variance estimators", col_suffix) :=
+            (.data[[paste0("ANCOVA_robust_se", col_suffix)]] / .data[[paste0("ANCOVA_model_based_se", col_suffix)]]) ^ 2,
+          !!paste0("How much precision gain can Super Learner provide?", col_suffix) :=
+            (.data[[paste0("SL_se", col_suffix)]] / Unadjust_se) ^ 2,
+          !!paste0("The difference between unadjusted and Super Learner point estimates", col_suffix) :=
+            (.data[[paste0("SL_est", col_suffix)]] - Unadjust_est) / 
+            sqrt((.data[[paste0("SL_se", col_suffix)]] ^ 2 + Unadjust_se ^ 2) / 2),
+          !!paste0("How much precision gain can ANHECOVA provide?", col_suffix) :=
+            (.data[[paste0("ANHECOVA_robust_se", col_suffix)]] / Unadjust_se) ^ 2,
+          !!paste0("ANCOVA vs ANHECOVA variance ratio", col_suffix) :=
+            (.data[[paste0("ANCOVA_robust_se", col_suffix)]] / .data[[paste0("ANHECOVA_robust_se", col_suffix)]]) ^ 2,
+          !!paste0("The difference between unadjusted and ANHECOVA point estimates", col_suffix) :=
+            (.data[[paste0("ANHECOVA_est", col_suffix)]] - Unadjust_est) / 
+            sqrt((.data[[paste0("ANHECOVA_robust_se", col_suffix)]] ^ 2 + Unadjust_se ^ 2) / 2)
+        )
+    } else {
+      # VS processing: use unadjusted (without suffix) for comparisons
+      results_processed = results_processed %>%
+        mutate(
+          !!paste0("How much precision gain can ANCOVA provide?", col_suffix) :=
+            (.data[[paste0("ANCOVA_robust_se", col_suffix)]] / Unadjust_se) ^ 2,
+          !!paste0("The difference between unadjusted and ANCOVA point estimates", col_suffix) :=
+            (.data[[paste0("ANCOVA_est", col_suffix)]] - Unadjust_est) / 
+            sqrt((.data[[paste0("ANCOVA_robust_se", col_suffix)]] ^ 2 + Unadjust_se ^ 2) / 2),
+          !!paste0("The ratio between robust and model-based variance estimators", col_suffix) :=
+            (.data[[paste0("ANCOVA_robust_se", col_suffix)]] / .data[[paste0("ANCOVA_model_based_se", col_suffix)]]) ^ 2,
+          !!paste0("How much precision gain can Super Learner provide?", col_suffix) :=
+            (.data[[paste0("SL_se", col_suffix)]] / Unadjust_se) ^ 2,
+          !!paste0("The difference between unadjusted and Super Learner point estimates", col_suffix) :=
+            (.data[[paste0("SL_est", col_suffix)]] - Unadjust_est) / 
+            sqrt((.data[[paste0("SL_se", col_suffix)]] ^ 2 + Unadjust_se ^ 2) / 2),
+          !!paste0("How much precision gain can ANHECOVA provide?", col_suffix) :=
+            (.data[[paste0("ANHECOVA_robust_se", col_suffix)]] / Unadjust_se) ^ 2,
+          !!paste0("ANCOVA vs ANHECOVA variance ratio", col_suffix) :=
+            (.data[[paste0("ANCOVA_robust_se", col_suffix)]] / .data[[paste0("ANHECOVA_robust_se", col_suffix)]]) ^ 2,
+          !!paste0("The difference between unadjusted and ANHECOVA point estimates", col_suffix) :=
+            (.data[[paste0("ANHECOVA_est", col_suffix)]] - Unadjust_est) / 
+            sqrt((.data[[paste0("ANHECOVA_robust_se", col_suffix)]] ^ 2 + Unadjust_se ^ 2) / 2)
+        )
+    }
+    
+    # Add precision gain calculations for individual SL methods
+    for (method in sl_methods) {
+      se_col = paste0(method, "_se", col_suffix)
+      est_col = paste0(method, "_est", col_suffix)
+      precision_col = paste0("How much precision gain can ", method, " provide?", col_suffix)
+      diff_col = paste0("The difference between unadjusted and ", method, " point estimates", col_suffix)
+      
+      if (se_col %in% names(results_processed) && est_col %in% names(results_processed)) {
+        results_processed = results_processed %>%
+          mutate(
+            !!precision_col := (.data[[se_col]] / Unadjust_se) ^ 2,
+            !!diff_col := (.data[[est_col]] - Unadjust_est) / 
+              sqrt((.data[[se_col]] ^ 2 + Unadjust_se ^ 2) / 2)
+          )
+      }
+    }
+    
+    return(results_processed)
+  }
   
-  # Add trial metadata and compute derived columns
-  new_rows = res1_renamed %>%
-    left_join(outcome_type_map, by = "Outcome") %>%
-    mutate(
-      Trial_No = trial_no,
-      Sample_Size = N,
-      N_Covariates = N_Covariates,
-      Contrast = contrast,
-      `How much precision gain can ANCOVA provide?` =
-        (ANCOVA_robust_se / Unadjust_se) ^ 2,
-      `The difference between unadjusted and ANCOVA point estimates` =
-        (ANCOVA_est - Unadjust_est) / sqrt((ANCOVA_robust_se ^ 2 + Unadjust_se ^ 2) / 2),
-      `The ratio between robust and model-based variance estimators` =
-        (ANCOVA_robust_se / ANCOVA_model_based_se) ^ 2,
-      `How much precision gain can Super Learner provide?` =
-        (SuperLearner_se / Unadjust_se) ^ 2,
-      `The difference between unadjusted and Super Learner point estimates` =
-        (SuperLearner_est - Unadjust_est) / sqrt((SuperLearner_se ^ 2 + Unadjust_se ^ 2) / 2),
-      `How much precision gain can ANHECOVA provide?` =
-        (ANHECOVA_robust_se / Unadjust_se) ^ 2,
-      `ANCOVA vs ANHECOVA variance ratio` =
-        (ANCOVA_robust_se / ANHECOVA_robust_se) ^ 2
-    ) %>%
-    select(
-      Trial_No,
-      Sample_Size,
-      N_Covariates,
-      Treatment,
-      Control,
-      Contrast,
-      Outcome,
-      `Outcome Type`,
-      ANCOVA_est,
-      ANCOVA_robust_se,
-      ANCOVA_model_based_se,
-      ANHECOVA_est,
-      ANHECOVA_robust_se,
-      Unadjust_est,
-      Unadjust_se,
-      SuperLearner_est,
-      SuperLearner_se,
-      `How much precision gain can ANCOVA provide?`,
-      `The difference between unadjusted and ANCOVA point estimates`,
-      `The ratio between robust and model-based variance estimators`,
-      `How much precision gain can Super Learner provide?`,
-      `The difference between unadjusted and Super Learner point estimates`,
-      `How much precision gain can ANHECOVA provide?`,
-      `ANCOVA vs ANHECOVA variance ratio`
+  # Process results1 (without variable selection)
+  new_rows1 = process_results(results1, "")
+  
+  # Process results2 (with variable selection) if provided
+  if (!is.null(results2)) {
+    new_rows2 = process_results(results2, "VS")
+    
+    # Merge the two result sets
+    # Keep metadata columns from results1, add VS columns from results2
+    metadata_cols = c("Trial_No", "Sample_Size", "N_Covariates", "Treatment", "Control", "Contrast", "Outcome", "Outcome Type")
+    
+    new_rows = new_rows1 %>%
+      left_join(
+        new_rows2 %>% select(-all_of(metadata_cols)),
+        by = character(0)  # Join all rows (assuming same structure)
+      )
+  } else {
+    new_rows = new_rows1
+  }
+  
+  # Define column order
+  base_cols = c("Trial_No", "Sample_Size", "N_Covariates", "Treatment", "Control", "Contrast", "Outcome", "Outcome Type")
+  
+  # SE columns - only one version of unadjusted
+  se_cols_unadj = c("Unadjust_se")
+  se_cols_base = c("ANCOVA_robust_se", "ANCOVA_model_based_se", "ANHECOVA_robust_se", 
+                   "SL_se", "SL_glm_se", "SL_rpart_se", "SL_ranger_se", "SL_mean_se", "SL_nnet_se")
+  se_cols_vs = paste0(se_cols_base, "_VS")
+  
+  # Precision gain columns
+  precision_cols_base = c(
+    "How much precision gain can ANCOVA provide?",
+    "How much precision gain can ANHECOVA provide?",
+    "How much precision gain can Super Learner provide?",
+    "How much precision gain can SL_glm provide?",
+    "How much precision gain can SL_rpart provide?",
+    "How much precision gain can SL_ranger provide?",
+    "How much precision gain can SL_mean provide?",
+    "How much precision gain can SL_nnet provide?"
+  )
+  precision_cols_vs = paste0(precision_cols_base, "_VS")
+  
+  # Ratio columns
+  ratio_cols_base = c(
+    "The ratio between robust and model-based variance estimators",
+    "ANCOVA vs ANHECOVA variance ratio"
+  )
+  ratio_cols_vs = paste0(ratio_cols_base, "_VS")
+  
+  # Estimate columns - only one version of unadjusted
+  est_cols_unadj = c("Unadjust_est")
+  est_cols_base = c("ANCOVA_est", "ANHECOVA_est", "SL_est", 
+                    "SL_glm_est", "SL_rpart_est", "SL_ranger_est", "SL_mean_est", "SL_nnet_est")
+  est_cols_vs = paste0(est_cols_base, "_VS")
+  
+  # Difference columns
+  diff_cols_base = c(
+    "The difference between unadjusted and ANCOVA point estimates",
+    "The difference between unadjusted and ANHECOVA point estimates",
+    "The difference between unadjusted and Super Learner point estimates",
+    "The difference between unadjusted and SL_glm point estimates",
+    "The difference between unadjusted and SL_rpart point estimates",
+    "The difference between unadjusted and SL_ranger point estimates",
+    "The difference between unadjusted and SL_mean point estimates",
+    "The difference between unadjusted and SL_nnet point estimates"
+  )
+  diff_cols_vs = paste0(diff_cols_base, "_VS")
+  
+  # Combine all columns in the desired order
+  if (!is.null(results2)) {
+    all_cols = c(
+      base_cols,
+      se_cols_unadj, se_cols_base, se_cols_vs,
+      precision_cols_base, precision_cols_vs,
+      ratio_cols_base, ratio_cols_vs,
+      est_cols_unadj, est_cols_base, est_cols_vs,
+      diff_cols_base, diff_cols_vs
     )
+  } else {
+    all_cols = c(
+      base_cols,
+      se_cols_unadj, se_cols_base,
+      precision_cols_base,
+      ratio_cols_base,
+      est_cols_unadj, est_cols_base,
+      diff_cols_base
+    )
+  }
+  
+  # Select columns that actually exist in the data
+  existing_cols = intersect(all_cols, names(new_rows))
+  new_rows = new_rows %>% select(all_of(existing_cols))
   
   # Replace existing rows if matched, append otherwise
   for (i in seq_len(nrow(new_rows))) {
@@ -529,7 +721,7 @@ df1 = read_rds("cleaned_data/Non_Clustered_RCT/trial1.rds")
 
 ## Process
 ```{r}
-results = analyze_rct(df1)
+res1 = analyze_rct(df1)
 
 df_comparison = update_df(1, rep("continuous", 15))
 ```
@@ -546,7 +738,7 @@ df2 = df2 %>% select(-YP_early_7d, -YP_late_12d)
 
 ## Process
 ```{r}
-results = analyze_rct(df2)
+res1 = analyze_rct(df2)
 
 df_comparison = update_df(2, c("time to event", "binary", "binary"))
 ```
@@ -562,7 +754,7 @@ df3 = read_rds("cleaned_data/Non_Clustered_RCT/trial3.rds")
 
 ## Process
 ```{r}
-results = analyze_rct(df3)
+res1 = analyze_rct(df3)
 
 df_comparison = update_df(3, c("binary", "time to event", rep("binary", 4), "continuous", "binary"))
 ```
@@ -580,7 +772,7 @@ df4 = read_rds("cleaned_data/Non_Clustered_RCT/trial4.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df4)
+res1 = analyze_rct(df4)
 
 df_comparison = update_df(4, c("continuous", "continuous", "continuous", "continuous"))
 ```
@@ -598,7 +790,7 @@ df5 = read_rds("cleaned_data/Non_Clustered_RCT/trial5.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df5)
+res1 = analyze_rct(df5)
 
 df_comparison = update_df(5, c("composite binary", "continuous", rep("binary", 10), rep("continuous", 3), "binary"))
 ```
@@ -615,9 +807,9 @@ df6 = read_rds("cleaned_data/Non_Clustered_RCT/trial6.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df6)
+res1 = analyze_rct(df6)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(6, rep("continuous", n))
 ```
@@ -634,7 +826,7 @@ df7 = read_rds("cleaned_data/Non_Clustered_RCT/trial7.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df7)
+res1 = analyze_rct(df7)
 
 df_comparison = update_df(7, rep("continuous", 8))
 ```
@@ -653,7 +845,7 @@ df8 = df8 %>% select(-X_comorbidities_0d)
 ## Process
 
 ```{r}
-results = analyze_rct(df8)
+res1 = analyze_rct(df8)
 
 df_comparison = update_df(8, rep("binary", 6))
 ```
@@ -670,7 +862,7 @@ df9 = read_rds("cleaned_data/Non_Clustered_RCT/trial9.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df9)
+res1 = analyze_rct(df9)
 
 df_comparison = update_df(9, c("binary", rep("continuous", 4), rep("binary", 10), "continuous",
                                rep("binary", 2), "continuous", rep("binary", 2)))
@@ -687,7 +879,7 @@ df10 = read_rds("cleaned_data/Non_Clustered_RCT/trial10.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df10)
+res1 = analyze_rct(df10)
 
 df_comparison = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 15)))
 ```
@@ -701,9 +893,9 @@ df11 = read_rds("cleaned_data/Non_Clustered_RCT/trial11.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df11)
+res1 = analyze_rct(df11)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(11, rep("continuous", n))
 ```
@@ -718,9 +910,9 @@ df12 = read_rds("cleaned_data/Non_Clustered_RCT/trial12.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df12)
+res1 = analyze_rct(df12)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(12, c(rep("binary", n)))
 ```
@@ -735,9 +927,9 @@ df13 = read_rds("cleaned_data/Non_Clustered_RCT/trial13.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df13)
+res1 = analyze_rct(df13)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(13, c("binary", rep("continuous", 9), "binary", "binary", rep("continuous", 5)))
 ```
@@ -752,9 +944,9 @@ df14 = read_rds("cleaned_data/Non_Clustered_RCT/trial14.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df14)
+res1 = analyze_rct(df14)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(14, c(rep("continuous", n-4), rep("binary", 4)))
 ```
@@ -769,9 +961,9 @@ df15 = read_rds("cleaned_data/Non_Clustered_RCT/trial15.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df15)
+res1 = analyze_rct(df15)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(15, rep("continuous", n))
 ```
@@ -787,9 +979,9 @@ df16 = read_rds("cleaned_data/Non_Clustered_RCT/trial16.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df16)
+res1 = analyze_rct(df16)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(16, rep("continuous", n))
 ```
@@ -805,9 +997,9 @@ df17 = read_rds("cleaned_data/Non_Clustered_RCT/trial17.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df17)
+res1 = analyze_rct(df17)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(17, rep("continuous", n))
 ```
@@ -824,9 +1016,9 @@ df18 = read_rds("cleaned_data/Non_Clustered_RCT/trial18.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df18)
+res1 = analyze_rct(df18)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(18, c("time to event", rep("continuous", n-1)))
 ```
@@ -842,9 +1034,9 @@ df19 = read_rds("cleaned_data/Non_Clustered_RCT/trial19.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df19)
+res1 = analyze_rct(df19)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(19, c(rep("continuous", n-1), "binary"))
 ```
@@ -860,9 +1052,9 @@ df20 = read_rds("cleaned_data/Non_Clustered_RCT/trial20.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df20)
+res1 = analyze_rct(df20)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(20, rep("continuous", n))
 ```
@@ -879,9 +1071,9 @@ df21 = read_rds("cleaned_data/Non_Clustered_RCT/trial21.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df21)
+res1 = analyze_rct(df21)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(21, c("time to event", rep("binary", 4), "continuous"))
 ```
@@ -897,9 +1089,9 @@ df22 = read_rds("cleaned_data/Non_Clustered_RCT/trial22.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df22)
+res1 = analyze_rct(df22)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(22, c(rep("binary", 2), "continuous", rep("binary", 2)))
 ```
@@ -916,9 +1108,9 @@ df23 = read_rds("cleaned_data/Non_Clustered_RCT/trial23.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df23)
+res1 = analyze_rct(df23)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(23, c("time to event", "time to event", rep("continuous", n - 2)))
 ```
@@ -934,9 +1126,9 @@ df24 = read_rds("cleaned_data/Non_Clustered_RCT/trial24.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df24)
+res1 = analyze_rct(df24)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(24, c("binary", "continuous", "continuous"))
 ```
@@ -952,9 +1144,9 @@ df25 = read_rds("cleaned_data/Non_Clustered_RCT/trial25.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df25)
+res1 = analyze_rct(df25)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(25, c(rep("continuous", n-2), "binary", "binary"))
 ```
@@ -970,9 +1162,9 @@ df26 = read_rds("cleaned_data/Non_Clustered_RCT/trial26.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df26)
+res1 = analyze_rct(df26)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(26, c("continuous", "binary", "categorical", rep("continuous", n-3)))
 ```
@@ -988,9 +1180,9 @@ df27 = read_rds("cleaned_data/Non_Clustered_RCT/trial27.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df27)
+res1 = analyze_rct(df27)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(27, c("categorical", "binary", "continuous", "categorical",
                                 "continuous", "continuous", "binary", "continuous"))
@@ -1007,9 +1199,9 @@ df28 = read_rds("cleaned_data/Non_Clustered_RCT/trial28.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df28)
+res1 = analyze_rct(df28)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(28, rep("continuous", n))
 ```
@@ -1026,9 +1218,9 @@ df29 = read_rds("cleaned_data/Non_Clustered_RCT/trial29.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df29)
+res1 = analyze_rct(df29)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(29, c("time to event", "binary", "binary", "continuous"))
 ```
@@ -1045,9 +1237,9 @@ df30 = read_rds("cleaned_data/Non_Clustered_RCT/trial30.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df30)
+res1 = analyze_rct(df30)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(30, rep("continuous", n))
 ```
@@ -1063,9 +1255,9 @@ df31 = read_rds("cleaned_data/Non_Clustered_RCT/trial31.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df31)
+res1 = analyze_rct(df31)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(31, c("time to event", "continuous", "continuous", "binary", "binary"))
 ```
@@ -1081,9 +1273,9 @@ df32 = read_rds("cleaned_data/Non_Clustered_RCT/trial32.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df32)
+res1 = analyze_rct(df32)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(32, c("categorical", "binary", "binary", "binary"))
 ```
@@ -1098,9 +1290,9 @@ df33 = read_rds("cleaned_data/Non_Clustered_RCT/trial33.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df33)
+res1 = analyze_rct(df33)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(33, c("continuous", "binary"))
 ```
@@ -1114,9 +1306,9 @@ df34 = read_rds("cleaned_data/Non_Clustered_RCT/trial34.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df34)
+res1 = analyze_rct(df34)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(34, c("binary", "continuous", rep("binary", 6)))
 ```
@@ -1131,9 +1323,9 @@ df35 = read_rds("cleaned_data/Non_Clustered_RCT/trial35.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df35)
+res1 = analyze_rct(df35)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binary",
                                 rep("continuous", 6)))
@@ -1148,9 +1340,9 @@ df36 = read_rds("cleaned_data/Non_Clustered_RCT/trial36.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df36)
+res1 = analyze_rct(df36)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(36, rep("continuous", n))
 ```
@@ -1164,9 +1356,9 @@ df37 = read_rds("cleaned_data/Non_Clustered_RCT/trial37.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df37)
+res1 = analyze_rct(df37)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(37, rep("binary", n))
 ```
@@ -1182,9 +1374,9 @@ df38 = read_rds("cleaned_data/Non_Clustered_RCT/trial38.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df38)
+res1 = analyze_rct(df38)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(38, c("time to event", "continuous", "continuous"))
 ```
@@ -1202,9 +1394,9 @@ df39 = read_rds("cleaned_data/Non_Clustered_RCT/trial39.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df39)
+res1 = analyze_rct(df39)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(39, c("time to event"))
 ```
@@ -1222,9 +1414,9 @@ df40 = read_rds("cleaned_data/Non_Clustered_RCT/trial40.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df40)
+res1 = analyze_rct(df40)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(40, c("time to event", "continuous", "continuous", "binary", "continuous",
                                 "continuous", "binary"))
@@ -1241,9 +1433,9 @@ df41 = read_rds("cleaned_data/Non_Clustered_RCT/trial41.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df41)
+res1 = analyze_rct(df41)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(41, c(rep("binary", 5)))
 ```
@@ -1261,9 +1453,9 @@ df42 = read_rds("cleaned_data/Non_Clustered_RCT/trial42.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df42)
+res1 = analyze_rct(df42)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(42, c("time to event", rep("continuous", n-1)))
 ```
@@ -1280,9 +1472,9 @@ df43 = read_rds("cleaned_data/Non_Clustered_RCT/trial43.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df43)
+res1 = analyze_rct(df43)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(43, c("time to event", rep("continuous", 3), "binary"))
 ```
@@ -1298,9 +1490,9 @@ df44 = read_rds("cleaned_data/Non_Clustered_RCT/trial44.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df44)
+res1 = analyze_rct(df44)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(44, c("binary", rep("continuous", 3)))
 ```
@@ -1318,9 +1510,9 @@ df45 = read_rds("cleaned_data/Non_Clustered_RCT/trial45.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df45)
+res1 = analyze_rct(df45)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(45, c(rep("continuous", n)))
 ```
@@ -1335,9 +1527,9 @@ df46 = read_rds("cleaned_data/Non_Clustered_RCT/trial46.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df46)
+res1 = analyze_rct(df46)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(46, c(rep("continuous", n)))
 ```
@@ -1355,9 +1547,9 @@ df47 = read_rds("cleaned_data/Non_Clustered_RCT/trial47.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df47)
+res1 = analyze_rct(df47)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(47, c(rep("binary", 2), "continuous", "binary"))
 ```
@@ -1373,9 +1565,9 @@ df48 = read_rds("cleaned_data/Non_Clustered_RCT/trial48.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df48)
+res1 = analyze_rct(df48)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(48, c("binary", rep("continuous", 6), rep("binary", 2)))
 ```
@@ -1394,9 +1586,9 @@ df49 = read_rds("cleaned_data/Non_Clustered_RCT/trial49.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df49)
+res1 = analyze_rct(df49)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("continuous", 9)))
 ```
@@ -1414,9 +1606,9 @@ df50 = read_rds("cleaned_data/Non_Clustered_RCT/trial50.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df50)
+res1 = analyze_rct(df50)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison = update_df(50, c("time to event", "continuous"))
 ```

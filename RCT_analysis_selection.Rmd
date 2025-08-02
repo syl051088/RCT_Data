@@ -40,9 +40,9 @@ df1 = read_rds("cleaned_data/Non_Clustered_RCT/trial1.rds")
 
 ## Process
 ```{r}
-results = analyze_rct(df1, selection = TRUE)
+res1 = analyze_rct(df1, selection = TRUE)
 
-df_comparison_selection = update_df(1, rep("continuous", 15), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(1, rep("continuous", 15), df = df_comparison_selection)
 ```
 
 # Trial 2
@@ -57,9 +57,9 @@ df2 = df2 %>% select(-YP_early_7d, -YP_late_12d)
 
 ## Process
 ```{r}
-results = analyze_rct(df2, selection = TRUE)
+res1 = analyze_rct(df2, selection = TRUE)
 
-df_comparison_selection = update_df(2, c("time to event", "binary", "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(2, c("time to event", "binary", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -73,9 +73,9 @@ df3 = read_rds("cleaned_data/Non_Clustered_RCT/trial3.rds")
 
 ## Process
 ```{r}
-results = analyze_rct(df3, selection = TRUE)
+res1 = analyze_rct(df3, selection = TRUE)
 
-df_comparison_selection = update_df(3, c("binary", "time to event", rep("binary", 4), "continuous", "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(3, c("binary", "time to event", rep("binary", 4), "continuous", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -91,9 +91,9 @@ df4 = read_rds("cleaned_data/Non_Clustered_RCT/trial4.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df4, selection = TRUE)
+res1 = analyze_rct(df4, selection = TRUE)
 
-df_comparison_selection = update_df(4, c("continuous", "continuous", "continuous", "continuous"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(4, c("continuous", "continuous", "continuous", "continuous"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -109,9 +109,9 @@ df5 = read_rds("cleaned_data/Non_Clustered_RCT/trial5.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df5, selection = TRUE)
+res1 = analyze_rct(df5, selection = TRUE)
 
-df_comparison_selection = update_df(5, c("composite binary", "continuous", rep("binary", 10), rep("continuous", 3), "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(5, c("composite binary", "continuous", rep("binary", 10), rep("continuous", 3), "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -126,11 +126,11 @@ df6 = read_rds("cleaned_data/Non_Clustered_RCT/trial6.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df6, selection = TRUE)
+res1 = analyze_rct(df6, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(6, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(6, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -145,9 +145,9 @@ df7 = read_rds("cleaned_data/Non_Clustered_RCT/trial7.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df7, selection = TRUE)
+res1 = analyze_rct(df7, selection = TRUE)
 
-df_comparison_selection = update_df(7, rep("continuous", 8), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(7, rep("continuous", 8), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -164,9 +164,9 @@ df8 = df8 %>% select(-X_comorbidities_0d)
 ## Process
 
 ```{r}
-results = analyze_rct(df8, selection = TRUE)
+res1 = analyze_rct(df8, selection = TRUE)
 
-df_comparison_selection = update_df(8, rep("binary", 6), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(8, rep("binary", 6), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -181,10 +181,10 @@ df9 = read_rds("cleaned_data/Non_Clustered_RCT/trial9.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df9, selection = TRUE)
+res1 = analyze_rct(df9, selection = TRUE)
 
 df_comparison_selection = update_df(9, c("binary", rep("continuous", 4), rep("binary", 10), "continuous",
-                               rep("binary", 2), "continuous", rep("binary", 2)), res1 = results, df = df_comparison_selection)
+                               rep("binary", 2), "continuous", rep("binary", 2)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -198,9 +198,9 @@ df10 = read_rds("cleaned_data/Non_Clustered_RCT/trial10.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df10, selection = TRUE)
+res1 = analyze_rct(df10, selection = TRUE)
 
-df_comparison_selection = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 15)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 15)), res1 = res1, df = df_comparison_selection)
 ```
 # Trial 11
 ## Load Data
@@ -212,11 +212,11 @@ df11 = read_rds("cleaned_data/Non_Clustered_RCT/trial11.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df11, selection = TRUE)
+res1 = analyze_rct(df11, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(11, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(11, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 12
@@ -229,11 +229,11 @@ df12 = read_rds("cleaned_data/Non_Clustered_RCT/trial12.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df12, selection = TRUE)
+res1 = analyze_rct(df12, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(12, c(rep("binary", n)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(12, c(rep("binary", n)), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 13
@@ -246,11 +246,11 @@ df13 = read_rds("cleaned_data/Non_Clustered_RCT/trial13.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df13, selection = TRUE)
+res1 = analyze_rct(df13, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(13, c("binary", rep("continuous", 9), "binary", "binary", rep("continuous", 5)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(13, c("binary", rep("continuous", 9), "binary", "binary", rep("continuous", 5)), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 14
@@ -263,11 +263,11 @@ df14 = read_rds("cleaned_data/Non_Clustered_RCT/trial14.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df14, selection = TRUE)
+res1 = analyze_rct(df14, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(14, c(rep("continuous", n-4), rep("binary", 4)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(14, c(rep("continuous", n-4), rep("binary", 4)), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 15
@@ -280,11 +280,11 @@ df15 = read_rds("cleaned_data/Non_Clustered_RCT/trial15.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df15, selection = TRUE)
+res1 = analyze_rct(df15, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(15, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(15, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -298,11 +298,11 @@ df16 = read_rds("cleaned_data/Non_Clustered_RCT/trial16.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df16, selection = TRUE)
+res1 = analyze_rct(df16, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(16, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(16, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -316,11 +316,11 @@ df17 = read_rds("cleaned_data/Non_Clustered_RCT/trial17.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df17, selection = TRUE)
+res1 = analyze_rct(df17, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(17, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(17, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -335,11 +335,11 @@ df18 = read_rds("cleaned_data/Non_Clustered_RCT/trial18.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df18, selection = TRUE)
+res1 = analyze_rct(df18, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(18, c("time to event", rep("continuous", n-1)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(18, c("time to event", rep("continuous", n-1)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -353,11 +353,11 @@ df19 = read_rds("cleaned_data/Non_Clustered_RCT/trial19.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df19, selection = TRUE)
+res1 = analyze_rct(df19, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(19, c(rep("continuous", n-1), "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(19, c(rep("continuous", n-1), "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -371,11 +371,11 @@ df20 = read_rds("cleaned_data/Non_Clustered_RCT/trial20.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df20, selection = TRUE)
+res1 = analyze_rct(df20, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(20, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(20, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -390,11 +390,11 @@ df21 = read_rds("cleaned_data/Non_Clustered_RCT/trial21.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df21, selection = TRUE)
+res1 = analyze_rct(df21, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(21, c("time to event", rep("binary", 4), "continuous"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(21, c("time to event", rep("binary", 4), "continuous"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -408,11 +408,11 @@ df22 = read_rds("cleaned_data/Non_Clustered_RCT/trial22.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df22, selection = TRUE)
+res1 = analyze_rct(df22, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(22, c(rep("binary", 2), "continuous", rep("binary", 2)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(22, c(rep("binary", 2), "continuous", rep("binary", 2)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -427,11 +427,11 @@ df23 = read_rds("cleaned_data/Non_Clustered_RCT/trial23.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df23, selection = TRUE)
+res1 = analyze_rct(df23, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(23, c("time to event", "time to event", rep("continuous", n - 2)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(23, c("time to event", "time to event", rep("continuous", n - 2)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -445,11 +445,11 @@ df24 = read_rds("cleaned_data/Non_Clustered_RCT/trial24.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df24, selection = TRUE)
+res1 = analyze_rct(df24, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(24, c("binary", "continuous", "continuous"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(24, c("binary", "continuous", "continuous"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -463,11 +463,11 @@ df25 = read_rds("cleaned_data/Non_Clustered_RCT/trial25.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df25, selection = TRUE)
+res1 = analyze_rct(df25, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(25, c(rep("continuous", n-2), "binary", "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(25, c(rep("continuous", n-2), "binary", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -481,11 +481,11 @@ df26 = read_rds("cleaned_data/Non_Clustered_RCT/trial26.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df26, selection = TRUE)
+res1 = analyze_rct(df26, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(26, c("continuous", "binary", "categorical", rep("continuous", n-3)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(26, c("continuous", "binary", "categorical", rep("continuous", n-3)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -499,12 +499,12 @@ df27 = read_rds("cleaned_data/Non_Clustered_RCT/trial27.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df27, selection = TRUE)
+res1 = analyze_rct(df27, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison_selection = update_df(27, c("categorical", "binary", "continuous", "categorical",
-                                "continuous", "continuous", "binary", "continuous"), res1 = results, df = df_comparison_selection)
+                                "continuous", "continuous", "binary", "continuous"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -518,11 +518,11 @@ df28 = read_rds("cleaned_data/Non_Clustered_RCT/trial28.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df28, selection = TRUE)
+res1 = analyze_rct(df28, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(28, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(28, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -537,11 +537,11 @@ df29 = read_rds("cleaned_data/Non_Clustered_RCT/trial29.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df29, selection = TRUE)
+res1 = analyze_rct(df29, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(29, c("time to event", "binary", "binary", "continuous"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(29, c("time to event", "binary", "binary", "continuous"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -556,11 +556,11 @@ df30 = read_rds("cleaned_data/Non_Clustered_RCT/trial30.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df30, selection = TRUE)
+res1 = analyze_rct(df30, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(30, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(30, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 31
@@ -574,11 +574,11 @@ df31 = read_rds("cleaned_data/Non_Clustered_RCT/trial31.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df31, selection = TRUE)
+res1 = analyze_rct(df31, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(31, c("time to event", "continuous", "continuous", "binary", "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(31, c("time to event", "continuous", "continuous", "binary", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -592,11 +592,11 @@ df32 = read_rds("cleaned_data/Non_Clustered_RCT/trial32.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df32, selection = TRUE)
+res1 = analyze_rct(df32, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(32, c("categorical", "binary", "binary", "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(32, c("categorical", "binary", "binary", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 33
@@ -609,11 +609,11 @@ df33 = read_rds("cleaned_data/Non_Clustered_RCT/trial33.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df33, selection = TRUE)
+res1 = analyze_rct(df33, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(33, c("continuous", "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(33, c("continuous", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 # Trial 34
 ## Load Data
@@ -625,11 +625,11 @@ df34 = read_rds("cleaned_data/Non_Clustered_RCT/trial34.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df34, selection = TRUE)
+res1 = analyze_rct(df34, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(34, c("binary", "continuous", rep("binary", 6)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(34, c("binary", "continuous", rep("binary", 6)), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 35
@@ -642,12 +642,12 @@ df35 = read_rds("cleaned_data/Non_Clustered_RCT/trial35.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df35, selection = TRUE)
+res1 = analyze_rct(df35, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison_selection = update_df(35, c("continuous", "continuous", "continuous", "binary",
-                                rep("continuous", 6)), res1 = results, df = df_comparison_selection)
+                                rep("continuous", 6)), res1 = res1, df = df_comparison_selection)
 ```
 # Trial 36
 ## Load Data
@@ -659,11 +659,11 @@ df36 = read_rds("cleaned_data/Non_Clustered_RCT/trial36.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df36, selection = TRUE)
+res1 = analyze_rct(df36, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(36, rep("continuous", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(36, rep("continuous", n), res1 = res1, df = df_comparison_selection)
 ```
 # Trial 37
 ## Load Data
@@ -675,11 +675,11 @@ df37 = read_rds("cleaned_data/Non_Clustered_RCT/trial37.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df37, selection = TRUE)
+res1 = analyze_rct(df37, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(37, rep("binary", n), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(37, rep("binary", n), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 38
@@ -693,11 +693,11 @@ df38 = read_rds("cleaned_data/Non_Clustered_RCT/trial38.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df38, selection = TRUE)
+res1 = analyze_rct(df38, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(38, c("time to event", "continuous", "continuous"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(38, c("time to event", "continuous", "continuous"), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -713,11 +713,11 @@ df39 = read_rds("cleaned_data/Non_Clustered_RCT/trial39.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df39, selection = TRUE)
+res1 = analyze_rct(df39, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(39, c("time to event"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(39, c("time to event"), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 40
@@ -733,12 +733,12 @@ df40 = read_rds("cleaned_data/Non_Clustered_RCT/trial40.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df40, selection = TRUE)
+res1 = analyze_rct(df40, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
 df_comparison_selection = update_df(40, c("time to event", "continuous", "continuous", "binary", "continuous",
-                                "continuous", "binary"), res1 = results, df = df_comparison_selection)
+                                "continuous", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 41
@@ -752,11 +752,11 @@ df41 = read_rds("cleaned_data/Non_Clustered_RCT/trial41.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df41, selection = TRUE)
+res1 = analyze_rct(df41, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(41, c(rep("binary", 5)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(41, c(rep("binary", 5)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -772,11 +772,11 @@ df42 = read_rds("cleaned_data/Non_Clustered_RCT/trial42.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df42, selection = TRUE)
+res1 = analyze_rct(df42, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(42, c("time to event", rep("continuous", n-1)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(42, c("time to event", rep("continuous", n-1)), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 43
@@ -791,11 +791,11 @@ df43 = read_rds("cleaned_data/Non_Clustered_RCT/trial43.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df43, selection = TRUE)
+res1 = analyze_rct(df43, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(43, c("time to event", rep("continuous", 3), "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(43, c("time to event", rep("continuous", 3), "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 44
@@ -809,11 +809,11 @@ df44 = read_rds("cleaned_data/Non_Clustered_RCT/trial44.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df44, selection = TRUE)
+res1 = analyze_rct(df44, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(44, c("binary", rep("continuous", 3)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(44, c("binary", rep("continuous", 3)), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 45
@@ -829,11 +829,11 @@ df45 = read_rds("cleaned_data/Non_Clustered_RCT/trial45.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df45, selection = TRUE)
+res1 = analyze_rct(df45, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(45, c(rep("continuous", n)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(45, c(rep("continuous", n)), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 46
@@ -846,11 +846,11 @@ df46 = read_rds("cleaned_data/Non_Clustered_RCT/trial46.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df46, selection = TRUE)
+res1 = analyze_rct(df46, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(46, c(rep("continuous", n)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(46, c(rep("continuous", n)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -866,11 +866,11 @@ df47 = read_rds("cleaned_data/Non_Clustered_RCT/trial47.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df47, selection = TRUE)
+res1 = analyze_rct(df47, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(47, c(rep("binary", 2), "continuous", "binary"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(47, c(rep("binary", 2), "continuous", "binary"), res1 = res1, df = df_comparison_selection)
 ```
 
 # Trial 48
@@ -884,11 +884,11 @@ df48 = read_rds("cleaned_data/Non_Clustered_RCT/trial48.rds")
 ## Process
 
 ```{r}
-results = analyze_rct(df48, selection = TRUE)
+res1 = analyze_rct(df48, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(48, c("binary", rep("continuous", 6), rep("binary", 2)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(48, c("binary", rep("continuous", 6), rep("binary", 2)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -905,11 +905,11 @@ df49 = read_rds("cleaned_data/Non_Clustered_RCT/trial49.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df49, selection = TRUE)
+res1 = analyze_rct(df49, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("continuous", 9)), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("continuous", 9)), res1 = res1, df = df_comparison_selection)
 ```
 
 
@@ -925,11 +925,11 @@ df50 = read_rds("cleaned_data/Non_Clustered_RCT/trial50.rds") %>%
 ## Process
 
 ```{r}
-results = analyze_rct(df50, selection = TRUE)
+res1 = analyze_rct(df50, selection = TRUE)
 
-n = length(unique(results$Outcome))
+n = length(unique(res1$Outcome))
 
-df_comparison_selection = update_df(50, c("time to event", "continuous"), res1 = results, df = df_comparison_selection)
+df_comparison_selection = update_df(50, c("time to event", "continuous"), res1 = res1, df = df_comparison_selection)
 ```
 
 # Export
