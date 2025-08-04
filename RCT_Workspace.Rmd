@@ -383,86 +383,21 @@ list(
 
 # test
 ```{r}
-col_names = c(
-  # ── Metadata ────────────────────────────────────────────────────────────
-  "Trial_No", "Sample_Size", "N_Covariates", "Treatment", "Control",
-  "Contrast", "Outcome", "Outcome Type",
-
-  # ── Standard errors ─────────────────────────────────────────────────────
-  "Unadjust_se",
-  "ANCOVA_robust_se",  "ANCOVA_model_based_se",  "ANHECOVA_robust_se",
-  "Binom_robust_se",   "SL_se",  "SL_rpart_se",  "SL_ranger_se",  "SL_nnet_se",
-  "ANCOVA_VS_robust_se",  "ANCOVA_VS_model_based_se",  "ANHECOVA_VS_robust_se",
-  "Binom_VS_robust_se",   "SL_VS_se",  "SL_rpart_VS_se",
-  "SL_ranger_VS_se",      "SL_nnet_VS_se",
-
-  # ── Precision-gain factors ──────────────────────────────────────────────
-  "How much precision gain can ANCOVA provide?",
-  "How much precision gain can ANHECOVA provide?",
-  "How much precision gain can Binom provide?",
-  "How much precision gain can SL provide?",
-  "How much precision gain can SL_rpart provide?",
-  "How much precision gain can SL_ranger provide?",
-  "How much precision gain can SL_nnet provide?",
-  "How much precision gain can ANCOVA_VS provide?",
-  "How much precision gain can ANHECOVA_VS provide?",
-  "How much precision gain can Binom_VS provide?",
-  "How much precision gain can SL_VS provide?",
-  "How much precision gain can SL_rpart_VS provide?",
-  "How much precision gain can SL_ranger_VS provide?",
-  "How much precision gain can SL_nnet_VS provide?",
-
-  # ── Variance-ratio diagnostics ─────────────────────────────────────────
-  "The ratio between robust and model-based variance estimators",
-  "ANCOVA vs ANHECOVA variance ratio",
-  "The ratio between robust and model-based variance estimators_VS",
-  "ANCOVA_VS vs ANHECOVA_VS variance ratio",
-
-  # ── Point estimates ─────────────────────────────────────────────────────
-  "Unadjust_est",
-  "ANCOVA_est",  "ANHECOVA_est",  "Binom_est",
-  "SL_est",      "SL_rpart_est",  "SL_ranger_est",  "SL_nnet_est",
-  "ANCOVA_VS_est",  "ANHECOVA_VS_est",  "Binom_VS_est",
-  "SL_VS_est",      "SL_rpart_VS_est",  "SL_ranger_VS_est",
-  "SL_nnet_VS_est",
-
-  # ── Standardised differences in point estimates ────────────────────────
-  "The difference between unadjusted and ANCOVA point estimates",
-  "The difference between unadjusted and ANHECOVA point estimates",
-  "The difference between unadjusted and Binom point estimates",
-  "The difference between unadjusted and SL point estimates",
-  "The difference between unadjusted and SL_rpart point estimates",
-  "The difference between unadjusted and SL_ranger point estimates",
-  "The difference between unadjusted and SL_nnet point estimates",
-  "The difference between unadjusted and ANCOVA_VS point estimates",
-  "The difference between unadjusted and ANHECOVA_VS point estimates",
-  "The difference between unadjusted and Binom_VS point estimates",
-  "The difference between unadjusted and SL_VS point estimates",
-  "The difference between unadjusted and SL_rpart_VS point estimates",
-  "The difference between unadjusted and SL_ranger_VS point estimates",
-  "The difference between unadjusted and SL_nnet_VS point estimates"
-)
-
-# Create a 1-row data frame with those as column names
-df = as.data.frame(matrix(nrow = 1, ncol = length(col_names)))
-colnames(df) = col_names
-
-# View structure
-str(df)
-
-
+df = df8 %>% select(-YP_RTPCR_negative_6d,
+                    -YS_symptom_free_6d,
+                    -YS_discharged_10d,
+                    -YS_final_discharge,
+                    -YS_ICU,
+                    # -YS_intubation_mv
+                    )
 ```
 
 ```{r}
-res2 %>% 
-  mutate(
-    a = SE_SL^2 / SE_UN^2
-  ) %>% 
-  select(a)
+analyze_rct(df)
 ```
 
 ```{r}
-str(df2)
+str(df49)
 ```
 
 

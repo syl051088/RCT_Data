@@ -2200,10 +2200,10 @@ df25_final = df25 %>%
     YS_PDQ39SI_8w  = PDQ39SI_POST,
     YS_UPDRS11_8w  = UPDRS11_POST,
     YS_UPDRS111_8w = UPDRS111_POST,
-    YS_DelayedGTT_0w  = Delayed_WGTT_PRE,
-    YS_BM_less3_0w    = BM_less3perweek_PRE,
+    X_DelayedGTT_0w  = Delayed_WGTT_PRE,
+    X_BM_less3_0w    = BM_less3perweek_PRE,
     Treatment = relevel(factor(Treatment), ref="Placebo"),
-    across(c(YS_DelayedGTT_8w, YS_BM_less3_0w, YS_DelayedGTT_0w), as_factor)
+    across(c(YS_DelayedGTT_8w, X_BM_less3_0w, X_DelayedGTT_0w), as_factor)
   ) %>%
   select(
     Treatment,
