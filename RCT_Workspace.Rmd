@@ -397,7 +397,7 @@ analyze_rct(df)
 ```
 
 ```{r}
-str(df49)
+colnames(df_new)
 ```
 
 

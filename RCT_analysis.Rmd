@@ -2282,9 +2282,13 @@ library(tidyr)
 ##################################
 
 # Function to remove upper outliers
+# remove_upper_outliers = function(x) {
+#   ub = quantile(x, 0.75, na.rm = TRUE) + 1.5 * IQR(x, na.rm = TRUE)
+#   ifelse(x <= ub, x, NA)
+# }
+
 remove_upper_outliers = function(x) {
-  ub = quantile(x, 0.75, na.rm = TRUE) + 1.5 * IQR(x, na.rm = TRUE)
-  ifelse(x <= ub, x, NA)
+  ifelse(x >= 2, NA, x)
 }
 
 # Apply outlier removal to all methods except ANCOVA
@@ -2700,5 +2704,123 @@ ggplot(df_new %>% filter(!is.na(precision_gain_SL_nnet_VS)), aes(x = outcome_gro
         legend.title = element_text(size = 10),
         legend.text = element_text(size = 9),
         legend.key.size = unit(0.4, "cm"))
+```
+
+# More Plots
+```{r}
+###############################################################################
+##  0.  Long data BEFORE trimming --------------------------------------------
+###############################################################################
+df_long_full = df_new %>%       # df_new in your workspace
+  select(outcome_group, starts_with("precision_gain_")) %>%
+  pivot_longer(cols      = starts_with("precision_gain_"),
+               names_to  = "method_raw",
+               values_to = "pg") %>%
+  mutate(method = dplyr::case_match(
+    method_raw,
+    "precision_gain_ANCOVA"          ~ "ANCOVA",
+    "precision_gain_ANHECOVA"        ~ "ANHECOVA",
+    "precision_gain_Binom"           ~ "Binom",
+    "precision_gain_SL"              ~ "SL",
+    "precision_gain_SL_rpart"        ~ "SL_rpart",
+    "precision_gain_SL_nnet"         ~ "SL_nnet",
+    "precision_gain_ANCOVA_VS"       ~ "ANCOVA_VS",
+    "precision_gain_ANHECOVA_VS"     ~ "ANHECOVA_VS",
+    "precision_gain_Binom_VS"        ~ "Binom_VS",
+    "precision_gain_SL_VS"           ~ "SL_VS",
+    "precision_gain_SL_rpart_VS"     ~ "SL_rpart_VS",
+    "precision_gain_SL_nnet_VS"      ~ "SL_nnet_VS"
+  ))
+
+###############################################################################
+##  1.  Caption builder for ONE outcome type ----------------------------------
+###############################################################################
+build_caption = function(outcome_type) {
+
+  ## ---- counts of outliers (pg ≥ 2) ---------------------------
+  outliers = df_long_full %>%
+    filter(outcome_group == outcome_type, !is.na(pg)) %>%
+    mutate(outlier = pg >= 2) %>%
+    group_by(method) %>%
+    summarise(outliers_removed = sum(outlier), .groups = "drop")
+
+  ## ---- counts of original NA ----------------------------
+  nas = df_long_full %>%
+    filter(outcome_group == outcome_type) %>%
+    group_by(method) %>%
+    summarise(na_removed = sum(is.na(pg)), .groups = "drop")
+
+  ## For *continuous* outcome, drop Binom + Binom_VS from NA line
+  if (outcome_type == "continuous")
+    nas = nas %>% filter(!method %in% c("Binom", "Binom_VS"))
+
+  fmt = function(df, val_col)
+    paste(df$method, df[[val_col]], sep = "=", collapse = ", ")
+
+  cap1 = paste0("• Outliers removed (≥2): ", fmt(outliers, "outliers_removed"))
+  cap2 = paste0("• NA removed: ",             fmt(nas,      "na_removed"))
+  paste(cap1, cap2, sep = "\n")
+}
+
+###############################################################################
+##  2.  Style constants -------------------------------------------------------
+###############################################################################
+size_colors = c("<50"     = "#E41A1C",
+                "50-99"   = "#377EB8",
+                "100-499" = "#4DAF4A",
+                "≥500"    = "#984EA3")
+
+make_plot = function(data, title_txt, caption_txt) {
+  ggplot(data, aes(method, precision_gain)) +
+    geom_violin(fill = "grey75", colour = "grey25", alpha = .30, width = 1) +
+    geom_jitter(aes(colour = sample_size_cat),
+                width = .12, size = .6, alpha = .65) +
+    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    scale_colour_manual(values = size_colors, name = "Sample Size") +
+    labs(title    = title_txt,
+         subtitle = "Variance-ratio < 1 → higher precision than unadjusted",
+         caption  = caption_txt,
+         x = NULL, y = "Variance Ratio") +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title    = element_text(hjust = .5, face = "bold"),       # centred
+      plot.subtitle = element_text(hjust = .5, colour = "grey60"),   # centred, light grey
+      plot.caption  = element_text(hjust = 0,  colour = "grey50", size = 7), # left-aligned
+      axis.text.x   = element_text(angle = 45, hjust = 1, size = 8),
+      panel.grid.minor = element_blank()
+    )
+}
+
+###############################################################################
+##  3.  Binary plot -----------------------------------------------------------
+###############################################################################
+df_binary_or = df_long_outlier_removed %>% filter(outcome_group == "binary")
+cap_binary   = build_caption("binary")
+
+p_binary = make_plot(
+  df_binary_or,
+  "Precision Gain vs Unadjusted – Binary",
+  cap_binary
+)
+ggsave("cleaned_data/Plot/precision_gain_binary.png", p_binary, width = 12, height = 6, dpi = 1200)
+
+###############################################################################
+##  4.  Continuous plot -------------------------------------------------------
+###############################################################################
+df_continuous_or = df_long_outlier_removed %>% filter(outcome_group == "continuous")
+cap_cont         = build_caption("continuous")
+
+p_cont = make_plot(
+  df_continuous_or,
+  "Precision Gain vs Unadjusted – Continuous",
+  cap_cont
+)
+ggsave("cleaned_data/Plot/precision_gain_continuous.png", p_cont, width = 12, height = 6, dpi = 1200)
+
+
+
+
+p_binary
+p_cont
 ```
 
