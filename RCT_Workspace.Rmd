@@ -381,24 +381,824 @@ list(
 )
 ```
 
+```{r}
+# Function to run TMLE comparison - FIXED VERSION
+run_tmle_comparison = function(true_ate, n_sim = 100, n = 800, p = 5) {
+  
+  covariate_cols = paste0("X_", 1:p)
+  
+  results_list = list()
+  
+  for(sim in 1:n_sim) {
+    cat("Simulation", sim, "of", n_sim, "\n")
+    
+    # GENERATE NEW DATASET FOR EACH SIMULATION
+    sim_data = generate_sim_data(n = n, p = p, seed = sim * 123)  # Different seed each time
+    data = sim_data$data
+    
+    # Prepare data for TMLE packages  
+    A = as.numeric(data$Treatment) - 1  # Convert to 0/1
+    Y = data$Y
+    W = data[, covariate_cols]
+    
+    # 1. Your implementation with K=5 (proper cross-fitting)
+    your_result = analyze_rct_sl(
+      data = data,
+      treatment_col = "Treatment",
+      outcome_cols = "Y",
+      covariate_cols = covariate_cols,
+      reference_arm = "Control",
+      K = 5,  # Using K=5 for proper cross-fitting
+      SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart"),  # FULL SL library
+      n_cores = 1
+    )
+    
+    # 2. TMLE package with expanded library
+    tmle_result = tryCatch({
+      tmle_fit = tmle(
+        Y = Y,
+        A = A,
+        W = as.matrix(W),  # Ensure matrix format
+        Q.SL.library = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart"),  # Expanded but stable
+        g.SL.library = c("SL.glm", "SL.mean", "SL.glmnet"),  # Stable for propensity
+        family = "gaussian"
+      )
+      list(
+        estimate = tmle_fit$estimates$ATE$psi,
+        se = sqrt(tmle_fit$estimates$ATE$var.psi),
+        ci_lower = tmle_fit$estimates$ATE$CI[1],
+        ci_upper = tmle_fit$estimates$ATE$CI[2]
+      )
+    }, error = function(e) {
+      cat("TMLE Error:", e$message, "\n")
+      list(estimate = NA, se = NA, ci_lower = NA, ci_upper = NA)
+    })
+    
+    # 3. Skip TMLE3 for now (too many compatibility issues)
+    tmle3_result = list(estimate = NA, se = NA, ci_lower = NA, ci_upper = NA)
+    
+    # 4. G-computation (parametric outcome modeling)
+    gcomp_result = tryCatch({
+      # Fit outcome model with interactions
+      formula_str = paste("Y ~", paste(covariate_cols, collapse = " + "), "* Treatment")
+      outcome_model = lm(as.formula(formula_str), data = data)
+      
+      # Predict under both treatments for ALL subjects
+      data_treated = data
+      data_treated$Treatment = factor("Treatment", levels = c("Control", "Treatment"))
+      
+      data_control = data
+      data_control$Treatment = factor("Control", levels = c("Control", "Treatment"))
+      
+      # Get predictions
+      mu1 = predict(outcome_model, newdata = data_treated)
+      mu0 = predict(outcome_model, newdata = data_control)
+      
+      # G-computation estimate
+      ate_gcomp = mean(mu1 - mu0)
+      se_gcomp = sd(mu1 - mu0) / sqrt(length(mu1))
+      
+      list(
+        estimate = ate_gcomp,
+        se = se_gcomp
+      )
+    }, error = function(e) {
+      cat("G-Comp Error:", e$message, "\n")
+      list(estimate = NA, se = NA)
+    })
+    
+    # 5. Simple difference in means (unadjusted)
+    simple_result = tryCatch({
+      treated_mean = mean(data$Y[data$Treatment == "Treatment"])
+      control_mean = mean(data$Y[data$Treatment == "Control"])
+      
+      # Pooled standard error
+      n1 = sum(data$Treatment == "Treatment")
+      n0 = sum(data$Treatment == "Control")
+      s1 = sd(data$Y[data$Treatment == "Treatment"])
+      s0 = sd(data$Y[data$Treatment == "Control"])
+      
+      pooled_se = sqrt(s1^2/n1 + s0^2/n0)
+      
+      list(
+        estimate = treated_mean - control_mean,
+        se = pooled_se
+      )
+    }, error = function(e) {
+      list(estimate = NA, se = NA)
+    })
+    
+    # Store results
+    results_list[[sim]] = data.frame(
+      simulation = sim,
+      method = c("Your_DR", "TMLE", "TMLE3", "G_Comp", "Simple_Diff"),
+      estimate = c(your_result$Est_SL[1], tmle_result$estimate, 
+                  tmle3_result$estimate, gcomp_result$estimate, simple_result$estimate),
+      se = c(your_result$SE_SL[1], tmle_result$se, 
+             tmle3_result$se, gcomp_result$se, simple_result$se),
+      true_ate = true_ate,
+      bias = c(your_result$Est_SL[1], tmle_result$estimate, 
+               tmle3_result$estimate, gcomp_result$estimate, simple_result$estimate) - true_ate,
+      coverage_95 = c(
+        abs(your_result$Est_SL[1] - true_ate) <= 1.96 * your_result$SE_SL[1],
+        if(!is.na(tmle_result$ci_lower)) (true_ate >= tmle_result$ci_lower & true_ate <= tmle_result$ci_upper) else NA,
+        if(!is.na(tmle3_result$ci_lower)) (true_ate >= tmle3_result$ci_lower & true_ate <= tmle3_result$ci_upper) else NA,
+        abs(gcomp_result$estimate - true_ate) <= 1.96 * gcomp_result$se,
+        abs(simple_result$estimate - true_ate) <= 1.96 * simple_result$se
+      ),
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  # Combine results
+  all_results = do.call(rbind, results_list)
+  return(all_results)
+}
+
+# UPDATED MAIN EXECUTION CODE
+cat("=== FIXED SIMULATION STUDY - FULL SL LIBRARY ===\n")
+cat("Each simulation uses a NEW dataset (n=800, p=5)\n")
+cat("Your DR uses: SL.glm, SL.mean, SL.glmnet, SL.rpart, SL.randomForest, SL.gam, SL.bartMachine\n")
+cat("TMLE uses: SL.glm, SL.mean, SL.glmnet, SL.rpart (Q) + SL.glm, SL.mean, SL.glmnet (g)\n")
+cat("True ATE = 2.0\n\n")
+
+# Run the verification with DIFFERENT datasets per simulation
+comparison_results = run_tmle_comparison(
+  true_ate = 2.0,
+  n_sim = 100,  # 200 simulations
+  n = 800,      # Sample size per simulation  
+  p = 5         # Number of covariates
+)
+
+cat("Analyzing results...\n")
+summary_table = analyze_comparison(comparison_results)
+
+print("=== COMPARISON SUMMARY ===")
+print(summary_table)
+
+# Additional diagnostic: Check if your implementation matches theoretical properties
+cat("\n=== DIAGNOSTIC CHECKS ===\n")
+
+# Check 1: Consistency (should approach true value as n increases)
+cat("1. Bias check (closer to 0 is better):\n")
+bias_check = comparison_results %>%
+  group_by(method) %>%
+  summarise(mean_abs_bias = mean(abs(bias), na.rm = TRUE))
+print(bias_check)
+
+# Check 2: Standard error accuracy (empirical SD vs reported SE)
+cat("\n2. Standard error accuracy:\n")
+se_check = comparison_results %>%
+  group_by(method) %>%
+  summarise(
+    empirical_sd = sd(estimate, na.rm = TRUE),
+    reported_se = mean(se, na.rm = TRUE),
+    se_ratio = empirical_sd / reported_se
+  )
+print(se_check)
+
+cat("\n=== INTERPRETATION ===\n")
+cat("- Now each simulation uses a DIFFERENT dataset\n") 
+cat("- SD of estimates should be > 0 for all methods\n")
+cat("- Your DR vs TMLE estimates should be similar\n")
+cat("- SE ratio should be closer to 1.0 now\n")
+cat("- This tests the sampling distribution properties\n")
+```
+
+
 # test
 ```{r}
-df = df8 %>% select(-YP_RTPCR_negative_6d,
-                    -YS_symptom_free_6d,
-                    -YS_discharged_10d,
-                    -YS_final_discharge,
-                    -YS_ICU,
-                    # -YS_intubation_mv
-                    )
+# Function to generate simulation data
+generate_sim_data = function(n = 1000, p = 5, seed = 123) {
+  set.seed(seed)
+  
+  # Generate covariates
+  X = matrix(rnorm(n * p), n, p)
+  colnames(X) = paste0("X_", 1:p)
+  
+  # True propensity scores for 3-arm trial (multinomial)
+  # Linear predictors for each treatment arm
+  eta1 = -0.2 + 0.3 * X[,1] + 0.2 * X[,2] - 0.1 * X[,3]  # Treatment 1
+  eta2 = -0.3 + 0.2 * X[,1] - 0.1 * X[,2] + 0.2 * X[,3]  # Treatment 2
+  eta0 = rep(0, n)  # Control (reference)
+  
+  # Multinomial probabilities
+  exp_eta = cbind(exp(eta0), exp(eta1), exp(eta2))
+  ps_true = exp_eta / rowSums(exp_eta)
+  
+  # Generate treatment (3-arm: 0 = control, 1 = treatment1, 2 = treatment2)
+  A = apply(ps_true, 1, function(p) sample(0:2, 1, prob = p))
+  
+  # True outcome model (continuous)
+  # Treatment effects: 2 for treatment1, 1.5 for treatment2
+  Y = 1 + 0.5 * X[,1] + 0.3 * X[,2] - 0.2 * X[,3] + 0.1 * X[,4] + 
+      2 * (A == 1) + 1.5 * (A == 2) + 
+      0.3 * (A == 1) * X[,1] + 0.2 * (A == 2) * X[,2] + 
+      rnorm(n, 0, 1)
+  
+  # Create data frame
+  data = data.frame(
+    Treatment = factor(A, levels = c(0, 1, 2), labels = c("Control", "Treatment1", "Treatment2")),
+    Y = Y,
+    X,
+    stringsAsFactors = FALSE
+  )
+  
+  # Return data and true ATEs
+  list(
+    data = data,
+    true_ate1 = 2,    # Treatment1 vs Control
+    true_ate2 = 1.5,  # Treatment2 vs Control
+    ps_true = ps_true
+  )
+}
+
+# Function to run TMLE comparison - FIXED VERSION
+run_tmle_comparison = function(true_ate, n_sim = 100, n = 800, p = 5) {
+  
+  covariate_cols = paste0("X_", 1:p)
+  
+  results_list = list()
+  
+  for(sim in 1:n_sim) {
+    cat("Simulation", sim, "of", n_sim, "\n")
+    
+    # GENERATE NEW DATASET FOR EACH SIMULATION
+    sim_data = generate_sim_data(n = n, p = p, seed = sim * 123)  # Different seed each time
+    data = sim_data$data
+    
+    # Prepare data for TMLE packages  
+    A = as.numeric(data$Treatment) - 1  # Convert to 0/1
+    Y = data$Y
+    W = data[, covariate_cols]
+    
+    # 1. Your implementation with K=5 (proper cross-fitting)
+    your_result = analyze_rct_sl(
+      data = data,
+      treatment_col = "Treatment",
+      outcome_cols = "Y",
+      covariate_cols = covariate_cols,
+      reference_arm = "Control",
+      K = 5,  # Using K=5 for proper cross-fitting
+      SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart"),  # FULL SL library
+      n_cores = 1
+    )
+    
+    # 2. TMLE package with expanded library - now handling 3 arms
+    tmle_result = tryCatch({
+      # For 3-arm trial, run TMLE for each treatment vs control
+      tmle_results = list()
+      
+      # Treatment1 vs Control
+      data_12arm = data[data$Treatment %in% c("Control", "Treatment1"), ]
+      A_12 = as.numeric(data_12arm$Treatment) - 1
+      Y_12 = data_12arm$Y
+      W_12 = data_12arm[, covariate_cols]
+      
+      tmle_fit1 = tmle(
+        Y = Y_12,
+        A = A_12,
+        W = as.matrix(W_12),
+        Q.SL.library = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart"),
+        g.SL.library = c("SL.glm", "SL.mean", "SL.glmnet"),
+        family = "gaussian"
+      )
+      
+      # Treatment2 vs Control  
+      data_23arm = data[data$Treatment %in% c("Control", "Treatment2"), ]
+      A_23 = ifelse(data_23arm$Treatment == "Treatment2", 1, 0)
+      Y_23 = data_23arm$Y
+      W_23 = data_23arm[, covariate_cols]
+      
+      tmle_fit2 = tmle(
+        Y = Y_23,
+        A = A_23,
+        W = as.matrix(W_23),
+        Q.SL.library = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart"),
+        g.SL.library = c("SL.glm", "SL.mean", "SL.glmnet"),
+        family = "gaussian"
+      )
+      
+      list(
+        estimate = c(tmle_fit1$estimates$ATE$psi, tmle_fit2$estimates$ATE$psi),
+        se = c(sqrt(tmle_fit1$estimates$ATE$var.psi), sqrt(tmle_fit2$estimates$ATE$var.psi)),
+        ci_lower = c(tmle_fit1$estimates$ATE$CI[1], tmle_fit2$estimates$ATE$CI[1]),
+        ci_upper = c(tmle_fit1$estimates$ATE$CI[2], tmle_fit2$estimates$ATE$CI[2])
+      )
+    }, error = function(e) {
+      cat("TMLE Error:", e$message, "\n")
+      list(estimate = c(NA, NA), se = c(NA, NA), ci_lower = c(NA, NA), ci_upper = c(NA, NA))
+    })
+    
+    # 3. Skip TMLE3 for now (too many compatibility issues)
+    tmle3_result = list(estimate = c(NA, NA), se = c(NA, NA), ci_lower = c(NA, NA), ci_upper = c(NA, NA))
+    
+    # 4. G-computation (parametric outcome modeling) - 3 arm version
+    gcomp_result = tryCatch({
+      # Fit outcome model with interactions for 3-arm trial
+      formula_str = paste("Y ~", paste(covariate_cols, collapse = " + "), "* Treatment")
+      outcome_model = lm(as.formula(formula_str), data = data)
+      
+      # Predict under all three treatments for ALL subjects
+      data_control = data
+      data_control$Treatment = factor("Control", levels = c("Control", "Treatment1", "Treatment2"))
+      
+      data_treat1 = data
+      data_treat1$Treatment = factor("Treatment1", levels = c("Control", "Treatment1", "Treatment2"))
+      
+      data_treat2 = data
+      data_treat2$Treatment = factor("Treatment2", levels = c("Control", "Treatment1", "Treatment2"))
+      
+      # Get predictions
+      mu0 = predict(outcome_model, newdata = data_control)
+      mu1 = predict(outcome_model, newdata = data_treat1)
+      mu2 = predict(outcome_model, newdata = data_treat2)
+      
+      # G-computation estimates: Treatment1 vs Control, Treatment2 vs Control
+      ate1_gcomp = mean(mu1 - mu0)
+      ate2_gcomp = mean(mu2 - mu0)
+      se1_gcomp = sd(mu1 - mu0) / sqrt(length(mu1))
+      se2_gcomp = sd(mu2 - mu0) / sqrt(length(mu2))
+      
+      list(
+        estimate = c(ate1_gcomp, ate2_gcomp),
+        se = c(se1_gcomp, se2_gcomp)
+      )
+    }, error = function(e) {
+      cat("G-Comp Error:", e$message, "\n")
+      list(estimate = c(NA, NA), se = c(NA, NA))
+    })
+    
+    # 5. Simple difference in means (unadjusted) - 3 arm version
+    simple_result = tryCatch({
+      control_mean = mean(data$Y[data$Treatment == "Control"])
+      treat1_mean = mean(data$Y[data$Treatment == "Treatment1"])
+      treat2_mean = mean(data$Y[data$Treatment == "Treatment2"])
+      
+      # Standard errors for each comparison
+      n0 = sum(data$Treatment == "Control")
+      n1 = sum(data$Treatment == "Treatment1") 
+      n2 = sum(data$Treatment == "Treatment2")
+      s0 = sd(data$Y[data$Treatment == "Control"])
+      s1 = sd(data$Y[data$Treatment == "Treatment1"])
+      s2 = sd(data$Y[data$Treatment == "Treatment2"])
+      
+      pooled_se1 = sqrt(s1^2/n1 + s0^2/n0)  # Treatment1 vs Control
+      pooled_se2 = sqrt(s2^2/n2 + s0^2/n0)  # Treatment2 vs Control
+      
+      list(
+        estimate = c(treat1_mean - control_mean, treat2_mean - control_mean),
+        se = c(pooled_se1, pooled_se2)
+      )
+    }, error = function(e) {
+      list(estimate = c(NA, NA), se = c(NA, NA))
+    })
+    
+    # Store results - now handling 2 treatment arms vs control
+    results_list[[sim]] = data.frame(
+      simulation = rep(sim, 10),  # 10 rows: 2 for each of 5 methods
+      method = c(rep("Your_DR", 2), rep("TMLE", 2), rep("TMLE3", 2), rep("G_Comp", 2), rep("Simple_Diff", 2)),
+      treatment_arm = rep(c("Treatment1", "Treatment2"), 5),
+      estimate = c(your_result$Est_SL, tmle_result$estimate, 
+                  tmle3_result$estimate, gcomp_result$estimate, simple_result$estimate),
+      se = c(your_result$SE_SL, tmle_result$se, 
+             tmle3_result$se, gcomp_result$se, simple_result$se),
+      true_ate = rep(c(2.0, 1.5), 5),  # True ATEs for Treatment1 and Treatment2
+      bias = c(your_result$Est_SL, tmle_result$estimate, 
+               tmle3_result$estimate, gcomp_result$estimate, simple_result$estimate) - 
+             rep(c(2.0, 1.5), 5),
+      coverage_95 = c(
+        abs(your_result$Est_SL - c(2.0, 1.5)) <= 1.96 * your_result$SE_SL,
+        if(!any(is.na(tmle_result$ci_lower))) c(
+          (2.0 >= tmle_result$ci_lower[1] & 2.0 <= tmle_result$ci_upper[1]),
+          (1.5 >= tmle_result$ci_lower[2] & 1.5 <= tmle_result$ci_upper[2])
+        ) else c(NA, NA),
+        c(NA, NA),  # TMLE3 skipped
+        abs(gcomp_result$estimate - c(2.0, 1.5)) <= 1.96 * gcomp_result$se,
+        abs(simple_result$estimate - c(2.0, 1.5)) <= 1.96 * simple_result$se
+      ),
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  # Combine results
+  all_results = do.call(rbind, results_list)
+  return(all_results)
+}
+
+# Function to analyze and compare results - FILTERED VERSION
+analyze_comparison_filtered = function(results) {
+  # Filter out unwanted methods before analysis
+  filtered_results = results %>%
+    filter(!method %in% c("G_Comp", "Simple_Diff", "TMLE3"))
+  
+  summary_stats = filtered_results %>%
+    group_by(method, treatment_arm) %>%
+    summarise(
+      n_sims = n(),
+      mean_estimate = mean(estimate, na.rm = TRUE),
+      sd_estimate = sd(estimate, na.rm = TRUE),
+      mean_se = mean(se, na.rm = TRUE),
+      mean_bias = mean(bias, na.rm = TRUE),
+      rmse = sqrt(mean(bias^2, na.rm = TRUE)),
+      coverage_rate = mean(coverage_95, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # Calculate relative efficiency separately for each treatment arm
+  your_dr_sds = summary_stats %>%
+    filter(method == "Your_DR") %>%
+    select(treatment_arm, sd_estimate)
+  
+  summary_stats = summary_stats %>%
+    left_join(your_dr_sds, by = "treatment_arm", suffix = c("", "_your_dr")) %>%
+    mutate(relative_efficiency = ifelse(!is.na(sd_estimate_your_dr), 
+                                       sd_estimate_your_dr^2 / sd_estimate^2, 
+                                       NA_real_)) %>%
+    select(-sd_estimate_your_dr)
+  
+  return(summary_stats)
+}
+
+cat("Analyzing filtered results...\n")
+# Use the filtered analysis function
+summary_df = analyze_comparison_filtered(comparison_results)
+
+print("=== FILTERED COMPARISON SUMMARY (Your_DR vs TMLE only) ===")
+print(summary_df)
+
+# Save as dataframe (it already is, but explicitly assign if needed)
+filtered_summary_table = as.data.frame(summary_df)
+
+# Additional diagnostic for filtered methods only
+cat("\n=== FILTERED DIAGNOSTIC CHECKS ===\n")
+
+# Filter the raw results for diagnostics too
+filtered_comparison_results = comparison_results %>%
+  filter(!method %in% c("G_Comp", "Simple_Diff", "TMLE3"))
+
+# Check 1: Bias check (closer to 0 is better)
+cat("1. Bias check (Your_DR vs TMLE only):\n")
+bias_check = filtered_comparison_results %>%
+  group_by(method, treatment_arm) %>%
+  summarise(mean_abs_bias = mean(abs(bias), na.rm = TRUE), .groups = "drop")
+print(bias_check)
+
+# Check 2: Standard error accuracy (empirical SD vs reported SE)
+cat("\n2. Standard error accuracy (Your_DR vs TMLE only):\n")
+se_check = filtered_comparison_results %>%
+  group_by(method, treatment_arm) %>%
+  summarise(
+    empirical_sd = sd(estimate, na.rm = TRUE),
+    reported_se = mean(se, na.rm = TRUE),
+    se_ratio = empirical_sd / reported_se,
+    .groups = "drop"
+  )
+print(se_check)
+
+cat("\n=== FINAL SUMMARY ===\n")
+cat("- filtered_summary_table contains only Your_DR and TMLE methods\n")
+cat("- 4 rows total: 2 methods × 2 treatment arms\n")
+cat("- Saved as dataframe for further analysis\n")
+```
+
+
+# test function
+```{r}
+analyze_rct = function(df,
+                       outcome_cols = NULL,
+                       covariate_col = NULL,
+                       treatment_col = "Treatment",
+                       K = 5,
+                       SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
+                       selection = FALSE,
+                       n_select = 3,
+                       n_cores = parallel::detectCores() - 2,
+                       seed = 123) {
+  require(dplyr)
+  require(RobinCar2)  # using RobinCar2
+  require(tidyr)
+  require(DescTools)
+  
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) && length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    outcome_cols = c(yp_cols, ys_valid)
+    cat("Auto-detected", length(outcome_cols), "outcome columns:",
+        paste(outcome_cols, collapse = ", "), "\n")
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+    }))
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Drop outcomes with too much missing
+    missing_prop = mean(is.na(df[[outcome]]))
+    if (missing_prop > 0.4) {
+      cat("REMOVED outcome:", outcome, "- Missing proportion:",
+          round(missing_prop, 3), "(> 0.4)\n")
+      next
+    }
+    
+    # Complete-case filter for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    cat("Outcome:", outcome, "- Sample size:", nrow(df_complete), "(",
+        nrow(df) - nrow(df_complete), "rows removed)\n")
+    
+    # If outcome has single level after filtering, skip
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:", outcome, "- Only one level after filtering\n")
+      next
+    }
+    
+    # Remove single-level covariates (post-filter)
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat("REMOVED covariate:", cov,
+            "- Only one level after filtering (outcome:", outcome, ")\n")
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    # Binary outcome?
+    is_binary = is.factor(df_complete[[outcome]]) &&
+                length(levels(droplevels(df_complete[[outcome]]))) == 2
+    
+    # Numeric working copy (binary 0/1)
+    df_complete_numeric = df_complete
+    if (is_binary) {
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      uniq = sort(unique(numeric_outcome))
+      if (all(uniq == c(0, 1))) {
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(uniq == c(1, 2))) {
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        stop(paste("Binary outcome", outcome, "has unexpected values:",
+                   paste(uniq, collapse = ", "), "- expected 0,1 or 1,2"))
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    # Optional variable selection by correlation
+    if (selection && length(valid_covariates) > 0) {
+      if (length(valid_covariates) > n_select) {
+        cov_values = numeric(length(valid_covariates))
+        names(cov_values) = valid_covariates
+        for (cov in valid_covariates) {
+          cov_numeric = as.numeric(df_complete_numeric[[cov]])
+          cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
+        }
+        top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
+        valid_covariates = valid_covariates[top_idx]
+      }
+    }
+    
+    # Traditional models for reference
+    coef_unadj = coef(summary(lm(
+      reformulate(treatment_col, outcome), df_complete_numeric
+    )))
+    coef_ancova = coef(summary(lm(
+      reformulate(c(treatment_col, valid_covariates), outcome), df_complete_numeric
+    )))
+    
+    treat_idx_unadj = which(startsWith(rownames(coef_unadj), treatment_col))
+    treat_idx_ancova = which(startsWith(rownames(coef_ancova), treatment_col))
+    n_treat = length(treat_idx_unadj)
+    treatment_levels = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
+    
+    pairwise_n = sapply(treatment_levels, function(tl) {
+      sum(df_complete[[treatment_col]] %in% c(control_level, tl))
+    })
+    
+    outcome_results = tibble(
+      Outcome = rep(outcome, n_treat),
+      Treatment = treatment_levels,
+      Control = rep(control_level, n_treat),
+      N = pairwise_n,
+      N_Covariates = rep(length(valid_covariates), n_treat),
+      Est_UN = coef_unadj[treat_idx_unadj, 1],
+      SE_UN  = coef_unadj[treat_idx_unadj, 2],
+      Est_AC = coef_ancova[treat_idx_ancova, 1],
+      SE_AC  = coef_ancova[treat_idx_ancova, 2],
+      # Preinit RobinCar2 columns to prevent select() errors
+      Est_RC_ANCOVA   = rep(NA_real_, n_treat),
+      SE_RC_ANCOVA    = rep(NA_real_, n_treat),
+      Est_RC_ANHECOVA = rep(NA_real_, n_treat),
+      SE_RC_ANHECOVA  = rep(NA_real_, n_treat),
+      Est_RC_Binom    = rep(NA_real_, n_treat),
+      SE_RC_Binom     = rep(NA_real_, n_treat)
+    )
+    if (selection) {
+      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
+    }
+    
+    ## ── RobinCar2 fits (robust) ───────────────────────────────────────────
+    # Contrast: control vs each active
+    levs = levels(droplevels(df_complete_numeric[[treatment_col]]))
+    comp_levels = levs[levs != control_level]
+    pair_obj = against_ref(levels = levs, ref = control_level)  # control vs others (RD default). 
+    
+    # ANCOVA (additive)
+    if (length(valid_covariates) > 0) {
+      form_ac = as.formula(paste(outcome, "~", paste(c(treatment_col, valid_covariates), collapse = " + ")))
+    } else {
+      form_ac = as.formula(paste(outcome, "~", treatment_col))
+    }
+    rc2_ac_est = rc2_ac_se = NULL
+    try({
+      rc2_ac = robin_lm(
+        formula   = form_ac,
+        data      = df_complete_numeric,
+        treatment = as.formula(paste(treatment_col, "~ 1")),  # treatment formula required 
+        vcov      = "vcovG",                                   # ANHECOVA covariance 
+        pair      = pair_obj
+      )
+      rc2_ac_est = as.numeric(rc2_ac$estimate)
+      rc2_ac_se  = sqrt(diag(rc2_ac$variance))
+      names(rc2_ac_est) = comp_levels
+      names(rc2_ac_se)  = comp_levels
+      outcome_results$Est_RC_ANCOVA = rc2_ac_est[outcome_results$Treatment]
+      outcome_results$SE_RC_ANCOVA  = rc2_ac_se[outcome_results$Treatment]
+    }, silent = TRUE)
+    
+    # ANHECOVA (interactions)
+    if (length(valid_covariates) > 0) {
+      form_an = as.formula(
+        paste0(outcome, " ~ ", treatment_col, " * (", paste(valid_covariates, collapse = " + "), ")")
+      )
+    } else {
+      form_an = as.formula(paste(outcome, "~", treatment_col))
+    }
+    try({
+      rc2_an = robin_lm(
+        formula   = form_an,
+        data      = df_complete_numeric,
+        treatment = as.formula(paste(treatment_col, "~ 1")),
+        vcov      = "vcovG",
+        pair      = pair_obj
+      )
+      rc2_an_est = as.numeric(rc2_an$estimate)
+      rc2_an_se  = sqrt(diag(rc2_an$variance))
+      names(rc2_an_est) = comp_levels
+      names(rc2_an_se)  = comp_levels
+      outcome_results$Est_RC_ANHECOVA = rc2_an_est[outcome_results$Treatment]
+      outcome_results$SE_RC_ANHECOVA  = rc2_an_se[outcome_results$Treatment]
+    }, silent = TRUE)
+    
+    # Binary glm (risk difference)
+    if (is_binary) {
+      if (length(valid_covariates) > 0) {
+        form_glm = as.formula(paste(outcome, "~", paste(c(treatment_col, valid_covariates), collapse = " + ")))
+      } else {
+        form_glm = as.formula(paste(outcome, "~", treatment_col))
+      }
+      try({
+        rc2_glm = robin_glm(
+          formula   = form_glm,
+          data      = df_complete_numeric,
+          treatment = as.formula(paste(treatment_col, "~ 1")),
+          contrast  = "difference",   # RD; use "risk_ratio" / "odds_ratio" if needed 
+          vcov      = "vcovG",
+          family    = stats::binomial(),
+          pair      = pair_obj
+        )
+        rc2_glm_est = as.numeric(rc2_glm$estimate)
+        rc2_glm_se  = sqrt(diag(rc2_glm$variance))
+        names(rc2_glm_est) = comp_levels
+        names(rc2_glm_se)  = comp_levels
+        outcome_results$Est_RC_Binom = rc2_glm_est[outcome_results$Treatment]
+        outcome_results$SE_RC_Binom  = rc2_glm_se[outcome_results$Treatment]
+      }, silent = TRUE)
+    }
+    ## ── end RobinCar2 ─────────────────────────────────────────────────────
+    
+    # SuperLearner – ensemble
+    tryCatch({
+      sl_res = analyze_rct_sl(
+        data = df_complete_numeric,
+        outcome_cols = outcome,
+        covariate_cols = valid_covariates,
+        treatment_col = treatment_col,
+        reference_arm = control_level,
+        K = K,
+        SL_methods = SL_methods,
+        n_cores = n_cores
+      )
+      outcome_results$Est_SL = sl_res$Est_SL
+      outcome_results$SE_SL  = sl_res$SE_SL
+    }, error = function(e) {
+      if (grepl("All algorithms dropped from library", e$message)) {
+        outcome_results$Est_SL <<- rep(NA_real_, n_treat)
+        outcome_results$SE_SL  <<- rep(NA_real_, n_treat)
+      } else {
+        stop(e)
+      }
+    })
+    
+    # Individual SL learners
+    individual_methods = c("SL.rpart", "SL.randomForest", "SL.glmnet", "SL.gam", "SL.bartMachine")
+    for (method in individual_methods) {
+      tryCatch({
+        sl_res_individual = analyze_rct_sl(
+          data = df_complete_numeric,
+          outcome_cols = outcome,
+          covariate_cols = valid_covariates,
+          treatment_col = treatment_col,
+          reference_arm = control_level,
+          K = K,
+          SL_methods = method,
+          n_cores = n_cores
+        )
+        method_clean = gsub("SL\\.", "SL_", method)
+        outcome_results[[paste0("Est_", method_clean)]] = sl_res_individual$Est_SL
+        outcome_results[[paste0("SE_", method_clean)]]  = sl_res_individual$SE_SL
+      }, error = function(e) {
+        method_clean = gsub("SL\\.", "SL_", method)
+        outcome_results[[paste0("Est_", method_clean)]] <<- rep(NA_real_, n_treat)
+        outcome_results[[paste0("SE_", method_clean)]]  <<- rep(NA_real_, n_treat)
+      })
+    }
+    
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) stop("No valid outcomes remaining after data cleaning")
+  
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"),  ~ round(.x, 5))) %>%
+    select(
+      Outcome,
+      N,
+      N_Covariates,
+      Treatment,
+      Control,
+      Est_RC_ANCOVA,
+      SE_RC_ANCOVA,
+      Est_RC_ANHECOVA,
+      SE_RC_ANHECOVA,
+      Est_RC_Binom,
+      SE_RC_Binom,
+      Est_AC,
+      SE_AC,
+      Est_UN,
+      SE_UN,
+      Est_SL,
+      SE_SL,
+      everything()
+    )
+  
+  return(final_results)
+}
+
+
 ```
 
 ```{r}
-analyze_rct(df)
+res3 = analyze_rct2(df2)
+cat("\n<------------------Variable Seclection------------->\n\n")
+res4 = analyze_rct2(df2, selection = T)
 ```
-
-```{r}
-colnames(df_new)
-```
-
-
 

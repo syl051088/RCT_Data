@@ -41,7 +41,7 @@ analyze_rct_sl = function(data,
                           covariate_cols,
                           reference_arm  = NULL,
                           K              = 5,
-                          SL_methods     = c("SL.glm", "SL.rpart", "SL.mean", "SL.nnet"),
+                          SL_methods     = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
                           n_cores        = parallel::detectCores() - 2) {
   require(dplyr)
   require(SuperLearner)
@@ -145,7 +145,7 @@ analyze_rct = function(df,
                        covariate_col = NULL,
                        treatment_col = "Treatment",
                        K = 5,
-                       SL_methods = c("SL.glm", "SL.rpart", "SL.mean", "SL.nnet"),
+                       SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
                        selection = FALSE,
                        n_select = 3,
                        n_cores = parallel::detectCores() - 2,
@@ -435,8 +435,8 @@ analyze_rct = function(df,
       }
     })
     
-    # Run individual SL methods - only rpart, and nnet
-    individual_methods = c("SL.rpart", "SL.nnet")
+    # Run individual SL methods
+    individual_methods = c("SL.rpart", "SL.randomForest", "SL.glmnet", "SL.gam", "SL.bartMachine")
     for (method in individual_methods) {
       tryCatch({
         sl_res_individual = analyze_rct_sl(
@@ -523,8 +523,16 @@ update_df = function(trial_no,
     `Outcome Type` = outcome_type
   )
 
+  ## fixed list of SL members that are run individually (glm/mean NOT included)
+  sl_members = c("SL_rpart", "SL_randomForest", "SL_glmnet", "SL_gam", "SL_bartMachine")
+
+  ## helper: safe rename if column exists
+  do_rename = function(d, old, new) {
+    if (old %in% names(d)) dplyr::rename(d, !!new := dplyr::all_of(old)) else d
+  }
+
   ## ────────────────────────────────────────────────────────────────
-  ## 1)  Helper: tidy one result set (BASE or VS)
+  ## 1)  Tidy one result set (BASE or VS) with explicit SL members
   ## ────────────────────────────────────────────────────────────────
   process_results = function(results, suffix = "") {
 
@@ -557,23 +565,17 @@ update_df = function(trial_no,
           SL_VS_se                 = SE_SL,
           Unadjust_est             = Est_UN,
           Unadjust_se              = SE_UN
-          # Selected_Covariates is already in results2; leave untouched
         )
     }
 
-    ## ── rename SL member columns ───────────────────────────────────
-    sl_methods = c("SL_rpart", "SL_nnet")
-    for (m in sl_methods) {
-      est_old = paste0("Est_", m)
-      se_old  = paste0("SE_",  m)
-
-      est_new = if (suffix == "") paste0(m, "_est") else paste0(m, "_VS_est")
-      se_new  = if (suffix == "") paste0(m, "_se")  else paste0(m, "_VS_se")
-
-      if (est_old %in% names(results_renamed))
-        results_renamed = rename(results_renamed, !!est_new := !!est_old)
-      if (se_old  %in% names(results_renamed))
-        results_renamed = rename(results_renamed, !!se_new := !!se_old)
+    ## ── explicit renames for each individual SL member ─────────────
+    for (m in sl_members) {
+      old_est = paste0("Est_", m)
+      old_se  = paste0("SE_",  m)
+      new_est = if (suffix == "") paste0(m, "_est") else paste0(m, "_VS_est")
+      new_se  = if (suffix == "") paste0(m, "_se")  else paste0(m, "_VS_se")
+      results_renamed = do_rename(results_renamed, old_est, new_est)
+      results_renamed = do_rename(results_renamed, old_se,  new_se)
     }
 
     ## ── attach meta data ───────────────────────────────────────────
@@ -582,11 +584,11 @@ update_df = function(trial_no,
       mutate(
         Trial_No     = trial_no,
         Sample_Size  = N,
-        N_Covariates = N_Covariates,   # VS copy dropped later
+        N_Covariates = N_Covariates,
         Contrast     = contrast
       )
 
-    ## ── precision gain / variance ratio / diff-in-estimate columns ─
+    ## ── base/VS summary columns (ensemble + classical) ────────────
     if (suffix == "") {
       results_processed = results_processed %>%
         mutate(
@@ -635,26 +637,25 @@ update_df = function(trial_no,
         )
     }
 
-    ## ── SL-member-specific precision gains & diffs ──────────────────
-    for (m in sl_methods) {
+    ## ── explicit SL-member precision gains & diffs ─────────────────
+    for (m in sl_members) {
       if (suffix == "") {
         se_col  = paste0(m, "_se")
         est_col = paste0(m, "_est")
         pg_col  = paste0("How much precision gain can ", m, " provide?")
-        diff_col= paste0("The difference between unadjusted and ", m, " point estimates")
+        df_col  = paste0("The difference between unadjusted and ", m, " point estimates")
       } else {
         se_col  = paste0(m, "_VS_se")
         est_col = paste0(m, "_VS_est")
         pg_col  = paste0("How much precision gain can ", m, "_VS provide?")
-        diff_col= paste0("The difference between unadjusted and ", m, "_VS point estimates")
+        df_col  = paste0("The difference between unadjusted and ", m, "_VS point estimates")
       }
-
       if (all(c(se_col, est_col) %in% names(results_processed))) {
         results_processed = results_processed %>%
           mutate(
-            !!pg_col  := (.data[[se_col]] / Unadjust_se)^2,
-            !!diff_col:= (.data[[est_col]] - Unadjust_est) /
-                         sqrt((.data[[se_col]]^2 + Unadjust_se^2) / 2)
+            !!pg_col := (.data[[se_col]] / Unadjust_se)^2,
+            !!df_col := (.data[[est_col]] - Unadjust_est) /
+                        sqrt((.data[[se_col]]^2 + Unadjust_se^2) / 2)
           )
       }
     }
@@ -669,9 +670,8 @@ update_df = function(trial_no,
   new_rows      = new_rows_base
 
   if (!is.null(results2)) {
-
     new_rows_vs = process_results(results2, "VS") %>%
-      select(-N_Covariates)              # keep Selected_Covariates, drop VS N_Covariates
+      select(-N_Covariates)  # keep Selected_Covariates if present
 
     join_keys = c("Trial_No", "Sample_Size", "Contrast",
                   "Treatment", "Control", "Outcome",
@@ -679,11 +679,11 @@ update_df = function(trial_no,
 
     new_rows = new_rows_base %>%
       left_join(new_rows_vs, by = join_keys, suffix = c("", ".vs")) %>%
-      select(-matches("\\.vs$"))         # remove accidental *.vs duplicates
+      select(-dplyr::matches("\\.vs$"))
   }
 
   ## ────────────────────────────────────────────────────────────────
-  ## 3)  Desired column order
+  ## 3)  Desired column order (explicit blocks)
   ## ────────────────────────────────────────────────────────────────
   base_cols = if (!is.null(results2)) {
     c("Trial_No", "Sample_Size", "N_Covariates", "Selected_Covariates",
@@ -694,10 +694,17 @@ update_df = function(trial_no,
   }
 
   se_unadj = "Unadjust_se"
-  se_base  = c("ANCOVA_robust_se","ANCOVA_model_based_se","ANHECOVA_robust_se",
-               "Binom_robust_se","SL_se","SL_rpart_se","SL_nnet_se")
-  se_vs    = c("ANCOVA_VS_robust_se","ANCOVA_VS_model_based_se","ANHECOVA_VS_robust_se",
-               "Binom_VS_robust_se","SL_VS_se","SL_rpart_VS_se","SL_nnet_VS_se")
+
+  se_base = c(
+    "ANCOVA_robust_se","ANCOVA_model_based_se","ANHECOVA_robust_se",
+    "Binom_robust_se","SL_se",
+    "SL_rpart_se","SL_randomForest_se","SL_glmnet_se","SL_gam_se","SL_bartMachine_se"
+  )
+  se_vs   = c(
+    "ANCOVA_VS_robust_se","ANCOVA_VS_model_based_se","ANHECOVA_VS_robust_se",
+    "Binom_VS_robust_se","SL_VS_se",
+    "SL_rpart_VS_se","SL_randomForest_VS_se","SL_glmnet_VS_se","SL_gam_VS_se","SL_bartMachine_VS_se"
+  )
 
   pg_base = c(
     "How much precision gain can ANCOVA provide?",
@@ -705,7 +712,10 @@ update_df = function(trial_no,
     "How much precision gain can Binom provide?",
     "How much precision gain can SL provide?",
     "How much precision gain can SL_rpart provide?",
-    "How much precision gain can SL_nnet provide?"
+    "How much precision gain can SL_randomForest provide?",
+    "How much precision gain can SL_glmnet provide?",
+    "How much precision gain can SL_gam provide?",
+    "How much precision gain can SL_bartMachine provide?"
   )
   pg_vs = c(
     "How much precision gain can ANCOVA_VS provide?",
@@ -713,7 +723,10 @@ update_df = function(trial_no,
     "How much precision gain can Binom_VS provide?",
     "How much precision gain can SL_VS provide?",
     "How much precision gain can SL_rpart_VS provide?",
-    "How much precision gain can SL_nnet_VS provide?"
+    "How much precision gain can SL_randomForest_VS provide?",
+    "How much precision gain can SL_glmnet_VS provide?",
+    "How much precision gain can SL_gam_VS provide?",
+    "How much precision gain can SL_bartMachine_VS provide?"
   )
 
   ratio_base = c(
@@ -726,10 +739,15 @@ update_df = function(trial_no,
   )
 
   est_unadj = "Unadjust_est"
-  est_base  = c("ANCOVA_est","ANHECOVA_est","Binom_est","SL_est",
-                "SL_rpart_est","SL_nnet_est")
-  est_vs    = c("ANCOVA_VS_est","ANHECOVA_VS_est","Binom_VS_est","SL_VS_est",
-                "SL_rpart_VS_est","SL_nnet_VS_est")
+
+  est_base = c(
+    "ANCOVA_est","ANHECOVA_est","Binom_est","SL_est",
+    "SL_rpart_est","SL_randomForest_est","SL_glmnet_est","SL_gam_est","SL_bartMachine_est"
+  )
+  est_vs = c(
+    "ANCOVA_VS_est","ANHECOVA_VS_est","Binom_VS_est","SL_VS_est",
+    "SL_rpart_VS_est","SL_randomForest_VS_est","SL_glmnet_VS_est","SL_gam_VS_est","SL_bartMachine_VS_est"
+  )
 
   diff_base = c(
     "The difference between unadjusted and ANCOVA point estimates",
@@ -737,7 +755,10 @@ update_df = function(trial_no,
     "The difference between unadjusted and Binom point estimates",
     "The difference between unadjusted and SL point estimates",
     "The difference between unadjusted and SL_rpart point estimates",
-    "The difference between unadjusted and SL_nnet point estimates"
+    "The difference between unadjusted and SL_randomForest point estimates",
+    "The difference between unadjusted and SL_glmnet point estimates",
+    "The difference between unadjusted and SL_gam point estimates",
+    "The difference between unadjusted and SL_bartMachine point estimates"
   )
   diff_vs = c(
     "The difference between unadjusted and ANCOVA_VS point estimates",
@@ -745,7 +766,10 @@ update_df = function(trial_no,
     "The difference between unadjusted and Binom_VS point estimates",
     "The difference between unadjusted and SL_VS point estimates",
     "The difference between unadjusted and SL_rpart_VS point estimates",
-    "The difference between unadjusted and SL_nnet_VS point estimates"
+    "The difference between unadjusted and SL_randomForest_VS point estimates",
+    "The difference between unadjusted and SL_glmnet_VS point estimates",
+    "The difference between unadjusted and SL_gam_VS point estimates",
+    "The difference between unadjusted and SL_bartMachine_VS point estimates"
   )
 
   all_cols = if (!is.null(results2)) {
@@ -757,7 +781,7 @@ update_df = function(trial_no,
       pg_base, ratio_base, est_unadj, est_base, diff_base)
   }
 
-  new_rows = select(new_rows, all_of(intersect(all_cols, names(new_rows))))
+  new_rows = dplyr::select(new_rows, dplyr::all_of(intersect(all_cols, names(new_rows))))
 
   ## ────────────────────────────────────────────────────────────────
   ## 4)  Overwrite / append in df_comparison
@@ -767,17 +791,18 @@ update_df = function(trial_no,
 
     idx = which(
       df$Trial_No == row_i$Trial_No &
-        df$Outcome   == row_i$Outcome &
-        df$Treatment == row_i$Treatment &
-        df$Control   == row_i$Control
+      df$Outcome   == row_i$Outcome &
+      df$Treatment == row_i$Treatment &
+      df$Control   == row_i$Control
     )
 
     if (length(idx) > 0) df[idx[1], names(row_i)] = row_i
-    else                 df = bind_rows(df, row_i)
+    else                 df = dplyr::bind_rows(df, row_i)
   }
 
   df
 }
+
 
 
 ```
