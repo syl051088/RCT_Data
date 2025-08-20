@@ -1053,7 +1053,7 @@ res2 = analyze_rct(df13, selection = T)
 
 n = length(unique(res1$Outcome))
 
-df_comparison = update_df(13, c("continuous", "binary", rep("continuous", 7), "binary", "binary", rep("continuous", 5)))
+df_comparison = update_df(13, c("continuous", "binary", rep("continuous", 8), "binary", "binary", rep("continuous", 5)))
 ```
 
 # Trial 14
