@@ -500,6 +500,453 @@ analyze_rct = function(df,
 }
 ```
 
+## analyze_rct2
+```{r}
+analyze_rct2 = function(df,
+                       outcome_cols = NULL,
+                       covariate_col = NULL,
+                       treatment_col = "Treatment",
+                       K = 5,
+                       SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
+                       selection = FALSE,
+                       n_select = 3,
+                       manual_covariates = NULL,  # NEW ARGUMENT: manually selected covariates (steps 2 & 3)
+                       n_cores = parallel::detectCores() - 2,
+                       seed = 123) {
+  require(dplyr)
+  require(RobinCar)
+  require(tidyr)
+  require(DescTools)
+  
+  # Set seed once at the beginning for reproducibility
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    # All YP columns
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    
+    # Numeric and binary YS columns
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) &&
+           length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    
+    outcome_cols = c(yp_cols, ys_valid)
+    cat(
+      "Auto-detected",
+      length(outcome_cols),
+      "outcome columns:",
+      paste(outcome_cols, collapse = ", "),
+      "\n"
+    )
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    # Add n_participants if it exists
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+    }))
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  # Process each outcome
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Check missing proportion for outcome
+    missing_prop = mean(is.na(df[[outcome]]))
+    if (missing_prop > 0.4) {
+      cat(
+        "REMOVED outcome:",
+        outcome,
+        "- Missing proportion:",
+        round(missing_prop, 3),
+        "(> 0.4)\n"
+      )
+      next
+    }
+    
+    # Filter complete cases for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    
+    cat(
+      "Outcome:",
+      outcome,
+      "- Sample size:",
+      nrow(df_complete),
+      "(",
+      nrow(df) - nrow(df_complete),
+      "rows removed)\n"
+    )
+    
+    # Check for single-level factors after filtering
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:",
+          outcome,
+          "- Only one level after filtering\n")
+      next
+    }
+    
+    # Check covariates for single levels and remove them
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat(
+          "REMOVED covariate:",
+          cov,
+          "- Only one level after filtering (outcome:",
+          outcome,
+          ")\n"
+        )
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    # Determine if outcome is binary
+    is_binary = is.factor(df_complete[[outcome]]) && 
+                length(levels(droplevels(df_complete[[outcome]]))) == 2
+    
+    # For variable selection and traditional models, convert to numeric
+    df_complete_numeric = df_complete
+    if (is_binary) {
+      # Convert binary factor/numeric to 0,1
+      # Handle cases where data is already 0,1 or needs conversion from 1,2
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      unique_vals = sort(unique(numeric_outcome))
+      
+      if (all(unique_vals == c(0, 1))) {
+        # Already 0,1 - keep as is
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(unique_vals == c(1, 2))) {
+        # Convert 1,2 to 0,1
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    # NEW VARIABLE SELECTION SCHEME
+    if (selection) {
+      # Step 1: Look for baseline measures of the outcome
+      baseline_var = NULL
+      
+      # Extract outcome pattern and timing
+      if (startsWith(outcome, "YP_")) {
+        # For YP outcomes: YP_abc_7w -> look for X_abc_0w
+        outcome_parts = strsplit(outcome, "_")[[1]]
+        if (length(outcome_parts) >= 3) {
+          # Extract the middle part(s) and construct baseline variable name
+          middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+          
+          # Look for variables that start with this pattern
+          potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+          if (length(potential_baseline) > 0) {
+            baseline_var = potential_baseline[1]  # Take the first match
+            cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+          }
+        }
+      } else if (startsWith(outcome, "YS_")) {
+        # For YS outcomes: YS_qwe_8m -> look for X_qwe_0m
+        outcome_parts = strsplit(outcome, "_")[[1]]
+        if (length(outcome_parts) >= 3) {
+          # Extract the middle part(s) and construct baseline variable name
+          middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+          
+          # Look for variables that start with this pattern
+          potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+          if (length(potential_baseline) > 0) {
+            baseline_var = potential_baseline[1]  # Take the first match
+            cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+          }
+        }
+      }
+      
+      # Combine baseline variable with manual covariates
+      selected_covariates = character(0)
+      
+      # Add baseline variable if found
+      if (!is.null(baseline_var)) {
+        selected_covariates = c(selected_covariates, baseline_var)
+      }
+      
+      # Add manual covariates if provided
+      if (!is.null(manual_covariates)) {
+        # Filter manual covariates to only include those that exist in valid_covariates
+        manual_available = manual_covariates[manual_covariates %in% valid_covariates]
+        selected_covariates = c(selected_covariates, manual_available)
+      }
+      
+      # Remove duplicates
+      selected_covariates = unique(selected_covariates)
+      
+      # Check if we have any covariates to work with
+      if (length(selected_covariates) == 0) {
+        cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
+        
+        # Create results with NA values
+        treatment_levels = levels(df_complete[[treatment_col]])[-1]  # Exclude control
+        n_treat = length(treatment_levels)
+        
+        # Base tibble with core columns
+        outcome_results = tibble(
+          Outcome = rep(outcome, n_treat),
+          Treatment = treatment_levels,
+          Control = rep(control_level, n_treat),
+          N = rep(nrow(df_complete), n_treat),
+          N_Covariates = rep(0, n_treat),
+          Selected_Covariates = rep("", n_treat),
+          # Set all estimates and SEs to NA
+          Est_UN = rep(NA_real_, n_treat),
+          SE_UN = rep(NA_real_, n_treat),
+          Est_AC = rep(NA_real_, n_treat),
+          SE_AC = rep(NA_real_, n_treat),
+          Est_RC_ANCOVA = rep(NA_real_, n_treat),
+          SE_RC_ANCOVA = rep(NA_real_, n_treat),
+          Est_RC_ANHECOVA = rep(NA_real_, n_treat),
+          SE_RC_ANHECOVA = rep(NA_real_, n_treat),
+          Est_RC_Binom = rep(NA_real_, n_treat),
+          SE_RC_Binom = rep(NA_real_, n_treat),
+          Est_SL = rep(NA_real_, n_treat),
+          SE_SL = rep(NA_real_, n_treat)
+        )
+        
+        # Add individual SL method columns based on what's in SL_methods (excluding SL.glm and SL.mean)
+        individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
+        for (method in individual_methods) {
+          method_clean = gsub("SL\\.", "SL_", method)
+          outcome_results[[paste0("Est_", method_clean)]] = rep(NA_real_, n_treat)
+          outcome_results[[paste0("SE_", method_clean)]] = rep(NA_real_, n_treat)
+        }
+        
+        valid_outcomes = c(valid_outcomes, outcome)
+        all_results[[length(valid_outcomes)]] = outcome_results
+        next
+      }
+      
+      # Use the selected covariates
+      valid_covariates = selected_covariates
+      cat("Selected covariates for", outcome, ":", paste(valid_covariates, collapse = ", "), "\n")
+    }
+    
+    # Fit traditional models (using numeric version)
+    coef_unadj = coef(summary(lm(
+      reformulate(treatment_col, outcome), df_complete_numeric
+    )))
+    coef_ancova = coef(summary(lm(
+      reformulate(c(treatment_col, valid_covariates), outcome), df_complete_numeric
+    )))
+    
+    # Extract treatment effects
+    treat_idx_unadj = which(startsWith(rownames(coef_unadj), treatment_col))
+    treat_idx_ancova = which(startsWith(rownames(coef_ancova), treatment_col))
+    
+    # Create results for this outcome
+    n_treat = length(treat_idx_unadj)
+    treatment_levels = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
+    
+    # Calculate pairwise sample sizes (control + current treatment)
+    pairwise_n = sapply(treatment_levels, function(treat_level) {
+      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
+    })
+    
+    # Create base outcome results
+    outcome_results = tibble(
+      Outcome = rep(outcome, n_treat),
+      Treatment = treatment_levels,
+      Control = rep(control_level, n_treat),
+      N = pairwise_n,
+      N_Covariates = rep(length(valid_covariates), n_treat),
+      # Unadjusted
+      Est_UN = coef_unadj[treat_idx_unadj, 1],
+      SE_UN = coef_unadj[treat_idx_unadj, 2],
+      # ANCOVA
+      Est_AC = coef_ancova[treat_idx_ancova, 1],
+      SE_AC = coef_ancova[treat_idx_ancova, 2]
+    )
+    
+    # Add Selected_Covariates column only if selection = TRUE
+    if (selection) {
+      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
+    }
+    
+    # RobinCar - run both ANCOVA and ANHECOVA (using numeric version)
+    rc_fit_ancova = suppressWarnings(
+      robincar_linear(
+        df_complete_numeric,
+        treatment_col,
+        outcome,
+        covariate_cols = valid_covariates,
+        adj_method = "ANCOVA",
+        contrast_h = "diff"
+      )
+    )
+    rc_result_ancova = rc_fit_ancova$contrast$result
+    outcome_results$Est_RC_ANCOVA = rc_result_ancova$estimate
+    outcome_results$SE_RC_ANCOVA = rc_result_ancova$se
+    
+    rc_fit_anhecova = suppressWarnings(
+      robincar_linear(
+        df_complete_numeric,
+        treatment_col,
+        outcome,
+        covariate_cols = valid_covariates,
+        adj_method = "ANHECOVA",
+        contrast_h = "diff"
+      )
+    )
+    rc_result_anhecova = rc_fit_anhecova$contrast$result
+    outcome_results$Est_RC_ANHECOVA = rc_result_anhecova$estimate
+    outcome_results$SE_RC_ANHECOVA = rc_result_anhecova$se
+    
+    # RobinCar GLM for binary outcomes
+    if (is_binary) {
+      # Create formula for GLM: outcome ~ Treatment + covariates
+      formula_terms = c(treatment_col, valid_covariates)
+      glm_formula = as.formula(paste(outcome, "~", paste(formula_terms, collapse = " + ")))
+      
+      rc_fit_binom = suppressWarnings(
+        robincar_glm(
+          df_complete_numeric,  # Use numeric version (0,1 for binary outcome)
+          treatment_col,
+          outcome,
+          formula = glm_formula,
+          g_family = stats::binomial,
+          contrast_h = "diff"
+        )
+      )
+      rc_result_binom = rc_fit_binom$contrast$result
+      outcome_results$Est_RC_Binom = rc_result_binom$estimate
+      outcome_results$SE_RC_Binom = rc_result_binom$se
+    } else {
+      # For non-binary outcomes, set Binom results to NA
+      outcome_results$Est_RC_Binom = rep(NA_real_, n_treat)
+      outcome_results$SE_RC_Binom = rep(NA_real_, n_treat)
+    }
+    
+    # SuperLearner - run ensemble and individual methods (using numeric version)
+    tryCatch({
+      sl_res = analyze_rct_sl(
+        data = df_complete_numeric,
+        outcome_cols = outcome,
+        covariate_cols = valid_covariates,
+        treatment_col = treatment_col,
+        reference_arm = control_level,
+        K = K,
+        SL_methods = SL_methods,
+        n_cores = n_cores
+      )
+      outcome_results$Est_SL = sl_res$Est_SL
+      outcome_results$SE_SL = sl_res$SE_SL
+    }, error = function(e) {
+      if (grepl("All algorithms dropped from library", e$message)) {
+        outcome_results$Est_SL <<- rep(NA_real_, n_treat)
+        outcome_results$SE_SL <<- rep(NA_real_, n_treat)
+      } else {
+        stop(e)
+      }
+    })
+    
+    # Run individual SL methods
+    individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
+    for (method in individual_methods) {
+      tryCatch({
+        sl_res_individual = analyze_rct_sl(
+          data = df_complete_numeric,
+          outcome_cols = outcome,
+          covariate_cols = valid_covariates,
+          treatment_col = treatment_col,
+          reference_arm = control_level,
+          K = K,
+          SL_methods = method,
+          n_cores = n_cores
+        )
+        # Clean method name for column naming
+        method_clean = gsub("SL\\.", "SL_", method)
+        outcome_results[[paste0("Est_", method_clean)]] = sl_res_individual$Est_SL
+        outcome_results[[paste0("SE_", method_clean)]] = sl_res_individual$SE_SL
+      }, error = function(e) {
+        # For any error, set to NA
+        method_clean = gsub("SL\\.", "SL_", method)
+        outcome_results[[paste0("Est_", method_clean)]] <<- rep(NA_real_, n_treat)
+        outcome_results[[paste0("SE_", method_clean)]] <<- rep(NA_real_, n_treat)
+      })
+    }
+    
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) {
+    stop("No valid outcomes remaining after data cleaning")
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    # Round for cleaner output
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5))) %>%
+    # Reorder columns
+    select(
+      Outcome,
+      N,
+      N_Covariates,
+      Treatment,
+      Control,
+      Est_RC_ANCOVA,
+      SE_RC_ANCOVA,
+      Est_RC_ANHECOVA,
+      SE_RC_ANHECOVA,
+      Est_RC_Binom,
+      SE_RC_Binom,
+      Est_AC,
+      SE_AC,
+      Est_UN,
+      SE_UN,
+      Est_SL,
+      SE_SL,
+      everything()
+    )
+  
+  return(final_results)
+}
+```
+
+
 ## update_df()
 
 ```{r}
@@ -822,6 +1269,13 @@ cat("\n<------------------Variable Seclection------------->\n\n")
 res2 = analyze_rct(df1, selection = T)
 
 df_comparison = update_df(1, rep("continuous", 15))
+```
+
+```{r}
+# vs2
+demo = c("X_Age_0m", "X_Weight_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df1, selection = T)
 ```
 
 # Trial 2

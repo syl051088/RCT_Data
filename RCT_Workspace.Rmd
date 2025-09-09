@@ -1781,3 +1781,865 @@ cat("\n<------------------Variable Seclection------------->\n\n")
 res4 = analyze_rct2(df2, selection = T)
 ```
 
+# TMLE
+```{r}
+## analyze_rct_sl_tmle() - TMLE version using built-in CV (with CV control)
+
+analyze_rct_sl_tmle = function(data,
+                               treatment_col  = "Treatment",
+                               outcome_cols,
+                               covariate_cols,
+                               reference_arm  = NULL,
+                               K              = 5,
+                               SL_methods     = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
+                               n_cores        = parallel::detectCores() - 2) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+  require(foreach)
+  require(doSNOW)
+  require(doRNG)
+  
+  n  = nrow(data)
+  
+  ## ── set up inner cluster ────────────────────────────────────────────────
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  registerDoRNG()
+  on.exit(stopCluster(cl), add = TRUE)
+  
+  arms = levels(data[[treatment_col]])
+  if (is.null(reference_arm))
+    reference_arm = arms[1]
+  if (!(reference_arm %in% arms))
+    stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  
+  combos = expand.grid(
+    Outcome   = outcome_cols,
+    Treatment = setdiff(arms, reference_arm),
+    stringsAsFactors = FALSE
+  )
+  
+  results = foreach(
+    i = seq_len(nrow(combos)),
+    .combine = dplyr::bind_rows,
+    .packages = c("dplyr", "tmle", "SuperLearner")
+  ) %dopar% {
+    Y   = combos$Outcome[i]
+    arm = combos$Treatment[i]
+    pair_arms = c(reference_arm, arm)
+    
+    # Filter data to only include the two arms being compared for this contrast
+    pair_data = data[data[[treatment_col]] %in% pair_arms, ]
+    pair_data[[treatment_col]] = factor(pair_data[[treatment_col]], levels = pair_arms)
+    
+    # Create binary treatment indicator (1 for treatment arm, 0 for reference)
+    A = as.numeric(pair_data[[treatment_col]] == arm)
+    Y_vec = pair_data[[Y]]
+    
+    # Handle covariates
+    if (length(covariate_cols) > 0) {
+      W = pair_data[, covariate_cols, drop = FALSE]
+    } else {
+      W = NULL  # No covariates case
+    }
+    
+    # Check for sufficient variation in treatment
+    if (sum(A) < 2 || sum(1-A) < 2) {
+      return(tibble(
+        Outcome   = Y,
+        Treatment = arm,
+        Control   = reference_arm,
+        Est_SL    = NA_real_,
+        SE_SL     = NA_real_
+      ))
+    }
+    
+    tryCatch({
+      # Fit TMLE with CV control
+      if (is.null(W)) {
+        # No covariates case
+        tmle_fit = tmle(
+          Y = Y_vec,
+          A = A,
+          Q.SL.library = SL_methods,
+          g.SL.library = SL_methods,
+          family = "gaussian"
+        )
+      } else {
+        # With covariates
+        tmle_fit = tmle(
+          Y = Y_vec,
+          A = A,
+          W = W,
+          Q.SL.library = SL_methods,
+          g.SL.library = SL_methods,
+          family = "gaussian"
+        )
+      }
+      
+      # Extract ATE estimate and SE directly from TMLE
+      Est_SL = tmle_fit$estimates$ATE$psi
+      SE_SL = sqrt(tmle_fit$estimates$ATE$var.psi)
+      
+    }, error = function(e) {
+      # Print error for debugging (in real run, you might want to remove this)
+      # cat("TMLE Error for", Y, "vs", arm, ":", e$message, "\n")
+      Est_SL = NA_real_
+      SE_SL = NA_real_
+    })
+    
+    tibble(
+      Outcome   = Y,
+      Treatment = arm,
+      Control   = reference_arm,
+      Est_SL    = Est_SL,
+      SE_SL     = SE_SL
+    )
+  }
+  
+  results
+}
+
+
+## analyze_rct_tmle() - EXACT same as original except SL call
+
+analyze_rct_tmle = function(df,
+                            outcome_cols = NULL,
+                            covariate_col = NULL,
+                            treatment_col = "Treatment",
+                            K = 5,
+                            SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
+                            selection = FALSE,
+                            n_select = 3,
+                            n_cores = parallel::detectCores() - 2,
+                            seed = 123) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+  
+  # Set seed once at the beginning for reproducibility
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    # All YP columns
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    
+    # Numeric and binary YS columns
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) &&
+           length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    
+    outcome_cols = c(yp_cols, ys_valid)
+    cat(
+      "Auto-detected",
+      length(outcome_cols),
+      "outcome columns:",
+      paste(outcome_cols, collapse = ", "),
+      "\n"
+    )
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    # Add n_participants if it exists
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), DescTools::Mode(., na.rm = TRUE)[1])
+    }))
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  # Process each outcome
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Check missing proportion for outcome
+    missing_prop = mean(is.na(df[[outcome]]))
+    if (missing_prop > 0.4) {
+      cat(
+        "REMOVED outcome:",
+        outcome,
+        "- Missing proportion:",
+        round(missing_prop, 3),
+        "(> 0.4)\n"
+      )
+      next
+    }
+    
+    # Filter complete cases for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    
+    cat(
+      "Outcome:",
+      outcome,
+      "- Sample size:",
+      nrow(df_complete),
+      "(",
+      nrow(df) - nrow(df_complete),
+      "rows removed)\n"
+    )
+    
+    # Check for single-level factors after filtering
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:",
+          outcome,
+          "- Only one level after filtering\n")
+      next
+    }
+    
+    # Check covariates for single levels and remove them
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat(
+          "REMOVED covariate:",
+          cov,
+          "- Only one level after filtering (outcome:",
+          outcome,
+          ")\n"
+        )
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    # Determine if outcome is binary
+    is_binary = is.factor(df_complete[[outcome]]) && 
+                length(levels(droplevels(df_complete[[outcome]]))) == 2
+    
+    # For variable selection and traditional models, convert to numeric
+    df_complete_numeric = df_complete
+    if (is_binary) {
+      # Convert binary factor/numeric to 0,1
+      # Handle cases where data is already 0,1 or needs conversion from 1,2
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      unique_vals = sort(unique(numeric_outcome))
+      
+      if (all(unique_vals == c(0, 1))) {
+        # Already 0,1 - keep as is
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(unique_vals == c(1, 2))) {
+        # Convert 1,2 to 0,1
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    # Variable selection: select top n_select covariates by outcome-specific correlation
+    if (selection && length(valid_covariates) > 0) {
+      if (length(valid_covariates) > n_select) {
+        # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
+        cov_values = numeric(length(valid_covariates))
+        names(cov_values) = valid_covariates
+        
+        for (cov in valid_covariates) {
+          # Convert covariate to numeric temporarily for correlation computation
+          cov_numeric = as.numeric(df_complete_numeric[[cov]])
+          cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
+        }
+        
+        # Select top n_select by absolute correlation magnitude
+        top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
+        selected_covariates = valid_covariates[top_idx]
+        valid_covariates = selected_covariates
+      }
+      # If ≤n_select valid covariates, use all of them (valid_covariates unchanged)
+    }
+    
+    # Create results for this outcome
+    treatment_levels = setdiff(levels(df_complete[[treatment_col]]), control_level)
+    n_treat = length(treatment_levels)
+    
+    # Calculate pairwise sample sizes (control + current treatment)
+    pairwise_n = sapply(treatment_levels, function(treat_level) {
+      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
+    })
+    
+    # Create base outcome results
+    outcome_results = tibble(
+      Outcome = rep(outcome, n_treat),
+      Treatment = treatment_levels,
+      Control = rep(control_level, n_treat),
+      N = pairwise_n,
+      N_Covariates = rep(length(valid_covariates), n_treat),
+      Est_SL = rep(NA_real_, n_treat),
+      SE_SL = rep(NA_real_, n_treat)
+    )
+    
+    # Add Selected_Covariates column only if selection = TRUE
+    if (selection) {
+      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
+    }
+    
+    # TMLE SuperLearner - run ensemble (using numeric version) - ONLY CHANGE FROM ORIGINAL
+    tryCatch({
+      sl_res = analyze_rct_sl_tmle(
+        data = df_complete_numeric,
+        outcome_cols = outcome,
+        covariate_cols = valid_covariates,
+        treatment_col = treatment_col,
+        reference_arm = control_level,
+        K = K,
+        SL_methods = SL_methods,
+        n_cores = n_cores
+      )
+      outcome_results$Est_SL = sl_res$Est_SL
+      outcome_results$SE_SL = sl_res$SE_SL
+    }, error = function(e) {
+      outcome_results$Est_SL <<- rep(NA_real_, n_treat)
+      outcome_results$SE_SL <<- rep(NA_real_, n_treat)
+    })
+    
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) {
+    stop("No valid outcomes remaining after data cleaning")
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    # Round for cleaner output
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5))) %>%
+    # Reorder columns
+    select(
+      Outcome,
+      N,
+      N_Covariates,
+      Treatment,
+      Control,
+      Est_SL,
+      SE_SL,
+      everything()
+    )
+  
+  return(final_results)
+}
+```
+
+## gpt version
+```{r}
+analyze_rct_tmle_inner = function(data,
+                                  treatment_col = "Treatment",
+                                  outcome_cols,
+                                  covariate_cols,
+                                  reference_arm = NULL,
+                                  K = 5,
+                                  SL_methods_Q = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.gam"),
+                                  SL_methods_g = NULL,   # if NULL, reuse SL_methods_Q
+                                  seed = 123) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+
+  set.seed(seed)
+
+  arms = levels(as.factor(data[[treatment_col]]))
+  if (length(arms) != 2) stop("Data must contain exactly two arms in ", treatment_col, ".")
+  if (is.null(reference_arm)) reference_arm = arms[1]
+  if (!(reference_arm %in% arms)) stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  treat_arm = setdiff(arms, reference_arm)
+
+  # A in {0,1}: 1 = treatment
+  A_full = as.integer(data[[treatment_col]] == treat_arm)
+
+  # SL CV controls
+  sl_cv = list(V = max(2, K), stratifyCV = TRUE, shuffle = TRUE)
+  if (is.null(SL_methods_g)) SL_methods_g = SL_methods_Q
+
+  out_list = lapply(outcome_cols, function(Ycol) {
+    if (!Ycol %in% names(data)) stop("Outcome column not found: ", Ycol)
+
+    Y_all = data[[Ycol]]
+    W_all = data[, covariate_cols, drop = FALSE]
+
+    # Per-outcome complete cases
+    cc = complete.cases(Y_all, W_all)
+    Y = Y_all[cc]
+    A = A_full[cc]
+    W = W_all[cc, , drop = FALSE]
+
+    # Need both arms present after filtering
+    if (length(unique(A)) < 2) {
+      return(tibble(Outcome = Ycol, Treatment = treat_arm, Control = reference_arm,
+                    Est_SL = NA_real_, SE_SL = NA_real_))
+    }
+
+    # Drop constant covariates (can break learners / tmle)
+    keep_cov = vapply(as.data.frame(W), function(z) length(unique(z)) > 1, logical(1))
+    W = W[, keep_cov, drop = FALSE]
+    if (ncol(W) == 0) {
+      # keep a harmless intercept-like column so SL doesn't error
+      W = data.frame(const = rep(0, length(Y)))
+    }
+
+    fam = if (all(na.omit(Y) %in% c(0, 1))) binomial() else gaussian()
+
+    # --- Primary: TMLE with SL for Q and g ---
+    fit = tryCatch(
+      tmle(Y = Y, A = A, W = W,
+           family = fam,
+           Q.SL.library = SL_methods_Q,
+           g.SL.library = SL_methods_g,
+           cvControl = sl_cv),
+      error = function(e) NULL
+    )
+
+    est = NA_real_
+    se  = NA_real_
+    if (!is.null(fit)) {
+      est = suppressWarnings(as.numeric(fit$estimates$ATE$psi))
+      if (!is.na(est)) {
+        if (!is.null(fit$estimates$ATE$se)) {
+          se = as.numeric(fit$estimates$ATE$se)
+        } else if (!is.null(fit$estimates$ATE$var.psi)) {
+          se = sqrt(as.numeric(fit$estimates$ATE$var.psi))
+        } else if (!is.null(fit$IC)) {
+          ic = fit$IC; if (is.matrix(ic)) ic = ic[, 1, drop = TRUE]
+          se = sd(ic) / sqrt(length(ic))
+        }
+      }
+    }
+
+    # --- Fallback: cross-fitted AIPW with SL for Q and g ---
+    if (is.na(est) || is.na(se)) {
+      n = length(Y)
+      split_ix = sample(rep(1:max(2,K), length.out = n))
+      splits = split(seq_len(n), split_ix)
+
+      Q0_hat = rep(NA_real_, n)
+      Q1_hat = rep(NA_real_, n)
+      g_hat  = rep(NA_real_, n)
+
+      for (k in seq_along(splits)) {
+        val_ix   = splits[[k]]
+        train_ix = setdiff(seq_len(n), val_ix)
+
+        # Q for A=0
+        sel0 = train_ix[A[train_ix] == 0]
+        if (length(sel0) > 5) {
+          fitQ0 = SuperLearner(Y = Y[sel0],
+                               X = W[sel0, , drop = FALSE],
+                               newX = W[val_ix, , drop = FALSE],
+                               family = fam,
+                               cvControl = list(V = min(10, length(sel0))),
+                               SL.library = SL_methods_Q)
+          Q0_hat[val_ix] = fitQ0$SL.predict
+        } else {
+          Q0_hat[val_ix] = mean(Y[train_ix][A[train_ix] == 0])
+        }
+
+        # Q for A=1
+        sel1 = train_ix[A[train_ix] == 1]
+        if (length(sel1) > 5) {
+          fitQ1 = SuperLearner(Y = Y[sel1],
+                               X = W[sel1, , drop = FALSE],
+                               newX = W[val_ix, , drop = FALSE],
+                               family = fam,
+                               cvControl = list(V = min(10, length(sel1))),
+                               SL.library = SL_methods_Q)
+          Q1_hat[val_ix] = fitQ1$SL.predict
+        } else {
+          Q1_hat[val_ix] = mean(Y[train_ix][A[train_ix] == 1])
+        }
+
+        # g via SL (binomial)
+        fitg = SuperLearner(Y = A[train_ix],
+                            X = W[train_ix, , drop = FALSE],
+                            newX = W[val_ix, , drop = FALSE],
+                            family = binomial(),
+                            cvControl = list(V = min(10, length(train_ix))),
+                            SL.library = SL_methods_g)
+        gh = as.numeric(fitg$SL.predict)
+        g_hat[val_ix] = pmin(pmax(gh, 0.01), 0.99)  # stabilize
+      }
+
+      # EIF for ATE with estimated g
+      D_i = (A * (Y - Q1_hat)) / g_hat - ((1 - A) * (Y - Q0_hat)) / (1 - g_hat) + (Q1_hat - Q0_hat)
+      est = mean(D_i)
+      se  = sd(D_i) / sqrt(length(D_i))
+    }
+
+    tibble(
+      Outcome   = Ycol,
+      Treatment = treat_arm,
+      Control   = reference_arm,
+      Est_SL    = est,
+      SE_SL     = se
+    )
+  })
+
+  dplyr::bind_rows(out_list)
+}
+
+
+
+## analyze_rct_tmle() - EXACT same as original except SL call
+
+analyze_rct_tmle = function(df,
+                            outcome_cols = NULL,
+                            covariate_col = NULL,
+                            treatment_col = "Treatment",
+                            K = 5,
+                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam"),
+                            selection = FALSE,
+                            n_select = 3,
+                            n_cores = parallel::detectCores() - 2,
+                            seed = 123) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+  
+  # Set seed once at the beginning for reproducibility
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    # All YP columns
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    
+    # Numeric and binary YS columns
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) &&
+           length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    
+    outcome_cols = c(yp_cols, ys_valid)
+    cat(
+      "Auto-detected",
+      length(outcome_cols),
+      "outcome columns:",
+      paste(outcome_cols, collapse = ", "),
+      "\n"
+    )
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    # Add n_participants if it exists
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+    }))
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  # Process each outcome
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Check missing proportion for outcome
+    missing_prop = mean(is.na(df[[outcome]]))
+    if (missing_prop > 0.4) {
+      cat(
+        "REMOVED outcome:",
+        outcome,
+        "- Missing proportion:",
+        round(missing_prop, 3),
+        "(> 0.4)\n"
+      )
+      next
+    }
+    
+    # Filter complete cases for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    
+    cat(
+      "Outcome:",
+      outcome,
+      "- Sample size:",
+      nrow(df_complete),
+      "(",
+      nrow(df) - nrow(df_complete),
+      "rows removed)\n"
+    )
+    
+    # Check for single-level factors after filtering
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:",
+          outcome,
+          "- Only one level after filtering\n")
+      next
+    }
+    
+    # Check covariates for single levels and remove them
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat(
+          "REMOVED covariate:",
+          cov,
+          "- Only one level after filtering (outcome:",
+          outcome,
+          ")\n"
+        )
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    # Determine if outcome is binary
+    is_binary = is.factor(df_complete[[outcome]]) && 
+                length(levels(droplevels(df_complete[[outcome]]))) == 2
+    
+    # For variable selection and traditional models, convert to numeric
+    df_complete_numeric = df_complete
+    if (is_binary) {
+      # Convert binary factor/numeric to 0,1
+      # Handle cases where data is already 0,1 or needs conversion from 1,2
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      unique_vals = sort(unique(numeric_outcome))
+      
+      if (all(unique_vals == c(0, 1))) {
+        # Already 0,1 - keep as is
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(unique_vals == c(1, 2))) {
+        # Convert 1,2 to 0,1
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    # Variable selection: select top n_select covariates by outcome-specific correlation
+    if (selection && length(valid_covariates) > 0) {
+      if (length(valid_covariates) > n_select) {
+        # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
+        cov_values = numeric(length(valid_covariates))
+        names(cov_values) = valid_covariates
+        
+        for (cov in valid_covariates) {
+          # Convert covariate to numeric temporarily for correlation computation
+          cov_numeric = as.numeric(df_complete_numeric[[cov]])
+          cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
+        }
+        
+        # Select top n_select by absolute correlation magnitude
+        top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
+        selected_covariates = valid_covariates[top_idx]
+        valid_covariates = selected_covariates
+      }
+      # If ≤n_select valid covariates, use all of them (valid_covariates unchanged)
+    }
+    
+    # Create results for this outcome
+    treatment_levels = setdiff(levels(df_complete[[treatment_col]]), control_level)
+    n_treat = length(treatment_levels)
+    
+    # Calculate pairwise sample sizes (control + current treatment)
+    pairwise_n = sapply(treatment_levels, function(treat_level) {
+      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
+    })
+    
+    # Create base outcome results
+    outcome_results = tibble(
+      Outcome = rep(outcome, n_treat),
+      Treatment = treatment_levels,
+      Control = rep(control_level, n_treat),
+      N = pairwise_n,
+      N_Covariates = rep(length(valid_covariates), n_treat),
+      Est_SL = rep(NA_real_, n_treat),
+      SE_SL = rep(NA_real_, n_treat)
+    )
+    
+    # Add Selected_Covariates column only if selection = TRUE
+    if (selection) {
+      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
+    }
+    
+    # TMLE SuperLearner - run ensemble (using numeric version) - ONLY CHANGE FROM ORIGINAL
+    tryCatch({
+      sl_res = analyze_rct_tmle_inner(
+        data = df_complete_numeric,
+        outcome_cols = outcome,
+        covariate_cols = valid_covariates,
+        treatment_col = treatment_col,
+        reference_arm = control_level,
+        K = K
+      )
+      outcome_results$Est_SL = sl_res$Est_SL
+      outcome_results$SE_SL = sl_res$SE_SL
+    }, error = function(e) {
+      outcome_results$Est_SL <<- rep(NA_real_, n_treat)
+      outcome_results$SE_SL <<- rep(NA_real_, n_treat)
+    })
+    
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) {
+    stop("No valid outcomes remaining after data cleaning")
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    # Round for cleaner output
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5))) %>%
+    # Reorder columns
+    select(
+      Outcome,
+      N,
+      N_Covariates,
+      Treatment,
+      Control,
+      Est_SL,
+      SE_SL,
+      everything()
+    )
+  
+  return(final_results)
+}
+```
+
+
+## test
+```{r}
+res3 = analyze_rct_tmle(df1)
+cat("\n<------------------Variable Seclection------------->\n\n")
+res4 = analyze_rct_tmle(df1, selection = T)
+```
+
+```{r}
+# Load required libraries
+library(dplyr)
+
+# Check which datasets exist
+existing_datasets <- c()
+for (i in 1:50) {
+  if (exists(paste0("df", i))) {
+    existing_datasets <- c(existing_datasets, i)
+  }
+}
+
+cat("Found", length(existing_datasets), "datasets to process\n")
+
+# Initialize list to store all results
+all_results <- list()
+
+# Process each dataset with for loop
+cat("Starting processing...\n")
+start_time <- Sys.time()
+
+for (i in existing_datasets) {
+  cat("Processing df", i, "...\n")
+  
+  # Get dataset
+  df_name <- paste0("df", i)
+  df <- get(df_name)
+  
+  # Run analysis without variable selection
+  res1 <- analyze_rct_tmle(df)
+  
+  cat("<------------------Variable Selection------------->\n")
+  
+  # Run analysis with variable selection
+  res2 <- analyze_rct_tmle(df, selection = TRUE)
+  
+  # Join the results by Outcome, Treatment, and Control
+  # Keep Est_SL and SE_SL from res1, rename them in res2
+  joined_res <- res1 %>%
+    select(Outcome, Treatment, Control, Est_SL, SE_SL) %>%
+    left_join(
+      res2 %>% 
+        select(Outcome, Treatment, Control, Est_SL, SE_SL) %>%
+        rename(Est_VS_SL = Est_SL, SE_VS_SL = SE_SL),
+      by = c("Outcome", "Treatment", "Control")
+    ) %>%
+    mutate(Dataset = i)
+  
+  # Store result
+  all_results[[length(all_results) + 1]] <- joined_res
+  
+  cat("Completed df", i, "- rows:", nrow(joined_res), "\n")
+}
+
+end_time <- Sys.time()
+processing_time <- round(difftime(end_time, start_time, units = "mins"), 2)
+cat("Processing completed in", processing_time, "minutes\n")
+
+# Stack all results together
+final_results <- bind_rows(all_results)
+
+# Display summary
+cat("\nFinal results summary:\n")
+cat("Total rows:", nrow(final_results), "\n")
+cat("Datasets processed:", length(unique(final_results$Dataset)), "\n")
+cat("Columns:", paste(colnames(final_results), collapse = ", "), "\n")
+
+# Display first few rows
+cat("\nFirst few rows:\n")
+print(head(final_results))
+
+# Optional: Save results
+# write.csv(final_results, "rct_tmle_results_all_datasets.csv", row.names = FALSE)
+
+cat("\nProcessing complete!\n")
+```
+
+
