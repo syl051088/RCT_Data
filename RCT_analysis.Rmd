@@ -140,6 +140,7 @@ analyze_rct_sl = function(data,
 ## analyze_rct()
 
 ```{r}
+# variable selection 1
 analyze_rct = function(df,
                        outcome_cols = NULL,
                        covariate_col = NULL,
@@ -502,6 +503,7 @@ analyze_rct = function(df,
 
 ## analyze_rct2
 ```{r}
+# varaible selection 2
 analyze_rct2 = function(df,
                        outcome_cols = NULL,
                        covariate_col = NULL,
@@ -1297,6 +1299,13 @@ res2 = analyze_rct(df2, selection = T)
 df_comparison = update_df(2, c("time to event", "binary", "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_agegrp_0d", "X_sex_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df2, selection = T)
+```
+
 
 # Trial 3
 
@@ -1315,7 +1324,12 @@ res2 = analyze_rct(df3, selection = T)
 df_comparison = update_df(3, c("binary", "time to event", rep("binary", 4), "continuous", "binary"))
 ```
 
-
+```{r}
+# vs2
+demo = c("X_age_0m", "X_sex_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df3, selection = T)
+```
 
 # Trial 4
 
@@ -1335,7 +1349,12 @@ res2 = analyze_rct(df4, selection = T)
 df_comparison = update_df(4, c("continuous", "continuous", "continuous", "continuous"))
 ```
 
-
+```{r}
+# vs2
+demo = c("X_Sex_0w", "X_Age_0w", "X_BMI_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df4, selection = T)
+```
 
 # Trial 5
 
@@ -1355,6 +1374,12 @@ res2 = analyze_rct(df5, selection = T)
 df_comparison = update_df(5, c("composite binary", "continuous", rep("binary", 10), rep("continuous", 3), "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0m", "X_sex_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df5, selection = T)
+```
 
 # Trial 6
 
@@ -1376,6 +1401,12 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(6, rep("continuous", n))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0m", "X_sex_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df6, selection = T)
+```
 
 # Trial 7
 
@@ -1395,6 +1426,12 @@ res2 = analyze_rct(df7, selection = T)
 df_comparison = update_df(7, rep("continuous", 8))
 ```
 
+```{r}
+# vs2
+demo = c("X_Age_0h", "X_Gender_0h")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df7, selection = T)
+```
 
 # Trial 8
 
@@ -1417,6 +1454,13 @@ df_comparison = update_df(8, rep("binary", 6))
 ```
 
 
+```{r}
+# vs2
+demo = c("X_Age_0d", "X_Sex_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df8, selection = T)
+```
+
 # Trial 9
 
 ## Load Data
@@ -1436,6 +1480,12 @@ df_comparison = update_df(9, c("binary", rep("continuous", 4), rep("binary", 10)
                                rep("binary", 2), "continuous", rep("binary", 2)))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df9, selection = T)
+```
 
 # Trial 10
 ## Load Data
@@ -1452,6 +1502,13 @@ cat("\n<------------------Variable Seclection------------->\n\n")
 res2 = analyze_rct(df10, selection = T)
 
 df_comparison = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 15)))
+```
+
+```{r}
+# vs2
+demo = c("X_center_0d", "X_sex_0d", "X_age_0d", "X_weight_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df10, selection = T)
 ```
 # Trial 11
 ## Load Data
@@ -1470,6 +1527,13 @@ res2 = analyze_rct(df11, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(11, rep("continuous", n))
+```
+
+```{r}
+# vs2
+demo = c("X_sex_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df11, selection = T)
 ```
 
 # Trial 12
@@ -1491,6 +1555,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(12, c(rep("binary", n)))
 ```
 
+```{r}
+# vs2
+demo = c("X_AuthorGender_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df12, selection = T)
+```
+
 # Trial 13
 ## Load Data
 
@@ -1508,6 +1579,13 @@ res2 = analyze_rct(df13, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(13, c("continuous", "binary", rep("continuous", 8), "binary", "binary", rep("continuous", 5)))
+```
+
+```{r}
+# vs2
+demo = c("X_AGE_0min")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df13, selection = T)
 ```
 
 # Trial 14
@@ -1529,6 +1607,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(14, c(rep("continuous", n-5), rep("binary", 5)))
 ```
 
+```{r}
+# vs2
+demo = c("X_center_0w", "X_sex_0w", "X_age_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df14, selection = T)
+```
+
 # Trial 15
 ## Load Data
 
@@ -1546,6 +1631,13 @@ res2 = analyze_rct(df15, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(15, rep("continuous", n))
+```
+
+```{r}
+# vs2
+demo = c()
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df15, selection = T)
 ```
 
 
@@ -1568,6 +1660,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(16, rep("continuous", n))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0w", "X_sex_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df16, selection = T)
+```
+
 
 # Trial 17
 ## Load Data
@@ -1586,6 +1685,13 @@ res2 = analyze_rct(df17, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(17, rep("continuous", n))
+```
+
+```{r}
+# vs2
+demo = c("X_age_0w", "X_sex_0w", "X_BMI_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df17, selection = T)
 ```
 
 
@@ -1609,6 +1715,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(18, c("time to event", rep("continuous", n-1)))
 ```
 
+```{r}
+# vs2
+demo = c("X_AgeCat_0m", "X_Gender_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df18, selection = T)
+```
+
 
 # Trial 19
 ## Load Data
@@ -1629,6 +1742,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(19, c(rep("continuous", n-1), "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_RECIPIENT_AGE_YEARS_0d", "X_RECIPIENT_GENDER_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df19, selection = T)
+```
+
 
 # Trial 20
 ## Load Data
@@ -1647,6 +1767,13 @@ res2 = analyze_rct(df20, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(20, rep("continuous", n))
+```
+
+```{r}
+# vs2
+demo = c("X_Age_0w", "X_Sex_0w", "X_Weight_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df20, selection = T)
 ```
 
 
@@ -1670,6 +1797,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(21, c("time to event", rep("binary", 4), "continuous"))
 ```
 
+```{r}
+# vs2
+demo = c()
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df21, selection = T)
+```
+
 
 # Trial 22
 ## Load Data
@@ -1688,6 +1822,13 @@ res2 = analyze_rct(df22, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(22, c(rep("binary", 2), "continuous", rep("binary", 1), "continuous"))
+```
+
+```{r}
+# vs2
+demo = c("X_age_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df22, selection = T)
 ```
 
 
@@ -1711,6 +1852,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(23, c("time to event", "time to event", rep("continuous", n - 2)))
 ```
 
+```{r}
+# vs2
+demo = c()
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df23, selection = T)
+```
+
 
 # Trial 24
 ## Load Data
@@ -1729,6 +1877,13 @@ res2 = analyze_rct(df24, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(24, c("binary", "continuous", "continuous"))
+```
+
+```{r}
+# vs2
+demo = c("X_Age_0d", "X_Weight_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df24, selection = T)
 ```
 
 
@@ -1751,6 +1906,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(25, c(rep("continuous", 11), "binary", rep("continuous", 5)))
 ```
 
+```{r}
+# vs2
+demo = c("X_Sex_0w", "X_BMI_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df25, selection = T)
+```
+
 
 # Trial 26
 ## Load Data
@@ -1769,6 +1931,13 @@ res2 = analyze_rct(df26, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(26, c("continuous", "binary", "categorical", rep("continuous", n-3)))
+```
+
+```{r}
+# vs2
+demo = c("X_Agecat_0m", "X_weight_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df26, selection = T)
 ```
 
 
@@ -1792,6 +1961,13 @@ df_comparison = update_df(27, c("categorical", "binary", "continuous", "categori
                                 "continuous", "continuous", "binary", "continuous"))
 ```
 
+```{r}
+# vs2
+demo = c()
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df27, selection = T)
+```
+
 
 # Trial 28
 ## Load Data
@@ -1811,6 +1987,13 @@ n = length(unique(res1$Outcome))
 
 df_comparison = update_df(28, c("binary", rep("continuous", 7), "binary", "continuous",
                                 "binary", rep("continuous", 2)))
+```
+
+```{r}
+# vs2
+demo = c("X_SEX_0m", "X_Age_0m", "X_BMI_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df28, selection = T)
 ```
 
 
@@ -1834,6 +2017,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(29, c("time to event", "binary", "binary", "continuous"))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0w", "X_sex_0w", "X_on_art_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df29, selection = T)
+```
+
 
 
 # Trial 30
@@ -1853,6 +2043,13 @@ res2 = analyze_rct(df30, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(30, c(rep("continuous", 6), "binary", rep("continuous", 2)))
+```
+
+```{r}
+# vs2
+demo = c("X_Sex_0d", "X_Age_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df30, selection = T)
 ```
 
 # Trial 31
@@ -1875,6 +2072,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(31, c("time to event", "continuous", "continuous", "binary", "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df31, selection = T)
+```
+
 
 # Trial 32
 ## Load Data
@@ -1895,6 +2099,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(32, c("categorical", "binary", "binary", "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_gender_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df32, selection = T)
+```
+
 # Trial 33
 ## Load Data
 
@@ -1913,6 +2124,14 @@ n = length(unique(res1$Outcome))
 
 df_comparison = update_df(33, c("continuous", "binary"))
 ```
+
+```{r}
+# vs2
+demo = c("X_age_0w", "X_Gender_0w", "X_DiseaseGroup_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df33, selection = T)
+```
+
 # Trial 34
 ## Load Data
 
@@ -1930,6 +2149,13 @@ res2 = analyze_rct(df34, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(34, c("binary", "continuous", rep("binary", 6)))
+```
+
+```{r}
+# vs2
+demo = c("X_wt_0d", "X_sex_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df34, selection = T)
 ```
 
 # Trial 35
@@ -1951,6 +2177,14 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binary",
                                 rep("continuous", 6)))
 ```
+
+```{r}
+# vs2
+demo = c("X_BMI_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df35, selection = T)
+```
+
 # Trial 36
 ## Load Data
 
@@ -1969,6 +2203,14 @@ n = length(unique(res1$Outcome))
 
 df_comparison = update_df(36, rep("continuous", n))
 ```
+
+```{r}
+# vs2
+demo = c()
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df36, selection = T)
+```
+
 # Trial 37
 ## Load Data
 
@@ -1986,6 +2228,13 @@ res2 = analyze_rct(df37, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(37, rep("binary", n))
+```
+
+```{r}
+# vs2
+demo = c("X_site_0d", "X_age_0d", "X_gender_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df37, selection = T)
 ```
 
 # Trial 38
@@ -2008,6 +2257,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(38, c("time to event", "continuous", "continuous"))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0w", "X_weight_0w", "X_gender_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df38, selection = T)
+```
+
 
 # Trial 39
 ## Load Data
@@ -2028,6 +2284,13 @@ res2 = analyze_rct(df39, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(39, c("time to event"))
+```
+
+```{r}
+# vs2
+demo = c("X_age_0w", "X_sex_0w", "X_substance_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df39, selection = T)
 ```
 
 # Trial 40
@@ -2053,6 +2316,13 @@ df_comparison = update_df(40, c("time to event", "continuous", "continuous", "bi
                                 "continuous", "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_0d", "X_gender_0d", "X_BMI_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df40, selection = T)
+```
+
 # Trial 41
 ## Load Data
 
@@ -2071,6 +2341,13 @@ res2 = analyze_rct(df41, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(41, c(rep("binary", 5)))
+```
+
+```{r}
+# vs2
+demo = c("X_gender_0h", "X_BMI_0h", "X_age_0h")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df41, selection = T)
 ```
 
 
@@ -2095,6 +2372,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(42, c("time to event", rep("continuous", n-1)))
 ```
 
+```{r}
+# vs2
+demo = c("X_gender_0h", "X_bmi_0h", "X_age_0h")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df42, selection = T)
+```
+
 # Trial 43
 ## Load Data
 
@@ -2116,6 +2400,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(43, c("time to event", rep("continuous", 3), "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_Age_0d", "X_BMI_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df43, selection = T)
+```
+
 # Trial 44
 ## Load Data
 
@@ -2134,6 +2425,13 @@ res2 = analyze_rct(df44, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(44, c("binary", rep("continuous", 3)))
+```
+
+```{r}
+# vs2
+demo = c("X_Age_0m", "X_Sex_0m", "X_Wt_0m")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df44, selection = T)
 ```
 
 # Trial 45
@@ -2158,6 +2456,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(45, c(rep("continuous", n)))
 ```
 
+```{r}
+# vs2
+demo = c("X_weight_8w", "X_store_0w", )
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df45, selection = T)
+```
+
 # Trial 46
 ## Load Data
 
@@ -2175,6 +2480,13 @@ res2 = analyze_rct(df46, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(46, c(rep("continuous", n)))
+```
+
+```{r}
+# vs2
+demo = c("X_Age_0y")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df46, selection = T)
 ```
 
 
@@ -2199,6 +2511,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(47, c(rep("binary", 1), "continuous", "binary", "binary"))
 ```
 
+```{r}
+# vs2
+demo = c("X_gender_0h", "X_age_range_0h", "X_weight_range_0h")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df47, selection = T)
+```
+
 # Trial 48
 ## Load Data
 
@@ -2219,6 +2538,13 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(48, c("binary", rep("continuous", 6), rep("binary", 2)))
 ```
 
+```{r}
+# vs2
+demo = c("X_age_group", "X_sex")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df48, selection = T)
+```
+
 
 # Trial 49
 ## Load Data
@@ -2227,8 +2553,6 @@ df_comparison = update_df(48, c("binary", rep("continuous", 6), rep("binary", 2)
 df49 = read_rds("cleaned_data/Non_Clustered_RCT/trial49.rds") %>% 
     select(-YS_t_sondad, -YS_full_oral)
 ```
-
-
 
 ## Process
 
@@ -2242,6 +2566,12 @@ n = length(unique(res1$Outcome))
 df_comparison = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("continuous", 9)))
 ```
 
+```{r}
+# vs2
+demo = c("X_gestAge_0w", "X_birthWt_0d")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df49, selection = T)
+```
 
 # Trial 50
 ## Load Data
@@ -2262,6 +2592,13 @@ res2 = analyze_rct(df50, selection = T)
 n = length(unique(res1$Outcome))
 
 df_comparison = update_df(50, c("time to event", "continuous"))
+```
+
+```{r}
+# vs2
+demo = c("X_sex_0w", "X_center_0w", "X_age_0w", "X_weight_0w")
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct2(df50, selection = T)
 ```
 
 

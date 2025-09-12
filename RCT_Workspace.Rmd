@@ -1791,7 +1791,7 @@ analyze_rct_sl_tmle = function(data,
                                covariate_cols,
                                reference_arm  = NULL,
                                K              = 5,
-                               SL_methods     = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
+                               SL_methods     = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet"),
                                n_cores        = parallel::detectCores() - 2) {
   require(dplyr)
   require(tmle)
@@ -1909,7 +1909,7 @@ analyze_rct_tmle = function(df,
                             covariate_col = NULL,
                             treatment_col = "Treatment",
                             K = 5,
-                            SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
+                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet"),
                             selection = FALSE,
                             n_select = 3,
                             n_cores = parallel::detectCores() - 2,
@@ -2640,6 +2640,265 @@ print(head(final_results))
 # write.csv(final_results, "rct_tmle_results_all_datasets.csv", row.names = FALSE)
 
 cat("\nProcessing complete!\n")
+```
+
+
+```{r}
+library(dplyr)
+
+# Select only Treatment and Outcome
+df1_sub = final_results %>% select(Treatment, Outcome)
+df2_sub = df_comparison %>% select(Treatment, Outcome)
+
+# Check if there are differences
+diff1 = anti_join(df1_sub, df2_sub)  # rows in df1 not in df2
+diff2 = anti_join(df2_sub, df1_sub)  # rows in df2 not in df1
+
+if (nrow(diff1) == 0 & nrow(diff2) == 0) {
+  message("The two dataframes have the same rows (ignoring order).")
+} else {
+  message("The two dataframes differ.")
+  print(diff1)
+  print(diff2)
+}
+```
+
+```{r}
+write_xlsx(final_results, "cleaned_data/tmle_results.xlsx")
+```
+
+## new update()
+```{r}
+update_df = function(trial_no,
+                     outcome_type,
+                     results,
+                     suffix = "",
+                     contrast = "diff",
+                     df = df_comparison) {
+
+  library(dplyr)
+
+  ## ────────────────────────────────────────────────────────────────
+  ## 0)  Outcome → Outcome-Type lookup
+  ## ────────────────────────────────────────────────────────────────
+  unique_outcomes = unique(results$Outcome)
+  stopifnot(length(outcome_type) == length(unique_outcomes))
+
+  outcome_type_map = tibble(
+    Outcome        = unique_outcomes,
+    `Outcome Type` = outcome_type
+  )
+
+  ## Dynamically detect SL members from results columns (excluding glm/mean)
+  est_cols = names(results)[grepl("^Est_SL_", names(results))]
+  sl_members = gsub("^Est_", "", est_cols)
+  
+  # Remove any glm or mean methods if they exist
+  sl_members = sl_members[!grepl("glm|mean", sl_members, ignore.case = TRUE)]
+
+  ## helper: safe rename if column exists
+  do_rename = function(d, old, new) {
+    if (old %in% names(d)) dplyr::rename(d, !!new := dplyr::all_of(old)) else d
+  }
+
+  ## ────────────────────────────────────────────────────────────────
+  ## 1)  Process results with the given suffix
+  ## ────────────────────────────────────────────────────────────────
+  if (suffix == "") {
+    results_renamed = results %>%
+      mutate(
+        ANCOVA_est            = Est_RC_ANCOVA,
+        ANCOVA_robust_se      = SE_RC_ANCOVA,
+        ANHECOVA_est          = Est_RC_ANHECOVA,
+        ANHECOVA_robust_se    = SE_RC_ANHECOVA,
+        Binom_est             = Est_RC_Binom,
+        Binom_robust_se       = SE_RC_Binom,
+        ANCOVA_model_based_se = SE_AC,
+        Unadjust_est          = Est_UN,
+        Unadjust_se           = SE_UN,
+        SL_est                = Est_SL,
+        SL_se                 = SE_SL
+      )
+  } else {
+    # For suffixed version, add suffix to method names
+    suffix_clean = paste0("_", suffix)
+    results_renamed = results %>%
+      mutate(
+        !!paste0("ANCOVA", suffix_clean, "_est")            := Est_RC_ANCOVA,
+        !!paste0("ANCOVA", suffix_clean, "_robust_se")      := SE_RC_ANCOVA,
+        !!paste0("ANHECOVA", suffix_clean, "_est")          := Est_RC_ANHECOVA,
+        !!paste0("ANHECOVA", suffix_clean, "_robust_se")    := SE_RC_ANHECOVA,
+        !!paste0("Binom", suffix_clean, "_est")             := Est_RC_Binom,
+        !!paste0("Binom", suffix_clean, "_robust_se")       := SE_RC_Binom,
+        !!paste0("ANCOVA", suffix_clean, "_model_based_se") := SE_AC,
+        !!paste0("SL", suffix_clean, "_est")                := Est_SL,
+        !!paste0("SL", suffix_clean, "_se")                 := SE_SL,
+        Unadjust_est                                        := Est_UN,
+        Unadjust_se                                         := SE_UN
+      )
+  }
+
+  ## ── explicit renames for each individual SL member ─────────────
+  for (m in sl_members) {
+    old_est = paste0("Est_", m)
+    old_se  = paste0("SE_",  m)
+    
+    if (suffix == "") {
+      new_est = paste0(m, "_est")
+      new_se  = paste0(m, "_se")
+    } else {
+      new_est = paste0(m, "_", suffix, "_est")
+      new_se  = paste0(m, "_", suffix, "_se")
+    }
+    
+    results_renamed = do_rename(results_renamed, old_est, new_est)
+    results_renamed = do_rename(results_renamed, old_se,  new_se)
+  }
+
+  ## ── attach meta data ───────────────────────────────────────────
+  results_processed = results_renamed %>%
+    left_join(outcome_type_map, by = "Outcome") %>%
+    mutate(
+      Trial_No     = trial_no,
+      Sample_Size  = N,
+      N_Covariates = N_Covariates,
+      Contrast     = contrast
+    )
+
+  ## ── precision gain and difference calculations ────────────────
+  if (suffix == "") {
+    results_processed = results_processed %>%
+      mutate(
+        `How much precision gain can ANCOVA provide?`   = (ANCOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can ANHECOVA provide?` = (ANHECOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can Binom provide?`    = (Binom_robust_se / Unadjust_se)^2,
+        `How much precision gain can SL provide?`       = (SL_se / Unadjust_se)^2,
+        `ANCOVA vs ANHECOVA variance ratio`             = (ANCOVA_robust_se / ANHECOVA_robust_se)^2,
+        `The ratio between robust and model-based variance estimators` =
+          (ANCOVA_robust_se / ANCOVA_model_based_se)^2,
+        `The difference between unadjusted and ANCOVA point estimates` =
+          (ANCOVA_est - Unadjust_est) /
+          sqrt((ANCOVA_robust_se^2 + Unadjust_se^2) / 2),
+        `The difference between unadjusted and ANHECOVA point estimates` =
+          (ANHECOVA_est - Unadjust_est) /
+          sqrt((ANHECOVA_robust_se^2 + Unadjust_se^2) / 2),
+        `The difference between unadjusted and Binom point estimates` =
+          (Binom_est - Unadjust_est) /
+          sqrt((Binom_robust_se^2 + Unadjust_se^2) / 2),
+        `The difference between unadjusted and SL point estimates` =
+          (SL_est - Unadjust_est) /
+          sqrt((SL_se^2 + Unadjust_se^2) / 2)
+      )
+  } else {
+    # For suffixed version
+    suffix_clean = paste0("_", suffix)
+    ancova_se_col = paste0("ANCOVA", suffix_clean, "_robust_se")
+    anhecova_se_col = paste0("ANHECOVA", suffix_clean, "_robust_se")
+    binom_se_col = paste0("Binom", suffix_clean, "_robust_se")
+    sl_se_col = paste0("SL", suffix_clean, "_se")
+    ancova_model_se_col = paste0("ANCOVA", suffix_clean, "_model_based_se")
+    
+    ancova_est_col = paste0("ANCOVA", suffix_clean, "_est")
+    anhecova_est_col = paste0("ANHECOVA", suffix_clean, "_est")
+    binom_est_col = paste0("Binom", suffix_clean, "_est")
+    sl_est_col = paste0("SL", suffix_clean, "_est")
+    
+    results_processed = results_processed %>%
+      mutate(
+        !!paste0("How much precision gain can ANCOVA", suffix_clean, " provide?") := 
+          (.data[[ancova_se_col]] / Unadjust_se)^2,
+        !!paste0("How much precision gain can ANHECOVA", suffix_clean, " provide?") := 
+          (.data[[anhecova_se_col]] / Unadjust_se)^2,
+        !!paste0("How much precision gain can Binom", suffix_clean, " provide?") := 
+          (.data[[binom_se_col]] / Unadjust_se)^2,
+        !!paste0("How much precision gain can SL", suffix_clean, " provide?") := 
+          (.data[[sl_se_col]] / Unadjust_se)^2,
+        !!paste0("ANCOVA", suffix_clean, " vs ANHECOVA", suffix_clean, " variance ratio") := 
+          (.data[[ancova_se_col]] / .data[[anhecova_se_col]])^2,
+        !!paste0("The ratio between robust and model-based variance estimators", suffix_clean) := 
+          (.data[[ancova_se_col]] / .data[[ancova_model_se_col]])^2,
+        !!paste0("The difference between unadjusted and ANCOVA", suffix_clean, " point estimates") := 
+          (.data[[ancova_est_col]] - Unadjust_est) /
+          sqrt((.data[[ancova_se_col]]^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and ANHECOVA", suffix_clean, " point estimates") := 
+          (.data[[anhecova_est_col]] - Unadjust_est) /
+          sqrt((.data[[anhecova_se_col]]^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and Binom", suffix_clean, " point estimates") := 
+          (.data[[binom_est_col]] - Unadjust_est) /
+          sqrt((.data[[binom_se_col]]^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and SL", suffix_clean, " point estimates") := 
+          (.data[[sl_est_col]] - Unadjust_est) /
+          sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
+      )
+  }
+
+  ## ── explicit SL-member precision gains & diffs ─────────────────
+  for (m in sl_members) {
+    if (suffix == "") {
+      se_col  = paste0(m, "_se")
+      est_col = paste0(m, "_est")
+      pg_col  = paste0("How much precision gain can ", m, " provide?")
+      df_col  = paste0("The difference between unadjusted and ", m, " point estimates")
+    } else {
+      se_col  = paste0(m, "_", suffix, "_se")
+      est_col = paste0(m, "_", suffix, "_est")
+      pg_col  = paste0("How much precision gain can ", m, "_", suffix, " provide?")
+      df_col  = paste0("The difference between unadjusted and ", m, "_", suffix, " point estimates")
+    }
+    
+    if (all(c(se_col, est_col) %in% names(results_processed))) {
+      results_processed = results_processed %>%
+        mutate(
+          !!pg_col := (.data[[se_col]] / Unadjust_se)^2,
+          !!df_col := (.data[[est_col]] - Unadjust_est) /
+                      sqrt((.data[[se_col]]^2 + Unadjust_se^2) / 2)
+        )
+    }
+  }
+
+  ## ────────────────────────────────────────────────────────────────
+  ## 2)  Add Selected_Covariates if it exists in results
+  ## ────────────────────────────────────────────────────────────────
+  if ("Selected_Covariates" %in% names(results)) {
+    results_processed$Selected_Covariates = results$Selected_Covariates
+  }
+
+  ## ────────────────────────────────────────────────────────────────
+  ## 3)  Overwrite / append in df_comparison (with column addition support)
+  ## ────────────────────────────────────────────────────────────────
+  new_rows = results_processed
+  
+  for (i in seq_len(nrow(new_rows))) {
+    row_i = new_rows[i, ]
+
+    idx = which(
+      df$Trial_No == row_i$Trial_No &
+      df$Outcome   == row_i$Outcome &
+      df$Treatment == row_i$Treatment &
+      df$Control   == row_i$Control
+    )
+
+    if (length(idx) > 0) {
+      # Update existing row - add new columns if they don't exist
+      for (col_name in names(row_i)) {
+        if (!col_name %in% names(df)) {
+          df[[col_name]] = NA  # Add new column with NA values
+        }
+        df[idx[1], col_name] = row_i[[col_name]]
+      }
+    } else {
+      # Append new row - add missing columns with NA values
+      for (col_name in names(df)) {
+        if (!col_name %in% names(row_i)) {
+          row_i[[col_name]] = NA
+        }
+      }
+      df = dplyr::bind_rows(df, row_i)
+    }
+  }
+
+  df
+}
 ```
 
 
