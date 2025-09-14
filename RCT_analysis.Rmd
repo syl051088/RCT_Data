@@ -81,9 +81,11 @@ variable_selection_manual = function(outcome, valid_covariates, manual_covariate
         baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
       }
       
-      # Look for variables that start with this pattern
+      # Look for variables that start with this pattern (case-insensitive)
       if (exists("baseline_pattern")) {
-        potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+        # Case-insensitive search using grepl
+        pattern_regex = paste0("^", gsub("_", "_", baseline_pattern, fixed = TRUE))
+        potential_baseline = valid_covariates[grepl(pattern_regex, valid_covariates, ignore.case = TRUE)]
         if (length(potential_baseline) > 0) {
           baseline_var = potential_baseline[1]  # Take the first match
           cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
@@ -108,9 +110,11 @@ variable_selection_manual = function(outcome, valid_covariates, manual_covariate
         baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
       }
       
-      # Look for variables that start with this pattern
+      # Look for variables that start with this pattern (case-insensitive)
       if (exists("baseline_pattern")) {
-        potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+        # Case-insensitive search using grepl
+        pattern_regex = paste0("^", gsub("_", "_", baseline_pattern, fixed = TRUE))
+        potential_baseline = valid_covariates[grepl(pattern_regex, valid_covariates, ignore.case = TRUE)]
         if (length(potential_baseline) > 0) {
           baseline_var = potential_baseline[1]  # Take the first match
           cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
@@ -122,7 +126,7 @@ variable_selection_manual = function(outcome, valid_covariates, manual_covariate
   # Combine baseline variable with manual covariates
   selected_covariates = character(0)
   
-  # Add baseline variable if found
+  # Add baseline variable if foundíxs
   if (!is.null(baseline_var)) {
     selected_covariates = c(selected_covariates, baseline_var)
   }
@@ -1165,7 +1169,8 @@ df6 = read_rds("cleaned_data/Non_Clustered_RCT/trial6.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df6)$Outcome)))
+n = 21
+type = rep("continuous", n)
 demo = c("X_age_0m", "X_sex_0m")
 ```
 
@@ -1181,24 +1186,24 @@ df_comparison = update_df(6, type, res2, "VS1")
 
 # SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct(df22, T, 2, demo)
-df_comparison = update_df(22, type, res3, "VS2")
+res3 = analyze_rct(df6, T, 2, demo)
+df_comparison = update_df(6, type, res3, "VS2")
 ```
 
 ```{r}
 # SL2
-res1 = analyze_rct(df22, F, 1, NULL, F, SL2_lib)
-df_comparison = update_df(22, type, res1, "", 2)
+res1 = analyze_rct(df6, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(6, type, res1, "", 2)
 
 # SL2, VS1
 cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df22, T, 1, NULL, F, SL2_lib)
-df_comparison = update_df(22, type, res2, "VS1", 2)
+res2 = analyze_rct(df6, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(6, type, res2, "VS1", 2)í
 
 # SL2, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct(df22, T, 2, demo, F, SL2_lib)
-df_comparison = update_df(22, type, res3, "VS2", 2)
+res3 = analyze_rct(df6, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(6, type, res3, "VS2", 2)
 ```
 
 
@@ -1403,7 +1408,7 @@ df11 = read_rds("cleaned_data/Non_Clustered_RCT/trial11.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df11)$Outcome)))
+type = rep("continuous", 11)
 demo = c("X_sex_0w")
 ```
 
@@ -1450,7 +1455,7 @@ df12 = read_rds("cleaned_data/Non_Clustered_RCT/trial12.rds")
 ## Process
 
 ```{r}
-type = rep("binary", length(unique(analyze_rct(df12)$Outcome)))
+type = rep("binary", 3)
 demo = c("X_AuthorGender_0w")
 ```
 
@@ -1544,7 +1549,7 @@ df14 = read_rds("cleaned_data/Non_Clustered_RCT/trial14.rds")
 ## Process
 
 ```{r}
-n = length(unique(analyze_rct(df14)$Outcome))
+n = 23
 type = c(rep("continuous", n-5), rep("binary", 5))
 demo = c("X_center_0w", "X_sex_0w", "X_age_0w")
 ```
@@ -1592,7 +1597,7 @@ df15 = read_rds("cleaned_data/Non_Clustered_RCT/trial15.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df15)$Outcome)))
+type = rep("continuous", 14)
 demo = c()
 ```
 
@@ -1639,7 +1644,7 @@ df16 = read_rds("cleaned_data/Non_Clustered_RCT/trial16.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df16)$Outcome)))
+type = rep("continuous", 5)
 demo = c("X_age_0w", "X_sex_0w")
 ```
 
@@ -1686,7 +1691,7 @@ df17 = read_rds("cleaned_data/Non_Clustered_RCT/trial17.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df17)$Outcome)))
+type = rep("continuous", 4)
 demo = c("X_age_0w", "X_sex_0w", "X_BMI_0w")
 ```
 
@@ -1734,7 +1739,7 @@ df18 = read_rds("cleaned_data/Non_Clustered_RCT/trial18.rds") %>%
 ## Process
 
 ```{r}
-n = length(unique(analyze_rct(df18)$Outcome))
+n = 12
 type = c("time to event", rep("continuous", n-1))
 demo = c("X_AgeCat_0m", "X_Gender_0m")
 ```
@@ -1782,7 +1787,7 @@ df19 = read_rds("cleaned_data/Non_Clustered_RCT/trial19.rds")
 ## Process
 
 ```{r}
-n = length(unique(analyze_rct(df19)$Outcome))
+n = 11
 type = c(rep("continuous", n-1), "binary")
 demo = c("X_RECIPIENT_AGE_YEARS_0d", "X_RECIPIENT_GENDER_0d")
 ```
@@ -1830,7 +1835,7 @@ df20 = read_rds("cleaned_data/Non_Clustered_RCT/trial20.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df20)$Outcome)))
+type = rep("continuous", 10)
 demo = c("X_Age_0w", "X_Sex_0w", "X_Weight_0w")
 ```
 
@@ -1941,8 +1946,9 @@ df_comparison = update_df(22, type, res2, "VS1")
 
 # SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res
-
+res3 = analyze_rct(df22, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(22, type, res3, "VS2", 2)
+```
 
 # Trial 23
 
@@ -1956,7 +1962,7 @@ df23 = read_rds("cleaned_data/Non_Clustered_RCT/trial23.rds") %>%
 ## Process
 
 ```{r}
-n = length(unique(analyze_rct(df23)$Outcome))
+n = 14
 type = c("time to event", "time to event", rep("continuous", n - 2))
 demo = c()
 ```
@@ -2098,7 +2104,7 @@ df26 = read_rds("cleaned_data/Non_Clustered_RCT/trial26.rds")
 ## Process
 
 ```{r}
-n = length(unique(analyze_rct(df26)$Outcome))
+n = 7
 type = c("continuous", "binary", "categorical", rep("continuous", n-3))
 demo = c("X_Agecat_0m", "X_weight_0m")
 ```
@@ -2571,7 +2577,7 @@ df36 = read_rds("cleaned_data/Non_Clustered_RCT/trial36.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df36)$Outcome)))
+type = rep("continuous", 11)
 demo = c()
 ```
 
@@ -2618,7 +2624,7 @@ df37 = read_rds("cleaned_data/Non_Clustered_RCT/trial37.rds")
 ## Process
 
 ```{r}
-type = rep("binary", length(unique(analyze_rct(df37)$Outcome)))
+type = rep("binary", 1)
 demo = c("X_site_0d", "X_age_0d", "X_gender_0d")
 ```
 
@@ -2858,7 +2864,7 @@ df42 = read_rds("cleaned_data/Non_Clustered_RCT/trial42.rds") %>%
 ## Process
 
 ```{r}
-n = length(unique(analyze_rct(df42)$Outcome))
+n = 6
 type = c("time to event", rep("continuous", n-1))
 demo = c("X_gender_0h", "X_bmi_0h", "X_age_0h")
 ```
@@ -3003,7 +3009,7 @@ df45 = read_rds("cleaned_data/Non_Clustered_RCT/trial45.rds") %>%
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df45)$Outcome)))
+type = rep("continuous", 27)
 demo = c("X_weight_8w", "X_store_0w")
 ```
 
@@ -3050,7 +3056,7 @@ df46 = read_rds("cleaned_data/Non_Clustered_RCT/trial46.rds")
 ## Process
 
 ```{r}
-type = rep("continuous", length(unique(analyze_rct(df46)$Outcome)))
+type = rep("continuous", 6)
 demo = c("X_Age_0y")
 ```
 
