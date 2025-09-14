@@ -32,6 +32,116 @@ df_comparison = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
 
 # Function
 
+## variable_selection_correlation()
+```{r}
+variable_selection_correlation = function(outcome, valid_covariates, df_complete_numeric, n_select = 3) {
+  if (length(valid_covariates) > n_select) {
+    # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
+    cov_values = numeric(length(valid_covariates))
+    names(cov_values) = valid_covariates
+    
+    for (cov in valid_covariates) {
+      # Convert covariate to numeric temporarily for correlation computation
+      cov_numeric = as.numeric(df_complete_numeric[[cov]])
+      cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
+    }
+    
+    # Select top n_select by absolute correlation magnitude
+    top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
+    selected_covariates = valid_covariates[top_idx]
+    return(selected_covariates)
+  }
+  # If ≤n_select valid covariates, use all of them
+  return(valid_covariates)
+}
+```
+
+## variable_selection_manual()
+```{r}
+variable_selection_manual = function(outcome, valid_covariates, manual_covariates = NULL) {
+  # Step 1: Look for baseline measures of the outcome
+  baseline_var = NULL
+  
+  # Extract outcome pattern and timing
+  if (startsWith(outcome, "YP_")) {
+    # For YP outcomes: YP_abc_7w -> look for X_abc_0w
+    # For YP_delta outcomes: YP_delta_abc_7w -> look for X_abc_0w (skip "delta")
+    outcome_parts = strsplit(outcome, "_")[[1]]
+    if (length(outcome_parts) >= 3) {
+      # Check if this is a delta outcome
+      if (outcome_parts[2] == "delta") {
+        # For YP_delta_abc_7w, extract from position 3 onwards (excluding last part which is timing)
+        if (length(outcome_parts) >= 4) {
+          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
+          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+        }
+      } else {
+        # For regular YP_abc_7w, extract the middle part(s) and construct baseline variable name
+        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+      }
+      
+      # Look for variables that start with this pattern
+      if (exists("baseline_pattern")) {
+        potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+        if (length(potential_baseline) > 0) {
+          baseline_var = potential_baseline[1]  # Take the first match
+          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+        }
+      }
+    }
+  } else if (startsWith(outcome, "YS_")) {
+    # For YS outcomes: YS_qwe_8m -> look for X_qwe_0m
+    # For YS_delta outcomes: YS_delta_qwe_8m -> look for X_qwe_0m (skip "delta")
+    outcome_parts = strsplit(outcome, "_")[[1]]
+    if (length(outcome_parts) >= 3) {
+      # Check if this is a delta outcome
+      if (outcome_parts[2] == "delta") {
+        # For YS_delta_qwe_8m, extract from position 3 onwards (excluding last part which is timing)
+        if (length(outcome_parts) >= 4) {
+          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
+          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+        }
+      } else {
+        # For regular YS_qwe_8m, extract the middle part(s) and construct baseline variable name
+        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+      }
+      
+      # Look for variables that start with this pattern
+      if (exists("baseline_pattern")) {
+        potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+        if (length(potential_baseline) > 0) {
+          baseline_var = potential_baseline[1]  # Take the first match
+          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+        }
+      }
+    }
+  }
+  
+  # Combine baseline variable with manual covariates
+  selected_covariates = character(0)
+  
+  # Add baseline variable if found
+  if (!is.null(baseline_var)) {
+    selected_covariates = c(selected_covariates, baseline_var)
+  }
+  
+  # Add manual covariates if provided
+  if (!is.null(manual_covariates)) {
+    # Filter manual covariates to only include those that exist in valid_covariates
+    manual_available = manual_covariates[manual_covariates %in% valid_covariates]
+    selected_covariates = c(selected_covariates, manual_available)
+  }
+  
+  # Remove duplicates
+  selected_covariates = unique(selected_covariates)
+  
+  return(selected_covariates)
+}
+```
+
+
 ## analyze_rct_sl()
 
 ```{r}
@@ -140,380 +250,19 @@ analyze_rct_sl = function(data,
 ## analyze_rct()
 
 ```{r}
-# variable selection 1
 analyze_rct = function(df,
-                       outcome_cols = NULL,
-                       covariate_col = NULL,
-                       treatment_col = "Treatment",
-                       K = 5,
-                       SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
                        selection = FALSE,
-                       n_select = 3,
-                       n_cores = parallel::detectCores() - 2,
-                       seed = 123) {
-  require(dplyr)
-  require(RobinCar)
-  require(tidyr)
-  require(DescTools)
-  
-  # Set seed once at the beginning for reproducibility
-  set.seed(seed)
-  
-  # Auto-detect outcome columns if not specified
-  if (is.null(outcome_cols)) {
-    # All YP columns
-    yp_cols = names(df)[startsWith(names(df), "YP")]
-    
-    # Numeric and binary YS columns
-    ys_cols = names(df)[startsWith(names(df), "YS")]
-    ys_valid = character(0)
-    for (col in ys_cols) {
-      if (is.numeric(df[[col]]) ||
-          (is.factor(df[[col]]) &&
-           length(levels(df[[col]])) == 2)) {
-        ys_valid = c(ys_valid, col)
-      }
-    }
-    
-    outcome_cols = c(yp_cols, ys_valid)
-    cat(
-      "Auto-detected",
-      length(outcome_cols),
-      "outcome columns:",
-      paste(outcome_cols, collapse = ", "),
-      "\n"
-    )
-  }
-  
-  # Setup covariates
-  if (is.null(covariate_col)) {
-    covariates = names(df)[startsWith(names(df), "X_")]
-    # Add n_participants if it exists
-    if ("n_participants" %in% names(df)) {
-      covariates = c(covariates, "n_participants")
-    }
-  } else {
-    covariates = covariate_col
-  }
-  
-  # Fill missing values in covariates
-  df = df %>%
-    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
-      replace(., is.na(.), mean(., na.rm = TRUE))
-    } else if (is.factor(.)) {
-      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
-    }))
-  
-  control_level = levels(df[[treatment_col]])[1]
-  treat_pattern = paste0("^", treatment_col)
-  
-  control_level = levels(df[[treatment_col]])[1]
-  treat_pattern = paste0("^", treatment_col)
-  
-  # Process each outcome
-  all_results = vector("list", length(outcome_cols))
-  valid_outcomes = character(0)
-  
-  for (i in seq_along(outcome_cols)) {
-    outcome = outcome_cols[i]
-    
-    # Check missing proportion for outcome
-    missing_prop = mean(is.na(df[[outcome]]))
-    if (missing_prop > 0.4) {
-      cat(
-        "REMOVED outcome:",
-        outcome,
-        "- Missing proportion:",
-        round(missing_prop, 3),
-        "(> 0.4)\n"
-      )
-      next
-    }
-    
-    # Filter complete cases for this outcome
-    complete_vars = c(outcome, treatment_col, covariates)
-    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
-    df_complete = df[complete_cases_idx, , drop = FALSE]
-    
-    cat(
-      "Outcome:",
-      outcome,
-      "- Sample size:",
-      nrow(df_complete),
-      "(",
-      nrow(df) - nrow(df_complete),
-      "rows removed)\n"
-    )
-    
-    # Check for single-level factors after filtering
-    if (is.factor(df_complete[[outcome]]) &&
-        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
-      cat("REMOVED outcome:",
-          outcome,
-          "- Only one level after filtering\n")
-      next
-    }
-    
-    # Check covariates for single levels and remove them
-    valid_covariates = character(0)
-    for (cov in covariates) {
-      if (is.factor(df_complete[[cov]]) &&
-          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
-        cat(
-          "REMOVED covariate:",
-          cov,
-          "- Only one level after filtering (outcome:",
-          outcome,
-          ")\n"
-        )
-      } else {
-        valid_covariates = c(valid_covariates, cov)
-      }
-    }
-    
-    # Determine if outcome is binary
-    is_binary = is.factor(df_complete[[outcome]]) && 
-                length(levels(droplevels(df_complete[[outcome]]))) == 2
-    
-    # For variable selection and traditional models, convert to numeric
-    df_complete_numeric = df_complete
-    if (is_binary) {
-      # Convert binary factor/numeric to 0,1
-      # Handle cases where data is already 0,1 or needs conversion from 1,2
-      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
-      unique_vals = sort(unique(numeric_outcome))
-      
-      if (all(unique_vals == c(0, 1))) {
-        # Already 0,1 - keep as is
-        df_complete_numeric[[outcome]] = numeric_outcome
-      } else if (all(unique_vals == c(1, 2))) {
-        # Convert 1,2 to 0,1
-        df_complete_numeric[[outcome]] = numeric_outcome - 1
-      } else {
-        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
-      }
-    } else {
-      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
-    }
-    
-    # Variable selection: select top n_select covariates by outcome-specific correlation
-    if (selection && length(valid_covariates) > 0) {
-      if (length(valid_covariates) > n_select) {
-        # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
-        cov_values = numeric(length(valid_covariates))
-        names(cov_values) = valid_covariates
-        
-        for (cov in valid_covariates) {
-          # Convert covariate to numeric temporarily for correlation computation
-          cov_numeric = as.numeric(df_complete_numeric[[cov]])
-          cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
-        }
-        
-        # Select top n_select by absolute correlation magnitude
-        top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
-        selected_covariates = valid_covariates[top_idx]
-        valid_covariates = selected_covariates
-      }
-      # If ≤n_select valid covariates, use all of them (valid_covariates unchanged)
-    }
-    
-    
-    # Fit traditional models (using numeric version)
-    coef_unadj = coef(summary(lm(
-      reformulate(treatment_col, outcome), df_complete_numeric
-    )))
-    coef_ancova = coef(summary(lm(
-      reformulate(c(treatment_col, valid_covariates), outcome), df_complete_numeric
-    )))
-    
-    # Extract treatment effects
-    treat_idx_unadj = which(startsWith(rownames(coef_unadj), treatment_col))
-    treat_idx_ancova = which(startsWith(rownames(coef_ancova), treatment_col))
-    
-    # Create results for this outcome
-    n_treat = length(treat_idx_unadj)
-    treatment_levels = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
-    
-    # Calculate pairwise sample sizes (control + current treatment)
-    pairwise_n = sapply(treatment_levels, function(treat_level) {
-      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
-    })
-    
-    # Create base outcome results
-    outcome_results = tibble(
-      Outcome = rep(outcome, n_treat),
-      Treatment = treatment_levels,
-      Control = rep(control_level, n_treat),
-      N = pairwise_n,
-      N_Covariates = rep(length(valid_covariates), n_treat),
-      # Unadjusted
-      Est_UN = coef_unadj[treat_idx_unadj, 1],
-      SE_UN = coef_unadj[treat_idx_unadj, 2],
-      # ANCOVA
-      Est_AC = coef_ancova[treat_idx_ancova, 1],
-      SE_AC = coef_ancova[treat_idx_ancova, 2]
-    )
-    
-    # Add Selected_Covariates column only if selection = TRUE
-    if (selection) {
-      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
-    }
-    
-    # RobinCar - run both ANCOVA and ANHECOVA (using numeric version)
-    rc_fit_ancova = suppressWarnings(
-      robincar_linear(
-        df_complete_numeric,
-        treatment_col,
-        outcome,
-        covariate_cols = valid_covariates,
-        adj_method = "ANCOVA",
-        contrast_h = "diff"
-      )
-    )
-    rc_result_ancova = rc_fit_ancova$contrast$result
-    outcome_results$Est_RC_ANCOVA = rc_result_ancova$estimate
-    outcome_results$SE_RC_ANCOVA = rc_result_ancova$se
-    
-    rc_fit_anhecova = suppressWarnings(
-      robincar_linear(
-        df_complete_numeric,
-        treatment_col,
-        outcome,
-        covariate_cols = valid_covariates,
-        adj_method = "ANHECOVA",
-        contrast_h = "diff"
-      )
-    )
-    rc_result_anhecova = rc_fit_anhecova$contrast$result
-    outcome_results$Est_RC_ANHECOVA = rc_result_anhecova$estimate
-    outcome_results$SE_RC_ANHECOVA = rc_result_anhecova$se
-    
-    # RobinCar GLM for binary outcomes
-    if (is_binary) {
-      # Create formula for GLM: outcome ~ Treatment + covariates
-      formula_terms = c(treatment_col, valid_covariates)
-      glm_formula = as.formula(paste(outcome, "~", paste(formula_terms, collapse = " + ")))
-      
-      rc_fit_binom = suppressWarnings(
-        robincar_glm(
-          df_complete_numeric,  # Use numeric version (0,1 for binary outcome)
-          treatment_col,
-          outcome,
-          formula = glm_formula,
-          g_family = stats::binomial,
-          contrast_h = "diff"
-        )
-      )
-      rc_result_binom = rc_fit_binom$contrast$result
-      outcome_results$Est_RC_Binom = rc_result_binom$estimate
-      outcome_results$SE_RC_Binom = rc_result_binom$se
-    } else {
-      # For non-binary outcomes, set Binom results to NA
-      outcome_results$Est_RC_Binom = rep(NA_real_, n_treat)
-      outcome_results$SE_RC_Binom = rep(NA_real_, n_treat)
-    }
-    
-    # SuperLearner - run ensemble and individual methods (using numeric version)
-    tryCatch({
-      sl_res = analyze_rct_sl(
-        data = df_complete_numeric,
-        outcome_cols = outcome,
-        covariate_cols = valid_covariates,
-        treatment_col = treatment_col,
-        reference_arm = control_level,
-        K = K,
-        SL_methods = SL_methods,
-        n_cores = n_cores
-      )
-      outcome_results$Est_SL = sl_res$Est_SL
-      outcome_results$SE_SL = sl_res$SE_SL
-    }, error = function(e) {
-      if (grepl("All algorithms dropped from library", e$message)) {
-        outcome_results$Est_SL <<- rep(NA_real_, n_treat)
-        outcome_results$SE_SL <<- rep(NA_real_, n_treat)
-      } else {
-        stop(e)
-      }
-    })
-    
-    # Run individual SL methods
-    individual_methods = c("SL.rpart", "SL.randomForest", "SL.glmnet", "SL.gam", "SL.bartMachine")
-    for (method in individual_methods) {
-      tryCatch({
-        sl_res_individual = analyze_rct_sl(
-          data = df_complete_numeric,
-          outcome_cols = outcome,
-          covariate_cols = valid_covariates,
-          treatment_col = treatment_col,
-          reference_arm = control_level,
-          K = K,
-          SL_methods = method,
-          n_cores = n_cores
-        )
-        # Clean method name for column naming
-        method_clean = gsub("SL\\.", "SL_", method)
-        outcome_results[[paste0("Est_", method_clean)]] = sl_res_individual$Est_SL
-        outcome_results[[paste0("SE_", method_clean)]] = sl_res_individual$SE_SL
-      }, error = function(e) {
-        # For any error, set to NA
-        method_clean = gsub("SL\\.", "SL_", method)
-        outcome_results[[paste0("Est_", method_clean)]] <<- rep(NA_real_, n_treat)
-        outcome_results[[paste0("SE_", method_clean)]] <<- rep(NA_real_, n_treat)
-      })
-    }
-    
-    valid_outcomes = c(valid_outcomes, outcome)
-    all_results[[length(valid_outcomes)]] = outcome_results
-  }
-  
-  if (length(valid_outcomes) == 0) {
-    stop("No valid outcomes remaining after data cleaning")
-  }
-  
-  # Combine all outcomes
-  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
-    # Round for cleaner output
-    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
-           across(starts_with("SE_"), ~ round(.x, 5))) %>%
-    # Reorder columns
-    select(
-      Outcome,
-      N,
-      N_Covariates,
-      Treatment,
-      Control,
-      Est_RC_ANCOVA,
-      SE_RC_ANCOVA,
-      Est_RC_ANHECOVA,
-      SE_RC_ANHECOVA,
-      Est_RC_Binom,
-      SE_RC_Binom,
-      Est_AC,
-      SE_AC,
-      Est_UN,
-      SE_UN,
-      Est_SL,
-      SE_SL,
-      everything()
-    )
-  
-  return(final_results)
-}
-```
-
-## analyze_rct2
-```{r}
-# variable selection 2
-analyze_rct2 = function(df,
-                       outcome_cols = NULL,
-                       covariate_col = NULL,
-                       treatment_col = "Treatment",
-                       K = 5,
-                       SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
-                       selection = FALSE,
+                       variable_selection_type = 1,  # 1: correlation, 2: manual
                        manual_covariates = NULL,
+                       run_individual_SL = TRUE,  # Whether to run individual SL methods after ensemble
+                       SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
                        n_cores = parallel::detectCores() - 2,
-                       seed = 123) {
+                       seed = 123,
+                       outcome_cols = NULL,
+                       covariate_col = NULL,
+                       treatment_col = "Treatment",
+                       K = 5,
+                       n_select = 3) {
   require(dplyr)
   require(RobinCar)
   require(tidyr)
@@ -566,9 +315,6 @@ analyze_rct2 = function(df,
     } else if (is.factor(.)) {
       replace(., is.na(.), Mode(., na.rm = TRUE)[1])
     }))
-  
-  control_level = levels(df[[treatment_col]])[1]
-  treat_pattern = paste0("^", treatment_col)
   
   control_level = levels(df[[treatment_col]])[1]
   treat_pattern = paste0("^", treatment_col)
@@ -659,128 +405,58 @@ analyze_rct2 = function(df,
       df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
     }
     
-    # NEW VARIABLE SELECTION SCHEME
-    if (selection) {
-      # Step 1: Look for baseline measures of the outcome
-      baseline_var = NULL
-      
-      # Extract outcome pattern and timing
-      if (startsWith(outcome, "YP_")) {
-        # For YP outcomes: YP_abc_7w -> look for X_abc_0w
-        # For YP_delta outcomes: YP_delta_abc_7w -> look for X_abc_0w (skip "delta")
-        outcome_parts = strsplit(outcome, "_")[[1]]
-        if (length(outcome_parts) >= 3) {
-          # Check if this is a delta outcome
-          if (outcome_parts[2] == "delta") {
-            # For YP_delta_abc_7w, extract from position 3 onwards (excluding last part which is timing)
-            if (length(outcome_parts) >= 4) {
-              middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
-              baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-            }
-          } else {
-            # For regular YP_abc_7w, extract the middle part(s) and construct baseline variable name
-            middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-            baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+    # Variable selection based on type
+    if (selection && length(valid_covariates) > 0) {
+      if (variable_selection_type == 1) {
+        # Correlation-based selection
+        selected_covariates = variable_selection_correlation(outcome, valid_covariates, df_complete_numeric, n_select)
+      } else if (variable_selection_type == 2) {
+        # Manual + baseline selection
+        selected_covariates = variable_selection_manual(outcome, valid_covariates, manual_covariates)
+        
+        # Check if we have any covariates to work with for manual selection
+        if (length(selected_covariates) == 0) {
+          cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
+          
+          # Create results with NA values
+          treatment_levels = levels(df_complete[[treatment_col]])[-1]  # Exclude control
+          n_treat = length(treatment_levels)
+          
+          # Base tibble with core columns
+          outcome_results = tibble(
+            Outcome = rep(outcome, n_treat),
+            Treatment = treatment_levels,
+            Control = rep(control_level, n_treat),
+            N = rep(nrow(df_complete), n_treat),
+            N_Covariates = rep(0, n_treat),
+            Selected_Covariates = rep("", n_treat),
+            # Set all estimates and SEs to NA
+            Est_UN = rep(NA_real_, n_treat),
+            SE_UN = rep(NA_real_, n_treat),
+            Est_AC = rep(NA_real_, n_treat),
+            SE_AC = rep(NA_real_, n_treat),
+            Est_RC_ANCOVA = rep(NA_real_, n_treat),
+            SE_RC_ANCOVA = rep(NA_real_, n_treat),
+            Est_RC_ANHECOVA = rep(NA_real_, n_treat),
+            SE_RC_ANHECOVA = rep(NA_real_, n_treat),
+            Est_RC_Binom = rep(NA_real_, n_treat),
+            SE_RC_Binom = rep(NA_real_, n_treat),
+            Est_SL = rep(NA_real_, n_treat),
+            SE_SL = rep(NA_real_, n_treat)
+          )
+          
+          # Add individual SL method columns based on what's in SL_methods (excluding SL.glm and SL.mean)
+          individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
+          for (method in individual_methods) {
+            method_clean = gsub("SL\\.", "SL_", method)
+            outcome_results[[paste0("Est_", method_clean)]] = rep(NA_real_, n_treat)
+            outcome_results[[paste0("SE_", method_clean)]] = rep(NA_real_, n_treat)
           }
           
-          # Look for variables that start with this pattern
-          if (exists("baseline_pattern")) {
-            potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
-            if (length(potential_baseline) > 0) {
-              baseline_var = potential_baseline[1]  # Take the first match
-              cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
-            }
-          }
+          valid_outcomes = c(valid_outcomes, outcome)
+          all_results[[length(valid_outcomes)]] = outcome_results
+          next
         }
-      } else if (startsWith(outcome, "YS_")) {
-        # For YS outcomes: YS_qwe_8m -> look for X_qwe_0m
-        # For YS_delta outcomes: YS_delta_qwe_8m -> look for X_qwe_0m (skip "delta")
-        outcome_parts = strsplit(outcome, "_")[[1]]
-        if (length(outcome_parts) >= 3) {
-          # Check if this is a delta outcome
-          if (outcome_parts[2] == "delta") {
-            # For YS_delta_qwe_8m, extract from position 3 onwards (excluding last part which is timing)
-            if (length(outcome_parts) >= 4) {
-              middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
-              baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-            }
-          } else {
-            # For regular YS_qwe_8m, extract the middle part(s) and construct baseline variable name
-            middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-            baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-          }
-          
-          # Look for variables that start with this pattern
-          if (exists("baseline_pattern")) {
-            potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
-            if (length(potential_baseline) > 0) {
-              baseline_var = potential_baseline[1]  # Take the first match
-              cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
-            }
-          }
-        }
-      }
-      
-      # Combine baseline variable with manual covariates
-      selected_covariates = character(0)
-      
-      # Add baseline variable if found
-      if (!is.null(baseline_var)) {
-        selected_covariates = c(selected_covariates, baseline_var)
-      }
-      
-      # Add manual covariates if provided
-      if (!is.null(manual_covariates)) {
-        # Filter manual covariates to only include those that exist in valid_covariates
-        manual_available = manual_covariates[manual_covariates %in% valid_covariates]
-        selected_covariates = c(selected_covariates, manual_available)
-      }
-      
-      # Remove duplicates
-      selected_covariates = unique(selected_covariates)
-      
-      # Check if we have any covariates to work with
-      if (length(selected_covariates) == 0) {
-        cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
-        
-        # Create results with NA values
-        treatment_levels = levels(df_complete[[treatment_col]])[-1]  # Exclude control
-        n_treat = length(treatment_levels)
-        
-        # Base tibble with core columns
-        outcome_results = tibble(
-          Outcome = rep(outcome, n_treat),
-          Treatment = treatment_levels,
-          Control = rep(control_level, n_treat),
-          N = rep(nrow(df_complete), n_treat),
-          N_Covariates = rep(0, n_treat),
-          Selected_Covariates = rep("", n_treat),
-          # Set all estimates and SEs to NA
-          Est_UN = rep(NA_real_, n_treat),
-          SE_UN = rep(NA_real_, n_treat),
-          Est_AC = rep(NA_real_, n_treat),
-          SE_AC = rep(NA_real_, n_treat),
-          Est_RC_ANCOVA = rep(NA_real_, n_treat),
-          SE_RC_ANCOVA = rep(NA_real_, n_treat),
-          Est_RC_ANHECOVA = rep(NA_real_, n_treat),
-          SE_RC_ANHECOVA = rep(NA_real_, n_treat),
-          Est_RC_Binom = rep(NA_real_, n_treat),
-          SE_RC_Binom = rep(NA_real_, n_treat),
-          Est_SL = rep(NA_real_, n_treat),
-          SE_SL = rep(NA_real_, n_treat)
-        )
-        
-        # Add individual SL method columns based on what's in SL_methods (excluding SL.glm and SL.mean)
-        individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
-        for (method in individual_methods) {
-          method_clean = gsub("SL\\.", "SL_", method)
-          outcome_results[[paste0("Est_", method_clean)]] = rep(NA_real_, n_treat)
-          outcome_results[[paste0("SE_", method_clean)]] = rep(NA_real_, n_treat)
-        }
-        
-        valid_outcomes = c(valid_outcomes, outcome)
-        all_results[[length(valid_outcomes)]] = outcome_results
-        next
       }
       
       # Use the selected covariates
@@ -906,30 +582,32 @@ analyze_rct2 = function(df,
       }
     })
     
-    # Run individual SL methods
-    individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
-    for (method in individual_methods) {
-      tryCatch({
-        sl_res_individual = analyze_rct_sl(
-          data = df_complete_numeric,
-          outcome_cols = outcome,
-          covariate_cols = valid_covariates,
-          treatment_col = treatment_col,
-          reference_arm = control_level,
-          K = K,
-          SL_methods = method,
-          n_cores = n_cores
-        )
-        # Clean method name for column naming
-        method_clean = gsub("SL\\.", "SL_", method)
-        outcome_results[[paste0("Est_", method_clean)]] = sl_res_individual$Est_SL
-        outcome_results[[paste0("SE_", method_clean)]] = sl_res_individual$SE_SL
-      }, error = function(e) {
-        # For any error, set to NA
-        method_clean = gsub("SL\\.", "SL_", method)
-        outcome_results[[paste0("Est_", method_clean)]] <<- rep(NA_real_, n_treat)
-        outcome_results[[paste0("SE_", method_clean)]] <<- rep(NA_real_, n_treat)
-      })
+    # Run individual SL methods (only if run_individual_SL = TRUE)
+    if (run_individual_SL) {
+      individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
+      for (method in individual_methods) {
+        tryCatch({
+          sl_res_individual = analyze_rct_sl(
+            data = df_complete_numeric,
+            outcome_cols = outcome,
+            covariate_cols = valid_covariates,
+            treatment_col = treatment_col,
+            reference_arm = control_level,
+            K = K,
+            SL_methods = method,
+            n_cores = n_cores
+          )
+          # Clean method name for column naming
+          method_clean = gsub("SL\\.", "SL_", method)
+          outcome_results[[paste0("Est_", method_clean)]] = sl_res_individual$Est_SL
+          outcome_results[[paste0("SE_", method_clean)]] = sl_res_individual$SE_SL
+        }, error = function(e) {
+          # For any error, set to NA
+          method_clean = gsub("SL\\.", "SL_", method)
+          outcome_results[[paste0("Est_", method_clean)]] <<- rep(NA_real_, n_treat)
+          outcome_results[[paste0("SE_", method_clean)]] <<- rep(NA_real_, n_treat)
+        })
+      }
     }
     
     valid_outcomes = c(valid_outcomes, outcome)
@@ -971,20 +649,14 @@ analyze_rct2 = function(df,
 }
 ```
 
-# Setting
-```{r}
-SL2_lib = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet")
-```
-
-
-
 ## update_df()
 
 ```{r}
 update_df = function(trial_no,
                      outcome_type,
-                     results1 = res1,
-                     results2 = res2,
+                     results,
+                     suffix = "",
+                     ensemble = 1,
                      contrast = "diff",
                      df = df_comparison) {
 
@@ -993,7 +665,7 @@ update_df = function(trial_no,
   ## ────────────────────────────────────────────────────────────────
   ## 0)  Outcome → Outcome-Type lookup
   ## ────────────────────────────────────────────────────────────────
-  unique_outcomes = unique(results1$Outcome)
+  unique_outcomes = unique(results$Outcome)
   stopifnot(length(outcome_type) == length(unique_outcomes))
 
   outcome_type_map = tibble(
@@ -1001,269 +673,205 @@ update_df = function(trial_no,
     `Outcome Type` = outcome_type
   )
 
-  ## fixed list of SL members that are run individually (glm/mean NOT included)
-  sl_members = c("SL_rpart", "SL_randomForest", "SL_glmnet", "SL_gam", "SL_bartMachine")
-
-  ## helper: safe rename if column exists
-  do_rename = function(d, old, new) {
-    if (old %in% names(d)) dplyr::rename(d, !!new := dplyr::all_of(old)) else d
-  }
+  ## Dynamically detect SL members from results columns (excluding glm/mean)
+  est_cols = names(results)[grepl("^Est_SL_", names(results))]
+  sl_members = gsub("^Est_", "", est_cols)
+  
+  # Remove any glm or mean methods if they exist
+  sl_members = sl_members[!grepl("glm|mean", sl_members, ignore.case = TRUE)]
 
   ## ────────────────────────────────────────────────────────────────
-  ## 1)  Tidy one result set (BASE or VS) with explicit SL members
+  ## 1)  Process results with the given suffix
   ## ────────────────────────────────────────────────────────────────
-  process_results = function(results, suffix = "") {
-
+  
+  # Start with core columns that we want to keep
+  core_cols = c("Outcome", "Treatment", "Control", "N_Covariates")
+  results_processed = results[, core_cols, drop = FALSE]
+  
+  # Add Selected_Covariates with suffix if it exists
+  if ("Selected_Covariates" %in% names(results)) {
     if (suffix == "") {
-      results_renamed = results %>%
-        mutate(
-          ANCOVA_est            = Est_RC_ANCOVA,
-          ANCOVA_robust_se      = SE_RC_ANCOVA,
-          ANHECOVA_est          = Est_RC_ANHECOVA,
-          ANHECOVA_robust_se    = SE_RC_ANHECOVA,
-          Binom_est             = Est_RC_Binom,
-          Binom_robust_se       = SE_RC_Binom,
-          ANCOVA_model_based_se = SE_AC,
-          Unadjust_est          = Est_UN,
-          Unadjust_se           = SE_UN,
-          SL_est                = Est_SL,
-          SL_se                 = SE_SL
-        )
+      results_processed$Selected_Covariates = results$Selected_Covariates
     } else {
-      results_renamed = results %>%
-        mutate(
-          ANCOVA_VS_est            = Est_RC_ANCOVA,
-          ANCOVA_VS_robust_se      = SE_RC_ANCOVA,
-          ANHECOVA_VS_est          = Est_RC_ANHECOVA,
-          ANHECOVA_VS_robust_se    = SE_RC_ANHECOVA,
-          Binom_VS_est             = Est_RC_Binom,
-          Binom_VS_robust_se       = SE_RC_Binom,
-          ANCOVA_VS_model_based_se = SE_AC,
-          SL_VS_est                = Est_SL,
-          SL_VS_se                 = SE_SL,
-          Unadjust_est             = Est_UN,
-          Unadjust_se              = SE_UN
-        )
+      results_processed[[paste0("Selected_Covariates_", suffix)]] = results$Selected_Covariates
     }
-
-    ## ── explicit renames for each individual SL member ─────────────
-    for (m in sl_members) {
-      old_est = paste0("Est_", m)
-      old_se  = paste0("SE_",  m)
-      new_est = if (suffix == "") paste0(m, "_est") else paste0(m, "_VS_est")
-      new_se  = if (suffix == "") paste0(m, "_se")  else paste0(m, "_VS_se")
-      results_renamed = do_rename(results_renamed, old_est, new_est)
-      results_renamed = do_rename(results_renamed, old_se,  new_se)
-    }
-
-    ## ── attach meta data ───────────────────────────────────────────
-    results_processed = results_renamed %>%
-      left_join(outcome_type_map, by = "Outcome") %>%
+  }
+  
+  # Determine SL column names based on ensemble argument
+  sl_base_name = paste0("SL", ensemble)
+  
+  if (suffix == "") {
+    results_processed = results_processed %>%
       mutate(
-        Trial_No     = trial_no,
-        Sample_Size  = N,
-        N_Covariates = N_Covariates,
-        Contrast     = contrast
+        ANCOVA_est            = results$Est_RC_ANCOVA,
+        ANCOVA_robust_se      = results$SE_RC_ANCOVA,
+        ANHECOVA_est          = results$Est_RC_ANHECOVA,
+        ANHECOVA_robust_se    = results$SE_RC_ANHECOVA,
+        Binom_est             = results$Est_RC_Binom,
+        Binom_robust_se       = results$SE_RC_Binom,
+        ANCOVA_model_based_se = results$SE_AC,
+        Unadjust_est          = results$Est_UN,
+        Unadjust_se           = results$SE_UN,
+        !!paste0(sl_base_name, "_est") := results$Est_SL,
+        !!paste0(sl_base_name, "_se")  := results$SE_SL
       )
+  } else {
+    # For suffixed version, add suffix to method names
+    suffix_clean = paste0("_", suffix)
+    results_processed = results_processed %>%
+      mutate(
+        !!paste0("ANCOVA", suffix_clean, "_est")            := results$Est_RC_ANCOVA,
+        !!paste0("ANCOVA", suffix_clean, "_robust_se")      := results$SE_RC_ANCOVA,
+        !!paste0("ANHECOVA", suffix_clean, "_est")          := results$Est_RC_ANHECOVA,
+        !!paste0("ANHECOVA", suffix_clean, "_robust_se")    := results$SE_RC_ANHECOVA,
+        !!paste0("Binom", suffix_clean, "_est")             := results$Est_RC_Binom,
+        !!paste0("Binom", suffix_clean, "_robust_se")       := results$SE_RC_Binom,
+        !!paste0("ANCOVA", suffix_clean, "_model_based_se") := results$SE_AC,
+        !!paste0(sl_base_name, suffix_clean, "_est")        := results$Est_SL,
+        !!paste0(sl_base_name, suffix_clean, "_se")         := results$SE_SL,
+        Unadjust_est                                        := results$Est_UN,
+        Unadjust_se                                         := results$SE_UN
+      )
+  }
 
-    ## ── base/VS summary columns (ensemble + classical) ────────────
+  ## ── Add individual SL member columns ─────────────────────────────
+  for (m in sl_members) {
+    old_est = paste0("Est_", m)
+    old_se  = paste0("SE_",  m)
+    
     if (suffix == "") {
-      results_processed = results_processed %>%
-        mutate(
-          `How much precision gain can ANCOVA provide?`   = (ANCOVA_robust_se / Unadjust_se)^2,
-          `How much precision gain can ANHECOVA provide?` = (ANHECOVA_robust_se / Unadjust_se)^2,
-          `How much precision gain can Binom provide?`    = (Binom_robust_se / Unadjust_se)^2,
-          `How much precision gain can SL provide?`       = (SL_se / Unadjust_se)^2,
-          `ANCOVA vs ANHECOVA variance ratio`             = (ANCOVA_robust_se / ANHECOVA_robust_se)^2,
-          `The ratio between robust and model-based variance estimators` =
-            (ANCOVA_robust_se / ANCOVA_model_based_se)^2,
-          `The difference between unadjusted and ANCOVA point estimates` =
-            (ANCOVA_est - Unadjust_est) /
-            sqrt((ANCOVA_robust_se^2 + Unadjust_se^2) / 2),
-          `The difference between unadjusted and ANHECOVA point estimates` =
-            (ANHECOVA_est - Unadjust_est) /
-            sqrt((ANHECOVA_robust_se^2 + Unadjust_se^2) / 2),
-          `The difference between unadjusted and Binom point estimates` =
-            (Binom_est - Unadjust_est) /
-            sqrt((Binom_robust_se^2 + Unadjust_se^2) / 2),
-          `The difference between unadjusted and SL point estimates` =
-            (SL_est - Unadjust_est) /
-            sqrt((SL_se^2 + Unadjust_se^2) / 2)
-        )
+      new_est = paste0(m, "_est")
+      new_se  = paste0(m, "_se")
     } else {
+      new_est = paste0(m, "_", suffix, "_est")
+      new_se  = paste0(m, "_", suffix, "_se")
+    }
+    
+    # Only add if the original columns exist in results
+    if (old_est %in% names(results)) {
+      results_processed[[new_est]] = results[[old_est]]
+    }
+    if (old_se %in% names(results)) {
+      results_processed[[new_se]] = results[[old_se]]
+    }
+  }
+
+  ## ── attach meta data ───────────────────────────────────────────
+  results_processed = results_processed %>%
+    left_join(outcome_type_map, by = "Outcome") %>%
+    mutate(
+      Trial_No     = trial_no,
+      Sample_Size  = results$N,  # Use results$N for Sample_Size but don't keep N column
+      !!ifelse(suffix == "", "N_Covariates", paste0("N_Covariates_", suffix)) := N_Covariates,
+      Contrast     = contrast
+    )
+
+  ## ── precision gain and difference calculations ────────────────
+  # Get the appropriate SL column names for calculations
+  if (suffix == "") {
+    sl_se_col = paste0(sl_base_name, "_se")
+    sl_est_col = paste0(sl_base_name, "_est")
+  } else {
+    suffix_clean = paste0("_", suffix)
+    sl_se_col = paste0(sl_base_name, suffix_clean, "_se")
+    sl_est_col = paste0(sl_base_name, suffix_clean, "_est")
+  }
+  
+  if (suffix == "") {
+    results_processed = results_processed %>%
+      mutate(
+        `How much precision gain can ANCOVA provide?`   = (ANCOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can ANHECOVA provide?` = (ANHECOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can Binom provide?`    = (Binom_robust_se / Unadjust_se)^2,
+        !!paste0("How much precision gain can ", sl_base_name, " provide?") := 
+          (.data[[sl_se_col]] / Unadjust_se)^2,
+        `ANCOVA vs ANHECOVA variance ratio`             = (ANCOVA_robust_se / ANHECOVA_robust_se)^2,
+        `The ratio between robust and model-based variance estimators` =
+          (ANCOVA_robust_se / ANCOVA_model_based_se)^2,
+        `The difference between unadjusted and ANCOVA point estimates` =
+          (ANCOVA_est - Unadjust_est) /
+          sqrt((ANCOVA_robust_se^2 + Unadjust_se^2) / 2),
+        `The difference between unadjusted and ANHECOVA point estimates` =
+          (ANHECOVA_est - Unadjust_est) /
+          sqrt((ANHECOVA_robust_se^2 + Unadjust_se^2) / 2),
+        `The difference between unadjusted and Binom point estimates` =
+          (Binom_est - Unadjust_est) /
+          sqrt((Binom_robust_se^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and ", sl_base_name, " point estimates") :=
+          (.data[[sl_est_col]] - Unadjust_est) /
+          sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
+      )
+  } else {
+    # For suffixed version
+    suffix_clean = paste0("_", suffix)
+    ancova_se_col = paste0("ANCOVA", suffix_clean, "_robust_se")
+    anhecova_se_col = paste0("ANHECOVA", suffix_clean, "_robust_se")
+    binom_se_col = paste0("Binom", suffix_clean, "_robust_se")
+    ancova_model_se_col = paste0("ANCOVA", suffix_clean, "_model_based_se")
+    
+    ancova_est_col = paste0("ANCOVA", suffix_clean, "_est")
+    anhecova_est_col = paste0("ANHECOVA", suffix_clean, "_est")
+    binom_est_col = paste0("Binom", suffix_clean, "_est")
+    
+    results_processed = results_processed %>%
+      mutate(
+        !!paste0("How much precision gain can ANCOVA", suffix_clean, " provide?") := 
+          (.data[[ancova_se_col]] / Unadjust_se)^2,
+        !!paste0("How much precision gain can ANHECOVA", suffix_clean, " provide?") := 
+          (.data[[anhecova_se_col]] / Unadjust_se)^2,
+        !!paste0("How much precision gain can Binom", suffix_clean, " provide?") := 
+          (.data[[binom_se_col]] / Unadjust_se)^2,
+        !!paste0("How much precision gain can ", sl_base_name, suffix_clean, " provide?") := 
+          (.data[[sl_se_col]] / Unadjust_se)^2,
+        !!paste0("ANCOVA", suffix_clean, " vs ANHECOVA", suffix_clean, " variance ratio") := 
+          (.data[[ancova_se_col]] / .data[[anhecova_se_col]])^2,
+        !!paste0("The ratio between robust and model-based variance estimators", suffix_clean) := 
+          (.data[[ancova_se_col]] / .data[[ancova_model_se_col]])^2,
+        !!paste0("The difference between unadjusted and ANCOVA", suffix_clean, " point estimates") := 
+          (.data[[ancova_est_col]] - Unadjust_est) /
+          sqrt((.data[[ancova_se_col]]^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and ANHECOVA", suffix_clean, " point estimates") := 
+          (.data[[anhecova_est_col]] - Unadjust_est) /
+          sqrt((.data[[anhecova_se_col]]^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and Binom", suffix_clean, " point estimates") := 
+          (.data[[binom_est_col]] - Unadjust_est) /
+          sqrt((.data[[binom_se_col]]^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and ", sl_base_name, suffix_clean, " point estimates") := 
+          (.data[[sl_est_col]] - Unadjust_est) /
+          sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
+      )
+  }
+
+  ## ── explicit SL-member precision gains & diffs ─────────────────
+  for (m in sl_members) {
+    if (suffix == "") {
+      se_col  = paste0(m, "_se")
+      est_col = paste0(m, "_est")
+      pg_col  = paste0("How much precision gain can ", m, " provide?")
+      df_col  = paste0("The difference between unadjusted and ", m, " point estimates")
+    } else {
+      suffix_clean = paste0("_", suffix)
+      se_col  = paste0(m, suffix_clean, "_se")
+      est_col = paste0(m, suffix_clean, "_est")
+      pg_col  = paste0("How much precision gain can ", m, suffix_clean, " provide?")
+      df_col  = paste0("The difference between unadjusted and ", m, suffix_clean, " point estimates")
+    }
+    
+    if (all(c(se_col, est_col) %in% names(results_processed))) {
       results_processed = results_processed %>%
         mutate(
-          `How much precision gain can ANCOVA_VS provide?`   = (ANCOVA_VS_robust_se / Unadjust_se)^2,
-          `How much precision gain can ANHECOVA_VS provide?` = (ANHECOVA_VS_robust_se / Unadjust_se)^2,
-          `How much precision gain can Binom_VS provide?`    = (Binom_VS_robust_se / Unadjust_se)^2,
-          `How much precision gain can SL_VS provide?`       = (SL_VS_se / Unadjust_se)^2,
-          `ANCOVA_VS vs ANHECOVA_VS variance ratio`          = (ANCOVA_VS_robust_se / ANHECOVA_VS_robust_se)^2,
-          `The ratio between robust and model-based variance estimators_VS` =
-            (ANCOVA_VS_robust_se / ANCOVA_VS_model_based_se)^2,
-          `The difference between unadjusted and ANCOVA_VS point estimates` =
-            (ANCOVA_VS_est - Unadjust_est) /
-            sqrt((ANCOVA_VS_robust_se^2 + Unadjust_se^2) / 2),
-          `The difference between unadjusted and ANHECOVA_VS point estimates` =
-            (ANHECOVA_VS_est - Unadjust_est) /
-            sqrt((ANHECOVA_VS_robust_se^2 + Unadjust_se^2) / 2),
-          `The difference between unadjusted and Binom_VS point estimates` =
-            (Binom_VS_est - Unadjust_est) /
-            sqrt((Binom_VS_robust_se^2 + Unadjust_se^2) / 2),
-          `The difference between unadjusted and SL_VS point estimates` =
-            (SL_VS_est - Unadjust_est) /
-            sqrt((SL_VS_se^2 + Unadjust_se^2) / 2)
+          !!pg_col := (.data[[se_col]] / Unadjust_se)^2,
+          !!df_col := (.data[[est_col]] - Unadjust_est) /
+                      sqrt((.data[[se_col]]^2 + Unadjust_se^2) / 2)
         )
     }
-
-    ## ── explicit SL-member precision gains & diffs ─────────────────
-    for (m in sl_members) {
-      if (suffix == "") {
-        se_col  = paste0(m, "_se")
-        est_col = paste0(m, "_est")
-        pg_col  = paste0("How much precision gain can ", m, " provide?")
-        df_col  = paste0("The difference between unadjusted and ", m, " point estimates")
-      } else {
-        se_col  = paste0(m, "_VS_se")
-        est_col = paste0(m, "_VS_est")
-        pg_col  = paste0("How much precision gain can ", m, "_VS provide?")
-        df_col  = paste0("The difference between unadjusted and ", m, "_VS point estimates")
-      }
-      if (all(c(se_col, est_col) %in% names(results_processed))) {
-        results_processed = results_processed %>%
-          mutate(
-            !!pg_col := (.data[[se_col]] / Unadjust_se)^2,
-            !!df_col := (.data[[est_col]] - Unadjust_est) /
-                        sqrt((.data[[se_col]]^2 + Unadjust_se^2) / 2)
-          )
-      }
-    }
-
-    results_processed
   }
 
   ## ────────────────────────────────────────────────────────────────
-  ## 2)  Process BASE and (optional) VS results
+  ## 2)  Overwrite / append in df_comparison (with column addition support)
   ## ────────────────────────────────────────────────────────────────
-  new_rows_base = process_results(results1, "")
-  new_rows      = new_rows_base
-
-  if (!is.null(results2)) {
-    new_rows_vs = process_results(results2, "VS") %>%
-      select(-N_Covariates)  # keep Selected_Covariates if present
-
-    join_keys = c("Trial_No", "Sample_Size", "Contrast",
-                  "Treatment", "Control", "Outcome",
-                  "Unadjust_est", "Unadjust_se")
-
-    new_rows = new_rows_base %>%
-      left_join(new_rows_vs, by = join_keys, suffix = c("", ".vs")) %>%
-      select(-dplyr::matches("\\.vs$"))
-  }
-
-  ## ────────────────────────────────────────────────────────────────
-  ## 3)  Desired column order (explicit blocks)
-  ## ────────────────────────────────────────────────────────────────
-  base_cols = if (!is.null(results2)) {
-    c("Trial_No", "Sample_Size", "N_Covariates", "Selected_Covariates",
-      "Treatment", "Control", "Contrast", "Outcome", "Outcome Type")
-  } else {
-    c("Trial_No", "Sample_Size", "N_Covariates",
-      "Treatment", "Control", "Contrast", "Outcome", "Outcome Type")
-  }
-
-  se_unadj = "Unadjust_se"
-
-  se_base = c(
-    "ANCOVA_robust_se","ANCOVA_model_based_se","ANHECOVA_robust_se",
-    "Binom_robust_se","SL_se",
-    "SL_rpart_se","SL_randomForest_se","SL_glmnet_se","SL_gam_se","SL_bartMachine_se"
-  )
-  se_vs   = c(
-    "ANCOVA_VS_robust_se","ANCOVA_VS_model_based_se","ANHECOVA_VS_robust_se",
-    "Binom_VS_robust_se","SL_VS_se",
-    "SL_rpart_VS_se","SL_randomForest_VS_se","SL_glmnet_VS_se","SL_gam_VS_se","SL_bartMachine_VS_se"
-  )
-
-  pg_base = c(
-    "How much precision gain can ANCOVA provide?",
-    "How much precision gain can ANHECOVA provide?",
-    "How much precision gain can Binom provide?",
-    "How much precision gain can SL provide?",
-    "How much precision gain can SL_rpart provide?",
-    "How much precision gain can SL_randomForest provide?",
-    "How much precision gain can SL_glmnet provide?",
-    "How much precision gain can SL_gam provide?",
-    "How much precision gain can SL_bartMachine provide?"
-  )
-  pg_vs = c(
-    "How much precision gain can ANCOVA_VS provide?",
-    "How much precision gain can ANHECOVA_VS provide?",
-    "How much precision gain can Binom_VS provide?",
-    "How much precision gain can SL_VS provide?",
-    "How much precision gain can SL_rpart_VS provide?",
-    "How much precision gain can SL_randomForest_VS provide?",
-    "How much precision gain can SL_glmnet_VS provide?",
-    "How much precision gain can SL_gam_VS provide?",
-    "How much precision gain can SL_bartMachine_VS provide?"
-  )
-
-  ratio_base = c(
-    "The ratio between robust and model-based variance estimators",
-    "ANCOVA vs ANHECOVA variance ratio"
-  )
-  ratio_vs = c(
-    "The ratio between robust and model-based variance estimators_VS",
-    "ANCOVA_VS vs ANHECOVA_VS variance ratio"
-  )
-
-  est_unadj = "Unadjust_est"
-
-  est_base = c(
-    "ANCOVA_est","ANHECOVA_est","Binom_est","SL_est",
-    "SL_rpart_est","SL_randomForest_est","SL_glmnet_est","SL_gam_est","SL_bartMachine_est"
-  )
-  est_vs = c(
-    "ANCOVA_VS_est","ANHECOVA_VS_est","Binom_VS_est","SL_VS_est",
-    "SL_rpart_VS_est","SL_randomForest_VS_est","SL_glmnet_VS_est","SL_gam_VS_est","SL_bartMachine_VS_est"
-  )
-
-  diff_base = c(
-    "The difference between unadjusted and ANCOVA point estimates",
-    "The difference between unadjusted and ANHECOVA point estimates",
-    "The difference between unadjusted and Binom point estimates",
-    "The difference between unadjusted and SL point estimates",
-    "The difference between unadjusted and SL_rpart point estimates",
-    "The difference between unadjusted and SL_randomForest point estimates",
-    "The difference between unadjusted and SL_glmnet point estimates",
-    "The difference between unadjusted and SL_gam point estimates",
-    "The difference between unadjusted and SL_bartMachine point estimates"
-  )
-  diff_vs = c(
-    "The difference between unadjusted and ANCOVA_VS point estimates",
-    "The difference between unadjusted and ANHECOVA_VS point estimates",
-    "The difference between unadjusted and Binom_VS point estimates",
-    "The difference between unadjusted and SL_VS point estimates",
-    "The difference between unadjusted and SL_rpart_VS point estimates",
-    "The difference between unadjusted and SL_randomForest_VS point estimates",
-    "The difference between unadjusted and SL_glmnet_VS point estimates",
-    "The difference between unadjusted and SL_gam_VS point estimates",
-    "The difference between unadjusted and SL_bartMachine_VS point estimates"
-  )
-
-  all_cols = if (!is.null(results2)) {
-    c(base_cols, se_unadj, se_base, se_vs,
-      pg_base, pg_vs, ratio_base, ratio_vs,
-      est_unadj, est_base, est_vs, diff_base, diff_vs)
-  } else {
-    c(base_cols, se_unadj, se_base,
-      pg_base, ratio_base, est_unadj, est_base, diff_base)
-  }
-
-  new_rows = dplyr::select(new_rows, dplyr::all_of(intersect(all_cols, names(new_rows))))
-
-  ## ────────────────────────────────────────────────────────────────
-  ## 4)  Overwrite / append in df_comparison
-  ## ────────────────────────────────────────────────────────────────
+  new_rows = results_processed
+  
   for (i in seq_len(nrow(new_rows))) {
     row_i = new_rows[i, ]
 
@@ -1274,15 +882,32 @@ update_df = function(trial_no,
       df$Control   == row_i$Control
     )
 
-    if (length(idx) > 0) df[idx[1], names(row_i)] = row_i
-    else                 df = dplyr::bind_rows(df, row_i)
+    if (length(idx) > 0) {
+      # Update existing row - add new columns if they don't exist
+      for (col_name in names(row_i)) {
+        if (!col_name %in% names(df)) {
+          df[[col_name]] = NA  # Add new column with NA values
+        }
+        df[idx[1], col_name] = row_i[[col_name]]
+      }
+    } else {
+      # Append new row - add missing columns with NA values
+      for (col_name in names(df)) {
+        if (!col_name %in% names(row_i)) {
+          row_i[[col_name]] = NA
+        }
+      }
+      df = dplyr::bind_rows(df, row_i)
+    }
   }
 
   df
 }
+```
 
-
-
+# Setting
+```{r}
+SL2_lib = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet")
 ```
 
 # Trial 1
@@ -1294,19 +919,43 @@ df1 = read_rds("cleaned_data/Non_Clustered_RCT/trial1.rds")
 ```
 
 ## Process
-```{r}
-res1 = analyze_rct(df1)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df1, selection = T)
 
-df_comparison = update_df(1, rep("continuous", 15))
+```{r}
+type = rep("continuous", 15)
+demo = c("X_Age_0m", "X_Weight_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Age_0m", "X_Weight_0m")
+# SL1
+res1 = analyze_rct(df1)
+df_comparison = update_df(1, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df1, T)
+df_comparison = update_df(1, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df1, selection = T)
+res3 = analyze_rct(df1, T, 2, demo)
+df_comparison = update_df(1, type, res3, "VS2")
+```
+
+
+```{r}
+# SL2
+res1 = analyze_rct(df1, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(1, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df1, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(1, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df1, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(1, type, res3, "VS2", 2)
 ```
 
 # Trial 2
@@ -1320,19 +969,43 @@ df2 = df2 %>% select(-YP_early_7d, -YP_late_12d)
 ```
 
 ## Process
-```{r}
-res1 = analyze_rct(df2)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df2, selection = T)
 
-df_comparison = update_df(2, c("time to event", "binary", "binary"))
+```{r}
+type = c("time to event", "binary", "binary")
+demo = c("X_agegrp_0d", "X_sex_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_agegrp_0d", "X_sex_0d")
+# SL1
+res1 = analyze_rct(df2)
+df_comparison = update_df(2, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df2, T)
+df_comparison = update_df(2, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df2, selection = T)
+res3 = analyze_rct(df2, T, 2, demo)
+df_comparison = update_df(2, type, res3, "VS2")
+```
+
+
+```{r}
+# SL2
+res1 = analyze_rct(df2, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(2, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df2, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(2, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df2, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(2, type, res3, "VS2", 2)
 ```
 
 
@@ -1345,19 +1018,43 @@ df3 = read_rds("cleaned_data/Non_Clustered_RCT/trial3.rds")
 ```
 
 ## Process
-```{r}
-res1 = analyze_rct(df3)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df3, selection = T)
 
-df_comparison = update_df(3, c("binary", "time to event", rep("binary", 4), "continuous", "binary"))
+```{r}
+type = c("binary", "time to event", rep("binary", 4), "continuous", "binary")
+demo = c("X_age_0m", "X_sex_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0m", "X_sex_0m")
+# SL1
+res1 = analyze_rct(df3)
+df_comparison = update_df(3, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df3, T)
+df_comparison = update_df(3, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df3, selection = T)
+res3 = analyze_rct(df3, T, 2, demo)
+df_comparison = update_df(3, type, res3, "VS2")
+```
+
+
+```{r}
+# SL2
+res1 = analyze_rct(df3, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(3, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df3, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(3, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df3, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(3, type, res3, "VS2", 2)
 ```
 
 # Trial 4
@@ -1379,44 +1076,34 @@ demo = c("X_Sex_0w", "X_Age_0w", "X_BMI_0w")
 ```{r}
 # SL1
 res1 = analyze_rct(df4)
-
 df_comparison = update_df(4, type, res1)
 
 # SL1, VS1
 cat("\n<------------------Variable Seclection------------->\n\n")
-
 res2 = analyze_rct(df4, T)
-
 df_comparison = update_df(4, type, res2, "VS1")
-```
 
-```{r}
 # SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-
 res3 = analyze_rct(df4, T, 2, demo)
-
 df_comparison = update_df(4, type, res3, "VS2")
 ```
 
 
 ```{r}
 # SL2
-res1 = analyze_rct(df4, F, 1, F, SL2_lib)
-
-df_comparison = update_df(4, type, res1, ensemble = 2)
+res1 = analyze_rct(df4, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(4, type, res1, "", 2)
 
 # SL2, VS1
 cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df4, T, 1, )
-
-df_comparison = update_df(4, type, res2, "VS1", ensemble = 2)
+res2 = analyze_rct(df4, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(4, type, res2, "VS1", 2)
 
 # SL2, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct(df4, selection = T, manual_covariates = demo)
-
-df_comparison = update_df(4, type, res3, "VS2", ensemble = 2)
+res3 = analyze_rct(df4, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(4, type, res3, "VS2", 2)
 ```
 
 # Trial 5
@@ -1430,18 +1117,41 @@ df5 = read_rds("cleaned_data/Non_Clustered_RCT/trial5.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df5)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df5, selection = T)
-
-df_comparison = update_df(5, c("composite binary", "continuous", rep("binary", 10), rep("continuous", 3), "binary"))
+type = c("composite binary", "continuous", rep("binary", 10), rep("continuous", 3), "binary")
+demo = c("X_age_0m", "X_sex_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0m", "X_sex_0m")
+# SL1
+res1 = analyze_rct(df5)
+df_comparison = update_df(5, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df5, T)
+df_comparison = update_df(5, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df5, selection = T)
+res3 = analyze_rct(df5, T, 2, demo)
+df_comparison = update_df(5, type, res3, "VS2")
+```
+
+
+```{r}
+# SL2
+res1 = analyze_rct(df5, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(5, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df5, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(5, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df5, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(5, type, res3, "VS2", 2)
 ```
 
 # Trial 6
@@ -1455,21 +1165,42 @@ df6 = read_rds("cleaned_data/Non_Clustered_RCT/trial6.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df6)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df6, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(6, rep("continuous", n))
+type = rep("continuous", length(unique(analyze_rct(df6)$Outcome)))
+demo = c("X_age_0m", "X_sex_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0m", "X_sex_0m")
+# SL1
+res1 = analyze_rct(df6)
+df_comparison = update_df(6, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df6, T)
+df_comparison = update_df(6, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df6, selection = T)
+res3 = analyze_rct(df22, T, 2, demo)
+df_comparison = update_df(22, type, res3, "VS2")
 ```
+
+```{r}
+# SL2
+res1 = analyze_rct(df22, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(22, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df22, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(22, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df22, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(22, type, res3, "VS2", 2)
+```
+
 
 # Trial 7
 
@@ -1482,18 +1213,40 @@ df7 = read_rds("cleaned_data/Non_Clustered_RCT/trial7.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df7)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df7, selection = T)
-
-df_comparison = update_df(7, rep("continuous", 8))
+type = rep("continuous", 8)
+demo = c("X_Age_0h", "X_Gender_0h")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Age_0h", "X_Gender_0h")
+# SL1
+res1 = analyze_rct(df7)
+df_comparison = update_df(7, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df7, T)
+df_comparison = update_df(7, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df7, selection = T)
+res3 = analyze_rct(df7, T, 2, demo)
+df_comparison = update_df(7, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df7, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(7, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df7, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(7, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df7, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(7, type, res3, "VS2", 2)
 ```
 
 # Trial 8
@@ -1509,19 +1262,40 @@ df8 = df8 %>% select(-X_comorbidities_0d)
 ## Process
 
 ```{r}
-res1 = analyze_rct(df8)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df8, selection = T)
-
-df_comparison = update_df(8, rep("binary", 6))
+type = rep("binary", 6)
+demo = c("X_Age_0d", "X_Sex_0d")
 ```
 
+```{r}
+# SL1
+res1 = analyze_rct(df8)
+df_comparison = update_df(8, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df8, T)
+df_comparison = update_df(8, type, res2, "VS1")
+
+# SL1, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df8, T, 2, demo)
+df_comparison = update_df(8, type, res3, "VS2")
+```
 
 ```{r}
-# vs2
-demo = c("X_Age_0d", "X_Sex_0d")
+# SL2
+res1 = analyze_rct(df8, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(8, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df8, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(8, type, res2, "VS1", 2)
+
+# SL2, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df8, selection = T)
+res3 = analyze_rct(df8, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(8, type, res3, "VS2", 2)
 ```
 
 # Trial 9
@@ -1535,22 +1309,44 @@ df9 = read_rds("cleaned_data/Non_Clustered_RCT/trial9.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df9)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df9, selection = T)
-
-df_comparison = update_df(9, c("binary", rep("continuous", 4), rep("binary", 10), "continuous",
-                               rep("binary", 2), "continuous", rep("binary", 2)))
+type = c("binary", rep("continuous", 4), rep("binary", 10), "continuous", rep("binary", 2), "continuous", rep("binary", 2))
+demo = c("X_age_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0d")
+# SL1
+res1 = analyze_rct(df9)
+df_comparison = update_df(9, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df9, T)
+df_comparison = update_df(9, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df9, selection = T)
+res3 = analyze_rct(df9, T, 2, demo)
+df_comparison = update_df(9, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df9, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(9, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df9, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(9, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df9, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(9, type, res3, "VS2", 2)
 ```
 
 # Trial 10
+
 ## Load Data
 
 ```{r}
@@ -1560,20 +1356,44 @@ df10 = read_rds("cleaned_data/Non_Clustered_RCT/trial10.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df10)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df10, selection = T)
-
-df_comparison = update_df(10, c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 15)))
+type = c(rep("binary", 3), "continuous", rep("binary", 3), rep("continuous", 15))
+demo = c("X_center_0d", "X_sex_0d", "X_age_0d", "X_weight_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_center_0d", "X_sex_0d", "X_age_0d", "X_weight_0d")
+# SL1
+res1 = analyze_rct(df10)
+df_comparison = update_df(10, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df10, T)
+df_comparison = update_df(10, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df10, selection = T)
+res3 = analyze_rct(df10, T, 2, demo)
+df_comparison = update_df(10, type, res3, "VS2")
 ```
+
+```{r}
+# SL2
+res1 = analyze_rct(df10, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(10, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df10, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(10, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df10, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(10, type, res3, "VS2", 2)
+```
+
 # Trial 11
+
 ## Load Data
 
 ```{r}
@@ -1583,23 +1403,44 @@ df11 = read_rds("cleaned_data/Non_Clustered_RCT/trial11.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df11)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df11, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(11, rep("continuous", n))
+type = rep("continuous", length(unique(analyze_rct(df11)$Outcome)))
+demo = c("X_sex_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_sex_0w")
+# SL1
+res1 = analyze_rct(df11)
+df_comparison = update_df(11, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df11, T)
+df_comparison = update_df(11, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df11, selection = T)
+res3 = analyze_rct(df11, T, 2, demo)
+df_comparison = update_df(11, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df11, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(11, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df11, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(11, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df11, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(11, type, res3, "VS2", 2)
 ```
 
 # Trial 12
+
 ## Load Data
 
 ```{r}
@@ -1609,23 +1450,44 @@ df12 = read_rds("cleaned_data/Non_Clustered_RCT/trial12.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df12)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df12, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(12, c(rep("binary", n)))
+type = rep("binary", length(unique(analyze_rct(df12)$Outcome)))
+demo = c("X_AuthorGender_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_AuthorGender_0w")
+# SL1
+res1 = analyze_rct(df12)
+df_comparison = update_df(12, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df12, T)
+df_comparison = update_df(12, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df12, selection = T)
+res3 = analyze_rct(df12, T, 2, demo)
+df_comparison = update_df(12, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df12, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(12, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df12, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(12, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df12, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(12, type, res3, "VS2", 2)
 ```
 
 # Trial 13
+
 ## Load Data
 
 ```{r}
@@ -1635,23 +1497,44 @@ df13 = read_rds("cleaned_data/Non_Clustered_RCT/trial13.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df13)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df13, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(13, c("continuous", "binary", rep("continuous", 8), "binary", "binary", rep("continuous", 5)))
+type = c("continuous", "binary", rep("continuous", 8), "binary", "binary", rep("continuous", 5))
+demo = c("X_AGE_0min")
 ```
 
 ```{r}
-# vs2
-demo = c("X_AGE_0min")
+# SL1
+res1 = analyze_rct(df13)
+df_comparison = update_df(13, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df13, T)
+df_comparison = update_df(13, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df13, selection = T)
+res3 = analyze_rct(df13, T, 2, demo)
+df_comparison = update_df(13, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df13, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(13, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df13, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(13, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df13, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(13, type, res3, "VS2", 2)
 ```
 
 # Trial 14
+
 ## Load Data
 
 ```{r}
@@ -1661,23 +1544,45 @@ df14 = read_rds("cleaned_data/Non_Clustered_RCT/trial14.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df14)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df14, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(14, c(rep("continuous", n-5), rep("binary", 5)))
+n = length(unique(analyze_rct(df14)$Outcome))
+type = c(rep("continuous", n-5), rep("binary", 5))
+demo = c("X_center_0w", "X_sex_0w", "X_age_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_center_0w", "X_sex_0w", "X_age_0w")
+# SL1
+res1 = analyze_rct(df14)
+df_comparison = update_df(14, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df14, T)
+df_comparison = update_df(14, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df14, selection = T)
+res3 = analyze_rct(df14, T, 2, demo)
+df_comparison = update_df(14, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df14, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(14, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df14, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(14, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df14, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(14, type, res3, "VS2", 2)
 ```
 
 # Trial 15
+
 ## Load Data
 
 ```{r}
@@ -1687,24 +1592,44 @@ df15 = read_rds("cleaned_data/Non_Clustered_RCT/trial15.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df15)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df15, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(15, rep("continuous", n))
+type = rep("continuous", length(unique(analyze_rct(df15)$Outcome)))
+demo = c()
 ```
 
 ```{r}
-# vs2
-demo = c()
+# SL1
+res1 = analyze_rct(df15)
+df_comparison = update_df(15, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df15, T)
+df_comparison = update_df(15, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df15, selection = T)
+res3 = analyze_rct(df15, T, 2, demo)
+df_comparison = update_df(15, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df15, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(15, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df15, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(15, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df15, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(15, type, res3, "VS2", 2)
+```
 
 # Trial 16
+
 ## Load Data
 
 ```{r}
@@ -1714,24 +1639,44 @@ df16 = read_rds("cleaned_data/Non_Clustered_RCT/trial16.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df16)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df16, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(16, rep("continuous", n))
+type = rep("continuous", length(unique(analyze_rct(df16)$Outcome)))
+demo = c("X_age_0w", "X_sex_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w", "X_sex_0w")
+# SL1
+res1 = analyze_rct(df16)
+df_comparison = update_df(16, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df16, T)
+df_comparison = update_df(16, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df16, selection = T)
+res3 = analyze_rct(df16, T, 2, demo)
+df_comparison = update_df(16, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df16, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(16, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df16, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(16, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df16, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(16, type, res3, "VS2", 2)
+```
 
 # Trial 17
+
 ## Load Data
 
 ```{r}
@@ -1741,24 +1686,44 @@ df17 = read_rds("cleaned_data/Non_Clustered_RCT/trial17.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df17)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df17, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(17, rep("continuous", n))
+type = rep("continuous", length(unique(analyze_rct(df17)$Outcome)))
+demo = c("X_age_0w", "X_sex_0w", "X_BMI_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w", "X_sex_0w", "X_BMI_0w")
+# SL1
+res1 = analyze_rct(df17)
+df_comparison = update_df(17, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df17, T)
+df_comparison = update_df(17, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df17, selection = T)
+res3 = analyze_rct(df17, T, 2, demo)
+df_comparison = update_df(17, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df17, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(17, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df17, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(17, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df17, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(17, type, res3, "VS2", 2)
+```
 
 # Trial 18
+
 ## Load Data
 
 ```{r}
@@ -1769,24 +1734,45 @@ df18 = read_rds("cleaned_data/Non_Clustered_RCT/trial18.rds") %>%
 ## Process
 
 ```{r}
-res1 = analyze_rct(df18)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df18, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(18, c("time to event", rep("continuous", n-1)))
+n = length(unique(analyze_rct(df18)$Outcome))
+type = c("time to event", rep("continuous", n-1))
+demo = c("X_AgeCat_0m", "X_Gender_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_AgeCat_0m", "X_Gender_0m")
+# SL1
+res1 = analyze_rct(df18)
+df_comparison = update_df(18, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df18, T)
+df_comparison = update_df(18, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df18, selection = T)
+res3 = analyze_rct(df18, T, 2, demo)
+df_comparison = update_df(18, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df18, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(18, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df18, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(18, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df18, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(18, type, res3, "VS2", 2)
+```
 
 # Trial 19
+
 ## Load Data
 
 ```{r}
@@ -1796,24 +1782,45 @@ df19 = read_rds("cleaned_data/Non_Clustered_RCT/trial19.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df19)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df19, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(19, c(rep("continuous", n-1), "binary"))
+n = length(unique(analyze_rct(df19)$Outcome))
+type = c(rep("continuous", n-1), "binary")
+demo = c("X_RECIPIENT_AGE_YEARS_0d", "X_RECIPIENT_GENDER_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_RECIPIENT_AGE_YEARS_0d", "X_RECIPIENT_GENDER_0d")
+# SL1
+res1 = analyze_rct(df19)
+df_comparison = update_df(19, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df19, T)
+df_comparison = update_df(19, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df19, selection = T)
+res3 = analyze_rct(df19, T, 2, demo)
+df_comparison = update_df(19, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df19, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(19, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df19, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(19, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df19, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(19, type, res3, "VS2", 2)
+```
 
 # Trial 20
+
 ## Load Data
 
 ```{r}
@@ -1823,24 +1830,44 @@ df20 = read_rds("cleaned_data/Non_Clustered_RCT/trial20.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df20)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df20, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(20, rep("continuous", n))
+type = rep("continuous", length(unique(analyze_rct(df20)$Outcome)))
+demo = c("X_Age_0w", "X_Sex_0w", "X_Weight_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Age_0w", "X_Sex_0w", "X_Weight_0w")
+# SL1
+res1 = analyze_rct(df20)
+df_comparison = update_df(20, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df20, T)
+df_comparison = update_df(20, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df20, selection = T)
+res3 = analyze_rct(df20, T, 2, demo)
+df_comparison = update_df(20, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df20, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(20, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df20, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(20, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df20, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(20, type, res3, "VS2", 2)
+```
 
 # Trial 21
+
 ## Load Data
 
 ```{r}
@@ -1851,24 +1878,44 @@ df21 = read_rds("cleaned_data/Non_Clustered_RCT/trial21.rds") %>%
 ## Process
 
 ```{r}
-res1 = analyze_rct(df21)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df21, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(21, c("time to event", rep("binary", 4), "continuous"))
+type = c("time to event", rep("binary", 4), "continuous")
+demo = c()
 ```
 
 ```{r}
-# vs2
-demo = c()
+# SL1
+res1 = analyze_rct(df21)
+df_comparison = update_df(21, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df21, T)
+df_comparison = update_df(21, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df21, selection = T)
+res3 = analyze_rct(df21, T, 2, demo)
+df_comparison = update_df(21, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df21, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(21, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df21, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(21, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df21, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(21, type, res3, "VS2", 2)
+```
 
 # Trial 22
+
 ## Load Data
 
 ```{r}
@@ -1878,24 +1925,27 @@ df22 = read_rds("cleaned_data/Non_Clustered_RCT/trial22.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df22)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df22, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(22, c(rep("binary", 2), "continuous", rep("binary", 1), "continuous"))
+type = c(rep("binary", 2), "continuous", rep("binary", 1), "continuous")
+demo = c("X_age_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w")
+# SL1
+res1 = analyze_rct(df22)
+df_comparison = update_df(22, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df22, T)
+df_comparison = update_df(22, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df22, selection = T)
-```
+res
 
 
 # Trial 23
+
 ## Load Data
 
 ```{r}
@@ -1906,24 +1956,45 @@ df23 = read_rds("cleaned_data/Non_Clustered_RCT/trial23.rds") %>%
 ## Process
 
 ```{r}
-res1 = analyze_rct(df23)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df23, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(23, c("time to event", "time to event", rep("continuous", n - 2)))
+n = length(unique(analyze_rct(df23)$Outcome))
+type = c("time to event", "time to event", rep("continuous", n - 2))
+demo = c()
 ```
 
 ```{r}
-# vs2
-demo = c()
+# SL1
+res1 = analyze_rct(df23)
+df_comparison = update_df(23, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df23, T)
+df_comparison = update_df(23, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df23, selection = T)
+res3 = analyze_rct(df23, T, 2, demo)
+df_comparison = update_df(23, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df23, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(23, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df23, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(23, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df23, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(23, type, res3, "VS2", 2)
+```
 
 # Trial 24
+
 ## Load Data
 
 ```{r}
@@ -1933,24 +2004,44 @@ df24 = read_rds("cleaned_data/Non_Clustered_RCT/trial24.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df24)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df24, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(24, c("binary", "continuous", "continuous"))
+type = c("binary", "continuous", "continuous")
+demo = c("X_Age_0d", "X_Weight_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Age_0d", "X_Weight_0d")
+# SL1
+res1 = analyze_rct(df24)
+df_comparison = update_df(24, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df24, T)
+df_comparison = update_df(24, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df24, selection = T)
+res3 = analyze_rct(df24, T, 2, demo)
+df_comparison = update_df(24, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df24, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(24, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df24, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(24, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df24, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(24, type, res3, "VS2", 2)
+```
 
 # Trial 25
+
 ## Load Data
 
 ```{r}
@@ -1960,24 +2051,44 @@ df25 = read_rds("cleaned_data/Non_Clustered_RCT/trial25.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df25)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df25, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(25, c(rep("continuous", 11), "binary", rep("continuous", 5)))
+type = c(rep("continuous", 11), "binary", rep("continuous", 5))
+demo = c("X_Sex_0w", "X_BMI_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Sex_0w", "X_BMI_0w")
+# SL1
+res1 = analyze_rct(df25)
+df_comparison = update_df(25, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df25, T)
+df_comparison = update_df(25, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df25, selection = T)
+res3 = analyze_rct(df25, T, 2, demo)
+df_comparison = update_df(25, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df25, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(25, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df25, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(25, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df25, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(25, type, res3, "VS2", 2)
+```
 
 # Trial 26
+
 ## Load Data
 
 ```{r}
@@ -1987,24 +2098,45 @@ df26 = read_rds("cleaned_data/Non_Clustered_RCT/trial26.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df26)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df26, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(26, c("continuous", "binary", "categorical", rep("continuous", n-3)))
+n = length(unique(analyze_rct(df26)$Outcome))
+type = c("continuous", "binary", "categorical", rep("continuous", n-3))
+demo = c("X_Agecat_0m", "X_weight_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Agecat_0m", "X_weight_0m")
+# SL1
+res1 = analyze_rct(df26)
+df_comparison = update_df(26, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df26, T)
+df_comparison = update_df(26, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df26, selection = T)
+res3 = analyze_rct(df26, T, 2, demo)
+df_comparison = update_df(26, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df26, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(26, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df26, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(26, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df26, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(26, type, res3, "VS2", 2)
+```
 
 # Trial 27
+
 ## Load Data
 
 ```{r}
@@ -2014,25 +2146,44 @@ df27 = read_rds("cleaned_data/Non_Clustered_RCT/trial27.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df27)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df27, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(27, c("categorical", "binary", "continuous", "categorical",
-                                "continuous", "continuous", "binary", "continuous"))
+type = c("categorical", "binary", "continuous", "categorical", "continuous", "continuous", "binary", "continuous")
+demo = c()
 ```
 
 ```{r}
-# vs2
-demo = c()
+# SL1
+res1 = analyze_rct(df27)
+df_comparison = update_df(27, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df27, T)
+df_comparison = update_df(27, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df27, selection = T)
+res3 = analyze_rct(df27, T, 2, demo)
+df_comparison = update_df(27, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df27, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(27, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df27, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(27, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df27, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(27, type, res3, "VS2", 2)
+```
 
 # Trial 28
+
 ## Load Data
 
 ```{r}
@@ -2042,25 +2193,44 @@ df28 = read_rds("cleaned_data/Non_Clustered_RCT/trial28.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df28)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df28, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(28, c("binary", rep("continuous", 7), "binary", "continuous",
-                                "binary", rep("continuous", 2)))
+type = c("binary", rep("continuous", 7), "binary", "continuous", "binary", rep("continuous", 2))
+demo = c("X_SEX_0m", "X_Age_0m", "X_BMI_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_SEX_0m", "X_Age_0m", "X_BMI_0m")
+# SL1
+res1 = analyze_rct(df28)
+df_comparison = update_df(28, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df28, T)
+df_comparison = update_df(28, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df28, selection = T)
+res3 = analyze_rct(df28, T, 2, demo)
+df_comparison = update_df(28, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df28, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(28, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df28, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(28, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df28, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(28, type, res3, "VS2", 2)
+```
 
 # Trial 29
+
 ## Load Data
 
 ```{r}
@@ -2071,25 +2241,44 @@ df29 = read_rds("cleaned_data/Non_Clustered_RCT/trial29.rds") %>%
 ## Process
 
 ```{r}
-res1 = analyze_rct(df29)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df29, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(29, c("time to event", "binary", "binary", "continuous"))
+type = c("time to event", "binary", "binary", "continuous")
+demo = c("X_age_0w", "X_sex_0w", "X_on_art_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w", "X_sex_0w", "X_on_art_0w")
+# SL1
+res1 = analyze_rct(df29)
+df_comparison = update_df(29, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df29, T)
+df_comparison = update_df(29, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df29, selection = T)
+res3 = analyze_rct(df29, T, 2, demo)
+df_comparison = update_df(29, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df29, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(29, type, res1, "", 2)
 
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df29, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(29, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df29, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(29, type, res3, "VS2", 2)
+```
 
 # Trial 30
+
 ## Load Data
 
 ```{r}
@@ -2099,23 +2288,44 @@ df30 = read_rds("cleaned_data/Non_Clustered_RCT/trial30.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df30)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df30, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(30, c(rep("continuous", 6), "binary", rep("continuous", 2)))
+type = c(rep("continuous", 6), "binary", rep("continuous", 2))
+demo = c("X_Sex_0d", "X_Age_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Sex_0d", "X_Age_0d")
+# SL1
+res1 = analyze_rct(df30)
+df_comparison = update_df(30, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df30, T)
+df_comparison = update_df(30, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df30, selection = T)
+res3 = analyze_rct(df30, T, 2, demo)
+df_comparison = update_df(30, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df30, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(30, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df30, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(30, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df30, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(30, type, res3, "VS2", 2)
 ```
 
 # Trial 31
+
 ## Load Data
 
 ```{r}
@@ -2126,24 +2336,44 @@ df31 = read_rds("cleaned_data/Non_Clustered_RCT/trial31.rds") %>%
 ## Process
 
 ```{r}
-res1 = analyze_rct(df31)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df31, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(31, c("time to event", "continuous", "continuous", "binary", "binary"))
+type = c("time to event", "continuous", "continuous", "binary", "binary")
+demo = c("X_age_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w")
+# SL1
+res1 = analyze_rct(df31)
+df_comparison = update_df(31, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df31, T)
+df_comparison = update_df(31, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df31, selection = T)
+res3 = analyze_rct(df31, T, 2, demo)
+df_comparison = update_df(31, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df31, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(31, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df31, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(31, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df31, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(31, type, res3, "VS2", 2)
+```
 
 # Trial 32
+
 ## Load Data
 
 ```{r}
@@ -2153,23 +2383,44 @@ df32 = read_rds("cleaned_data/Non_Clustered_RCT/trial32.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df32)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df32, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(32, c("categorical", "binary", "binary", "binary"))
+type = c("categorical", "binary", "binary", "binary")
+demo = c("X_gender_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_gender_0w")
+# SL1
+res1 = analyze_rct(df32)
+df_comparison = update_df(32, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df32, T)
+df_comparison = update_df(32, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df32, selection = T)
+res3 = analyze_rct(df32, T, 2, demo)
+df_comparison = update_df(32, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df32, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(32, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df32, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(32, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df32, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(32, type, res3, "VS2", 2)
 ```
 
 # Trial 33
+
 ## Load Data
 
 ```{r}
@@ -2179,23 +2430,44 @@ df33 = read_rds("cleaned_data/Non_Clustered_RCT/trial33.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df33)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df33, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(33, c("continuous", "binary"))
+type = c("continuous", "binary")
+demo = c("X_age_0w", "X_Gender_0w", "X_DiseaseGroup_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w", "X_Gender_0w", "X_DiseaseGroup_0w")
+# SL1
+res1 = analyze_rct(df33)
+df_comparison = update_df(33, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df33, T)
+df_comparison = update_df(33, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df33, selection = T)
+res3 = analyze_rct(df33, T, 2, demo)
+df_comparison = update_df(33, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df33, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(33, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df33, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(33, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df33, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(33, type, res3, "VS2", 2)
 ```
 
 # Trial 34
+
 ## Load Data
 
 ```{r}
@@ -2205,23 +2477,44 @@ df34 = read_rds("cleaned_data/Non_Clustered_RCT/trial34.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df34)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df34, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(34, c("binary", "continuous", rep("binary", 6)))
+type = c("binary", "continuous", rep("binary", 6))
+demo = c("X_wt_0d", "X_sex_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_wt_0d", "X_sex_0d")
+# SL1
+res1 = analyze_rct(df34)
+df_comparison = update_df(34, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df34, T)
+df_comparison = update_df(34, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df34, selection = T)
+res3 = analyze_rct(df34, T, 2, demo)
+df_comparison = update_df(34, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df34, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(34, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df34, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(34, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df34, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(34, type, res3, "VS2", 2)
 ```
 
 # Trial 35
+
 ## Load Data
 
 ```{r}
@@ -2231,24 +2524,44 @@ df35 = read_rds("cleaned_data/Non_Clustered_RCT/trial35.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df35)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df35, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(35, c("continuous", "continuous", "continuous", "binary",
-                                rep("continuous", 6)))
+type = c("continuous", "continuous", "continuous", "binary", rep("continuous", 6))
+demo = c("X_BMI_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_BMI_0w")
+# SL1
+res1 = analyze_rct(df35)
+df_comparison = update_df(35, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df35, T)
+df_comparison = update_df(35, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df35, selection = T)
+res3 = analyze_rct(df35, T, 2, demo)
+df_comparison = update_df(35, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df35, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(35, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df35, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(35, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df35, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(35, type, res3, "VS2", 2)
 ```
 
 # Trial 36
+
 ## Load Data
 
 ```{r}
@@ -2258,23 +2571,44 @@ df36 = read_rds("cleaned_data/Non_Clustered_RCT/trial36.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df36)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df36, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(36, rep("continuous", n))
+type = rep("continuous", length(unique(analyze_rct(df36)$Outcome)))
+demo = c()
 ```
 
 ```{r}
-# vs2
-demo = c()
+# SL1
+res1 = analyze_rct(df36)
+df_comparison = update_df(36, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df36, T)
+df_comparison = update_df(36, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df36, selection = T)
+res3 = analyze_rct(df36, T, 2, demo)
+df_comparison = update_df(36, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df36, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(36, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df36, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(36, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df36, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(36, type, res3, "VS2", 2)
 ```
 
 # Trial 37
+
 ## Load Data
 
 ```{r}
@@ -2284,23 +2618,44 @@ df37 = read_rds("cleaned_data/Non_Clustered_RCT/trial37.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df37)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df37, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(37, rep("binary", n))
+type = rep("binary", length(unique(analyze_rct(df37)$Outcome)))
+demo = c("X_site_0d", "X_age_0d", "X_gender_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_site_0d", "X_age_0d", "X_gender_0d")
+# SL1
+res1 = analyze_rct(df37)
+df_comparison = update_df(37, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df37, T)
+df_comparison = update_df(37, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df37, selection = T)
+res3 = analyze_rct(df37, T, 2, demo)
+df_comparison = update_df(37, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df37, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(37, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df37, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(37, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df37, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(37, type, res3, "VS2", 2)
 ```
 
 # Trial 38
+
 ## Load Data
 
 ```{r}
@@ -2311,24 +2666,44 @@ df38 = read_rds("cleaned_data/Non_Clustered_RCT/trial38.rds") %>%
 ## Process
 
 ```{r}
-res1 = analyze_rct(df38)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df38, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(38, c("time to event", "continuous", "continuous"))
+type = c("time to event", "continuous", "continuous")
+demo = c("X_age_0w", "X_weight_0w", "X_gender_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w", "X_weight_0w", "X_gender_0w")
+# SL1
+res1 = analyze_rct(df38)
+df_comparison = update_df(38, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df38, T)
+df_comparison = update_df(38, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df38, selection = T)
+res3 = analyze_rct(df38, T, 2, demo)
+df_comparison = update_df(38, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df38, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(38, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df38, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(38, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df38, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(38, type, res3, "VS2", 2)
+```
 
 # Trial 39
+
 ## Load Data
 
 ```{r}
@@ -2336,27 +2711,47 @@ df39 = read_rds("cleaned_data/Non_Clustered_RCT/trial39.rds") %>%
   select(-YP_event_flag)
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df39)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df39, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(39, c("time to event"))
+type = c("time to event")
+demo = c("X_age_0w", "X_sex_0w", "X_substance_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0w", "X_sex_0w", "X_substance_0w")
+# SL1
+res1 = analyze_rct(df39)
+df_comparison = update_df(39, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df39, T)
+df_comparison = update_df(39, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df39, selection = T)
+res3 = analyze_rct(df39, T, 2, demo)
+df_comparison = update_df(39, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df39, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(39, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df39, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(39, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df39, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(39, type, res3, "VS2", 2)
 ```
 
 # Trial 40
+
 ## Load Data
 
 ```{r}
@@ -2365,56 +2760,94 @@ df40 = read_rds("cleaned_data/Non_Clustered_RCT/trial40.rds") %>%
          -YS_attempt1_success, -YS_attempt2_success, -YS_attempt3_success, -YS_attempt2_assigned,-YS_attempt3_assigned)
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df40)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df40, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(40, c("time to event", "continuous", "continuous", "binary", "continuous",
-                                "continuous", "binary"))
+type = c("time to event", "continuous", "continuous", "binary", "continuous", "continuous", "binary")
+demo = c("X_age_0d", "X_gender_0d", "X_BMI_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_0d", "X_gender_0d", "X_BMI_0d")
+# SL1
+res1 = analyze_rct(df40)
+df_comparison = update_df(40, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df40, T)
+df_comparison = update_df(40, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df40, selection = T)
+res3 = analyze_rct(df40, T, 2, demo)
+df_comparison = update_df(40, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df40, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(40, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df40, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(40, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df40, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(40, type, res3, "VS2", 2)
 ```
 
 # Trial 41
+
 ## Load Data
 
 ```{r}
 df41 = read_rds("cleaned_data/Non_Clustered_RCT/trial41.rds")
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df41)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df41, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(41, c(rep("binary", 5)))
+type = rep("binary", 5)
+demo = c("X_gender_0h", "X_BMI_0h", "X_age_0h")
 ```
 
 ```{r}
-# vs2
-demo = c("X_gender_0h", "X_BMI_0h", "X_age_0h")
+# SL1
+res1 = analyze_rct(df41)
+df_comparison = update_df(41, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df41, T)
+df_comparison = update_df(41, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df41, selection = T)
+res3 = analyze_rct(df41, T, 2, demo)
+df_comparison = update_df(41, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df41, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(41, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df41, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(41, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df41, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(41, type, res3, "VS2", 2)
+```
 
 # Trial 42
+
 ## Load Data
 
 ```{r}
@@ -2422,27 +2855,48 @@ df42 = read_rds("cleaned_data/Non_Clustered_RCT/trial42.rds") %>%
   select(-YP_onset_sensory_censor, -YS_med_duration, -YS_med_duration_censor)
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df42)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df42, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(42, c("time to event", rep("continuous", n-1)))
+n = length(unique(analyze_rct(df42)$Outcome))
+type = c("time to event", rep("continuous", n-1))
+demo = c("X_gender_0h", "X_bmi_0h", "X_age_0h")
 ```
 
 ```{r}
-# vs2
-demo = c("X_gender_0h", "X_bmi_0h", "X_age_0h")
+# SL1
+res1 = analyze_rct(df42)
+df_comparison = update_df(42, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df42, T)
+df_comparison = update_df(42, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df42, selection = T)
+res3 = analyze_rct(df42, T, 2, demo)
+df_comparison = update_df(42, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df42, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(42, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df42, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(42, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df42, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(42, type, res3, "VS2", 2)
 ```
 
 # Trial 43
+
 ## Load Data
 
 ```{r}
@@ -2450,54 +2904,94 @@ df43 = read_rds("cleaned_data/Non_Clustered_RCT/trial43.rds") %>%
   select(-YP_preterm_flag)
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df43)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df43, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(43, c("time to event", rep("continuous", 3), "binary"))
+type = c("time to event", rep("continuous", 3), "binary")
+demo = c("X_Age_0d", "X_BMI_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Age_0d", "X_BMI_0d")
+# SL1
+res1 = analyze_rct(df43)
+df_comparison = update_df(43, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df43, T)
+df_comparison = update_df(43, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df43, selection = T)
+res3 = analyze_rct(df43, T, 2, demo)
+df_comparison = update_df(43, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df43, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(43, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df43, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(43, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df43, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(43, type, res3, "VS2", 2)
 ```
 
 # Trial 44
+
 ## Load Data
 
 ```{r}
 df44 = read_rds("cleaned_data/Non_Clustered_RCT/trial44.rds")
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df44)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df44, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(44, c("binary", rep("continuous", 3)))
+type = c("binary", rep("continuous", 3))
+demo = c("X_Age_0m", "X_Sex_0m", "X_Wt_0m")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Age_0m", "X_Sex_0m", "X_Wt_0m")
+# SL1
+res1 = analyze_rct(df44)
+df_comparison = update_df(44, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df44, T)
+df_comparison = update_df(44, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df44, selection = T)
+res3 = analyze_rct(df44, T, 2, demo)
+df_comparison = update_df(44, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df44, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(44, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df44, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(44, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df44, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(44, type, res3, "VS2", 2)
 ```
 
 # Trial 45
+
 ## Load Data
 
 ```{r}
@@ -2506,27 +3000,47 @@ df45 = read_rds("cleaned_data/Non_Clustered_RCT/trial45.rds") %>%
          -YS_delta_fats_24w, -YS_delta_ldl_24w, -YS_delta_tg_24w, -YS_delta_hba1c_24w)
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df45)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df45, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(45, c(rep("continuous", n)))
+type = rep("continuous", length(unique(analyze_rct(df45)$Outcome)))
+demo = c("X_weight_8w", "X_store_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_weight_8w", "X_store_0w", )
+# SL1
+res1 = analyze_rct(df45)
+df_comparison = update_df(45, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df45, T)
+df_comparison = update_df(45, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df45, selection = T)
+res3 = analyze_rct(df45, T, 2, demo)
+df_comparison = update_df(45, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df45, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(45, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df45, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(45, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df45, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(45, type, res3, "VS2", 2)
 ```
 
 # Trial 46
+
 ## Load Data
 
 ```{r}
@@ -2536,107 +3050,186 @@ df46 = read_rds("cleaned_data/Non_Clustered_RCT/trial46.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df46)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df46, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(46, c(rep("continuous", n)))
+type = rep("continuous", length(unique(analyze_rct(df46)$Outcome)))
+demo = c("X_Age_0y")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Age_0y")
+# SL1
+res1 = analyze_rct(df46)
+df_comparison = update_df(46, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df46, T)
+df_comparison = update_df(46, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df46, selection = T)
+res3 = analyze_rct(df46, T, 2, demo)
+df_comparison = update_df(46, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df46, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(46, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df46, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(46, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df46, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(46, type, res3, "VS2", 2)
+```
 
 # Trial 47
+
 ## Load Data
 
 ```{r}
 df47 = read_rds("cleaned_data/Non_Clustered_RCT/trial47.rds")
 ```
 
-
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df47)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df47, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(47, c(rep("binary", 1), "continuous", "binary", "binary"))
+type = c("binary", "continuous", "binary", "binary")
+demo = c("X_gender_0h", "X_age_range_0h", "X_weight_range_0h")
 ```
 
 ```{r}
-# vs2
-demo = c("X_gender_0h", "X_age_range_0h", "X_weight_range_0h")
+# SL1
+res1 = analyze_rct(df47)
+df_comparison = update_df(47, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df47, T)
+df_comparison = update_df(47, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df47, selection = T)
+res3 = analyze_rct(df47, T, 2, demo)
+df_comparison = update_df(47, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df47, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(47, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df47, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(47, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df47, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(47, type, res3, "VS2", 2)
 ```
 
 # Trial 48
+
 ## Load Data
 
 ```{r}
 df48 = read_rds("cleaned_data/Non_Clustered_RCT/trial48.rds")
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df48)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df48, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(48, c("binary", rep("continuous", 6), rep("binary", 2)))
+type = c("binary", rep("continuous", 6), rep("binary", 2))
+demo = c("X_age_group", "X_sex")
 ```
 
 ```{r}
-# vs2
-demo = c("X_age_group", "X_sex")
+# SL1
+res1 = analyze_rct(df48)
+df_comparison = update_df(48, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df48, T)
+df_comparison = update_df(48, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df48, selection = T)
+res3 = analyze_rct(df48, T, 2, demo)
+df_comparison = update_df(48, type, res3, "VS2")
 ```
 
+```{r}
+# SL2
+res1 = analyze_rct(df48, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(48, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df48, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(48, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df48, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(48, type, res3, "VS2", 2)
+```
 
 # Trial 49
+
 ## Load Data
 
 ```{r}
 df49 = read_rds("cleaned_data/Non_Clustered_RCT/trial49.rds") %>% 
-    select(-YS_t_sondad, -YS_full_oral)
+  select(-YS_t_sondad, -YS_full_oral)
 ```
 
 ## Process
 
 ```{r}
-res1 = analyze_rct(df49)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df49, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(49, c(rep("continuous", 4), rep("binary", 4), rep("continuous", 9)))
+type = c(rep("continuous", 4), rep("binary", 4), rep("continuous", 9))
+demo = c("X_gestAge_0w", "X_birthWt_0d")
 ```
 
 ```{r}
-# vs2
-demo = c("X_gestAge_0w", "X_birthWt_0d")
+# SL1
+res1 = analyze_rct(df49)
+df_comparison = update_df(49, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df49, T)
+df_comparison = update_df(49, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df49, selection = T)
+res3 = analyze_rct(df49, T, 2, demo)
+df_comparison = update_df(49, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df49, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(49, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df49, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(49, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df49, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(49, type, res3, "VS2", 2)
 ```
 
 # Trial 50
+
 ## Load Data
 
 ```{r}
@@ -2644,24 +3237,43 @@ df50 = read_rds("cleaned_data/Non_Clustered_RCT/trial50.rds") %>%
   select(-YP_first_infection_event)
 ```
 
-
 ## Process
 
 ```{r}
-res1 = analyze_rct(df50)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df50, selection = T)
-
-n = length(unique(res1$Outcome))
-
-df_comparison = update_df(50, c("time to event", "continuous"))
+type = c("time to event", "continuous")
+demo = c("X_sex_0w", "X_center_0w", "X_age_0w", "X_weight_0w")
 ```
 
 ```{r}
-# vs2
-demo = c("X_sex_0w", "X_center_0w", "X_age_0w", "X_weight_0w")
+# SL1
+res1 = analyze_rct(df50)
+df_comparison = update_df(50, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df50, T)
+df_comparison = update_df(50, type, res2, "VS1")
+
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df50, selection = T)
+res3 = analyze_rct(df50, T, 2, demo)
+df_comparison = update_df(50, type, res3, "VS2")
+```
+
+```{r}
+# SL2
+res1 = analyze_rct(df50, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(50, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df50, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(50, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df50, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(50, type, res3, "VS2", 2)
 ```
 
 

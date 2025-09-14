@@ -2673,9 +2673,9 @@ update_df = function(trial_no,
                      outcome_type,
                      results,
                      suffix = "",
+                     ensemble = 1,
                      contrast = "diff",
-                     df = df_comparison,
-                     ensemble = 1) {
+                     df = df_comparison) {
 
   library(dplyr)
 
@@ -2921,7 +2921,6 @@ update_df = function(trial_no,
   df
 }
 ```
-# new analyze_rct
 
 ```{r}
 # Variable selection helper function 1: Top correlation method
@@ -3028,8 +3027,10 @@ variable_selection_manual = function(outcome, valid_covariates, manual_covariate
   
   return(selected_covariates)
 }
+```
+# new analyze_rct
 
-# Main analyze_rct function
+```{r}
 analyze_rct = function(df,
                        selection = FALSE,
                        variable_selection_type = 1,  # 1: correlation, 2: manual
@@ -3429,4 +3430,7 @@ analyze_rct = function(df,
 }
 ```
 
+```{r}
+str(df_comparison)
+```
 
