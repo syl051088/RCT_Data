@@ -503,7 +503,7 @@ analyze_rct = function(df,
 
 ## analyze_rct2
 ```{r}
-# varaible selection 2
+# variable selection 2
 analyze_rct2 = function(df,
                        outcome_cols = NULL,
                        covariate_col = NULL,
@@ -511,8 +511,7 @@ analyze_rct2 = function(df,
                        K = 5,
                        SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
                        selection = FALSE,
-                       n_select = 3,
-                       manual_covariates = NULL,  # NEW ARGUMENT: manually selected covariates (steps 2 & 3)
+                       manual_covariates = NULL,
                        n_cores = parallel::detectCores() - 2,
                        seed = 123) {
   require(dplyr)
@@ -668,32 +667,56 @@ analyze_rct2 = function(df,
       # Extract outcome pattern and timing
       if (startsWith(outcome, "YP_")) {
         # For YP outcomes: YP_abc_7w -> look for X_abc_0w
+        # For YP_delta outcomes: YP_delta_abc_7w -> look for X_abc_0w (skip "delta")
         outcome_parts = strsplit(outcome, "_")[[1]]
         if (length(outcome_parts) >= 3) {
-          # Extract the middle part(s) and construct baseline variable name
-          middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+          # Check if this is a delta outcome
+          if (outcome_parts[2] == "delta") {
+            # For YP_delta_abc_7w, extract from position 3 onwards (excluding last part which is timing)
+            if (length(outcome_parts) >= 4) {
+              middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
+              baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+            }
+          } else {
+            # For regular YP_abc_7w, extract the middle part(s) and construct baseline variable name
+            middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+            baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+          }
           
           # Look for variables that start with this pattern
-          potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
-          if (length(potential_baseline) > 0) {
-            baseline_var = potential_baseline[1]  # Take the first match
-            cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+          if (exists("baseline_pattern")) {
+            potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+            if (length(potential_baseline) > 0) {
+              baseline_var = potential_baseline[1]  # Take the first match
+              cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+            }
           }
         }
       } else if (startsWith(outcome, "YS_")) {
         # For YS outcomes: YS_qwe_8m -> look for X_qwe_0m
+        # For YS_delta outcomes: YS_delta_qwe_8m -> look for X_qwe_0m (skip "delta")
         outcome_parts = strsplit(outcome, "_")[[1]]
         if (length(outcome_parts) >= 3) {
-          # Extract the middle part(s) and construct baseline variable name
-          middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+          # Check if this is a delta outcome
+          if (outcome_parts[2] == "delta") {
+            # For YS_delta_qwe_8m, extract from position 3 onwards (excluding last part which is timing)
+            if (length(outcome_parts) >= 4) {
+              middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
+              baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+            }
+          } else {
+            # For regular YS_qwe_8m, extract the middle part(s) and construct baseline variable name
+            middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+            baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+          }
           
           # Look for variables that start with this pattern
-          potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
-          if (length(potential_baseline) > 0) {
-            baseline_var = potential_baseline[1]  # Take the first match
-            cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+          if (exists("baseline_pattern")) {
+            potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
+            if (length(potential_baseline) > 0) {
+              baseline_var = potential_baseline[1]  # Take the first match
+              cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+            }
           }
         }
       }
@@ -947,6 +970,12 @@ analyze_rct2 = function(df,
   return(final_results)
 }
 ```
+
+# Setting
+```{r}
+SL2_lib = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet")
+```
+
 
 
 ## update_df()
@@ -1342,18 +1371,52 @@ df4 = read_rds("cleaned_data/Non_Clustered_RCT/trial4.rds")
 ## Process
 
 ```{r}
-res1 = analyze_rct(df4)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res2 = analyze_rct(df4, selection = T)
+type = c("continuous", "continuous", "continuous", "continuous")
+demo = c("X_Sex_0w", "X_Age_0w", "X_BMI_0w")
+```
 
-df_comparison = update_df(4, c("continuous", "continuous", "continuous", "continuous"))
+
+```{r}
+# SL1
+res1 = analyze_rct(df4)
+
+df_comparison = update_df(4, type, res1)
+
+# SL1, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+
+res2 = analyze_rct(df4, T)
+
+df_comparison = update_df(4, type, res2, "VS1")
 ```
 
 ```{r}
-# vs2
-demo = c("X_Sex_0w", "X_Age_0w", "X_BMI_0w")
+# SL1, VS2
 cat("\n<------------------Variable Seclection 2------------->\n\n")
-res3 = analyze_rct2(df4, selection = T)
+
+res3 = analyze_rct(df4, T, 2, demo)
+
+df_comparison = update_df(4, type, res3, "VS2")
+```
+
+
+```{r}
+# SL2
+res1 = analyze_rct(df4, F, 1, F, SL2_lib)
+
+df_comparison = update_df(4, type, res1, ensemble = 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df4, T, 1, )
+
+df_comparison = update_df(4, type, res2, "VS1", ensemble = 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df4, selection = T, manual_covariates = demo)
+
+df_comparison = update_df(4, type, res3, "VS2", ensemble = 2)
 ```
 
 # Trial 5
