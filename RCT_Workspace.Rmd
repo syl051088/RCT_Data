@@ -1900,17 +1900,19 @@ analyze_rct_sl_tmle = function(data,
   
   results
 }
+```
 
-
-## analyze_rct_tmle() - EXACT same as original except SL call
-
+# TMLE 
+```{r}
 analyze_rct_tmle = function(df,
                             outcome_cols = NULL,
                             covariate_col = NULL,
                             treatment_col = "Treatment",
                             K = 5,
-                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet"),
+                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam"),
                             selection = FALSE,
+                            variable_selection_type = 1,  # 1: correlation, 2: manual
+                            manual_covariates = NULL,
                             n_select = 3,
                             n_cores = parallel::detectCores() - 2,
                             seed = 123) {
@@ -1947,9 +1949,11 @@ analyze_rct_tmle = function(df,
     )
   }
   
-  # Setup covariates
+  # Setup covariates with case-insensitive search for X_ prefix
   if (is.null(covariate_col)) {
-    covariates = names(df)[startsWith(names(df), "X_")]
+    # Case-insensitive search for columns starting with "x_"
+    covariates = names(df)[grepl("^[Xx]_", names(df))]
+    
     # Add n_participants if it exists
     if ("n_participants" %in% names(df)) {
       covariates = c(covariates, "n_participants")
@@ -1963,11 +1967,8 @@ analyze_rct_tmle = function(df,
     mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
       replace(., is.na(.), mean(., na.rm = TRUE))
     } else if (is.factor(.)) {
-      replace(., is.na(.), DescTools::Mode(., na.rm = TRUE)[1])
+      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
     }))
-  
-  control_level = levels(df[[treatment_col]])[1]
-  treat_pattern = paste0("^", treatment_col)
   
   control_level = levels(df[[treatment_col]])[1]
   treat_pattern = paste0("^", treatment_col)
@@ -2058,25 +2059,53 @@ analyze_rct_tmle = function(df,
       df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
     }
     
-    # Variable selection: select top n_select covariates by outcome-specific correlation
+    # Variable selection based on type
     if (selection && length(valid_covariates) > 0) {
-      if (length(valid_covariates) > n_select) {
-        # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
-        cov_values = numeric(length(valid_covariates))
-        names(cov_values) = valid_covariates
+      if (variable_selection_type == 1) {
+        # Correlation-based selection
+        selected_covariates = variable_selection_correlation(outcome, valid_covariates, df_complete_numeric, n_select)
+      } else if (variable_selection_type == 2) {
+        # Manual + baseline selection
+        selected_covariates = variable_selection_manual(outcome, valid_covariates, manual_covariates)
         
-        for (cov in valid_covariates) {
-          # Convert covariate to numeric temporarily for correlation computation
-          cov_numeric = as.numeric(df_complete_numeric[[cov]])
-          cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
+        # Check if we have any covariates to work with for manual selection
+        if (length(selected_covariates) == 0) {
+          cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
+          
+          # Create results with NA values
+          treatment_levels = setdiff(levels(df_complete[[treatment_col]]), control_level)
+          n_treat = length(treatment_levels)
+          
+          # Calculate pairwise sample sizes (control + current treatment)
+          pairwise_n = sapply(treatment_levels, function(treat_level) {
+            sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
+          })
+          
+          # Base tibble with core columns
+          outcome_results = tibble(
+            Outcome = rep(outcome, n_treat),
+            Treatment = treatment_levels,
+            Control = rep(control_level, n_treat),
+            N = pairwise_n,
+            N_Covariates = rep(0, n_treat),
+            Est_SL = rep(NA_real_, n_treat),
+            SE_SL = rep(NA_real_, n_treat)
+          )
+          
+          # Add Selected_Covariates column only if selection = TRUE
+          if (selection) {
+            outcome_results$Selected_Covariates = rep("", n_treat)
+          }
+          
+          valid_outcomes = c(valid_outcomes, outcome)
+          all_results[[length(valid_outcomes)]] = outcome_results
+          next
         }
-        
-        # Select top n_select by absolute correlation magnitude
-        top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
-        selected_covariates = valid_covariates[top_idx]
-        valid_covariates = selected_covariates
       }
-      # If ≤n_select valid covariates, use all of them (valid_covariates unchanged)
+      
+      # Use the selected covariates
+      valid_covariates = selected_covariates
+      cat("Selected covariates for", outcome, ":", paste(valid_covariates, collapse = ", "), "\n")
     }
     
     # Create results for this outcome
@@ -2106,15 +2135,13 @@ analyze_rct_tmle = function(df,
     
     # TMLE SuperLearner - run ensemble (using numeric version) - ONLY CHANGE FROM ORIGINAL
     tryCatch({
-      sl_res = analyze_rct_sl_tmle(
+      sl_res = analyze_rct_tmle_inner(
         data = df_complete_numeric,
         outcome_cols = outcome,
         covariate_cols = valid_covariates,
         treatment_col = treatment_col,
         reference_arm = control_level,
-        K = K,
-        SL_methods = SL_methods,
-        n_cores = n_cores
+        K = K
       )
       outcome_results$Est_SL = sl_res$Est_SL
       outcome_results$SE_SL = sl_res$SE_SL
