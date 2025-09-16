@@ -22,6 +22,7 @@ library(DescTools)
 library(RobinCar)
 library(ggplot2)
 library(writexl)
+library(kableExtra)
 ```
 
 # Load Data
@@ -3292,6 +3293,7 @@ write_xlsx(df_comparison, "cleaned_data/meta_data_comparison.xlsx")
 
 # Summary Data
 ```{r}
+
 # Create outcome_group variable
 df_new = df_comparison %>%
   mutate(
@@ -3356,680 +3358,7 @@ df_new = df_new %>%
     variance_ratio_robust_model_VS2 = `The ratio between robust and model-based variance estimators_VS2`,
     variance_ratio_ANCOVA_ANHECOVA_VS2 = `ANCOVA_VS2 vs ANHECOVA_VS2 variance ratio`
   )
-```
 
-
-
-## Variance Summary
-```{r}
-df_summary = df_new %>%
-  group_by(outcome_group) %>%
-  summarise(
-    # ── Base Methods ─────────────────────────────────────────────────────────
-    
-    # ANCOVA precision-gain
-    mean_prec_gain_ANCOVA     = mean(precision_gain_ANCOVA, na.rm = TRUE),
-    sd_prec_gain_ANCOVA       = sd(precision_gain_ANCOVA,   na.rm = TRUE),
-    
-    # ANCOVA robust vs model-based variance ratio (original)
-    mean_var_ratio_robust_model     = mean(variance_ratio_robust_model, na.rm = TRUE),
-    sd_var_ratio_robust_model       = sd(variance_ratio_robust_model,   na.rm = TRUE),
-    
-    # ── ANCOVA vs ANHECOVA variance ratio *low outlier removed* ─────────────────────
-    mean_var_ratio_ANCOVA_ANHECOVA = {
-      v  = variance_ratio_ANCOVA_ANHECOVA
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v >= lb], na.rm = TRUE)
-    },
-    sd_var_ratio_ANCOVA_ANHECOVA   = {
-      v  = variance_ratio_ANCOVA_ANHECOVA
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v >= lb], na.rm = TRUE)
-    },
-    # ANCOVA vs ANHECOVA variance ratio (full)
-    mean_var_ratio_ANCOVA_ANHECOVA_full  = mean(variance_ratio_ANCOVA_ANHECOVA, na.rm = TRUE),
-    sd_var_ratio_ANCOVA_ANHECOVA_full    = sd(variance_ratio_ANCOVA_ANHECOVA,   na.rm = TRUE),
-    
-    # ── ANHECOVA precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_ANHECOVA = {
-      v  = precision_gain_ANHECOVA
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANHECOVA   = {
-      v  = precision_gain_ANHECOVA
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # ANHECOVA precision-gain (full)
-    mean_prec_gain_ANHECOVA_full  = mean(precision_gain_ANHECOVA, na.rm = TRUE),
-    sd_prec_gain_ANHECOVA_full    = sd(precision_gain_ANHECOVA,   na.rm = TRUE),
-    
-    # ── Binom precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_Binom = {
-      v  = precision_gain_Binom
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_Binom   = {
-      v  = precision_gain_Binom
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # Binom precision-gain (full)
-    mean_prec_gain_Binom_full  = mean(precision_gain_Binom, na.rm = TRUE),
-    sd_prec_gain_Binom_full    = sd(precision_gain_Binom,   na.rm = TRUE),
-    
-    # ── SL1 precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL1 = {
-      v  = precision_gain_SL1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL1   = {
-      v  = precision_gain_SL1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL1 precision-gain (full)
-    mean_prec_gain_SL1_full     = mean(precision_gain_SL1,  na.rm = TRUE),
-    sd_prec_gain_SL1_full       = sd(precision_gain_SL1,    na.rm = TRUE),
-    
-    # ── SL2 precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL2 = {
-      v  = precision_gain_SL2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL2   = {
-      v  = precision_gain_SL2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL2 precision-gain (full)
-    mean_prec_gain_SL2_full     = mean(precision_gain_SL2,  na.rm = TRUE),
-    sd_prec_gain_SL2_full       = sd(precision_gain_SL2,    na.rm = TRUE),
-    
-    # ── TMLE precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_TMLE = {
-      v  = precision_gain_TMLE
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_TMLE   = {
-      v  = precision_gain_TMLE
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # TMLE precision-gain (full)
-    mean_prec_gain_TMLE_full     = mean(precision_gain_TMLE,  na.rm = TRUE),
-    sd_prec_gain_TMLE_full       = sd(precision_gain_TMLE,    na.rm = TRUE),
-    
-    # ── SuperLearner Components (Base) ─────────────────────
-    
-    # SL_rpart precision-gain *outlier removed*
-    mean_prec_gain_SL_rpart = {
-      v  = precision_gain_SL_rpart
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_rpart   = {
-      v  = precision_gain_SL_rpart
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL_rpart precision-gain (full)
-    mean_prec_gain_SL_rpart_full  = mean(precision_gain_SL_rpart, na.rm = TRUE),
-    sd_prec_gain_SL_rpart_full    = sd(precision_gain_SL_rpart,   na.rm = TRUE),
-    
-    # SL_randomForest precision-gain *outlier removed*
-    mean_prec_gain_SL_randomForest = {
-      v  = precision_gain_SL_randomForest
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_randomForest   = {
-      v  = precision_gain_SL_randomForest
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL_randomForest precision-gain (full)
-    mean_prec_gain_SL_randomForest_full  = mean(precision_gain_SL_randomForest, na.rm = TRUE),
-    sd_prec_gain_SL_randomForest_full    = sd(precision_gain_SL_randomForest,   na.rm = TRUE),
-    
-    # SL_glmnet precision-gain *outlier removed*
-    mean_prec_gain_SL_glmnet = {
-      v  = precision_gain_SL_glmnet
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_glmnet   = {
-      v  = precision_gain_SL_glmnet
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL_glmnet precision-gain (full)
-    mean_prec_gain_SL_glmnet_full  = mean(precision_gain_SL_glmnet, na.rm = TRUE),
-    sd_prec_gain_SL_glmnet_full    = sd(precision_gain_SL_glmnet,   na.rm = TRUE),
-    
-    # SL_gam precision-gain *outlier removed*
-    mean_prec_gain_SL_gam = {
-      v  = precision_gain_SL_gam
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_gam   = {
-      v  = precision_gain_SL_gam
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL_gam precision-gain (full)
-    mean_prec_gain_SL_gam_full  = mean(precision_gain_SL_gam, na.rm = TRUE),
-    sd_prec_gain_SL_gam_full    = sd(precision_gain_SL_gam,   na.rm = TRUE),
-    
-    # SL_bartMachine precision-gain *outlier removed*
-    mean_prec_gain_SL_bartMachine = {
-      v  = precision_gain_SL_bartMachine
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_bartMachine   = {
-      v  = precision_gain_SL_bartMachine
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL_bartMachine precision-gain (full)
-    mean_prec_gain_SL_bartMachine_full  = mean(precision_gain_SL_bartMachine, na.rm = TRUE),
-    sd_prec_gain_SL_bartMachine_full    = sd(precision_gain_SL_bartMachine,   na.rm = TRUE),
-    
-    # ── VS1 Methods ─────────────────────────────────────────────────────────
-    
-    # ANCOVA_VS1 precision-gain *outlier removed*
-    mean_prec_gain_ANCOVA_VS1 = {
-      v  = precision_gain_ANCOVA_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANCOVA_VS1   = {
-      v  = precision_gain_ANCOVA_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # ANCOVA_VS1 precision-gain (full)
-    mean_prec_gain_ANCOVA_VS1_full  = mean(precision_gain_ANCOVA_VS1, na.rm = TRUE),
-    sd_prec_gain_ANCOVA_VS1_full    = sd(precision_gain_ANCOVA_VS1,   na.rm = TRUE),
-    
-    # ANHECOVA_VS1 precision-gain *outlier removed*
-    mean_prec_gain_ANHECOVA_VS1 = {
-      v  = precision_gain_ANHECOVA_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANHECOVA_VS1   = {
-      v  = precision_gain_ANHECOVA_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # ANHECOVA_VS1 precision-gain (full)
-    mean_prec_gain_ANHECOVA_VS1_full  = mean(precision_gain_ANHECOVA_VS1, na.rm = TRUE),
-    sd_prec_gain_ANHECOVA_VS1_full    = sd(precision_gain_ANHECOVA_VS1,   na.rm = TRUE),
-    
-    # Binom_VS1 precision-gain *outlier removed*
-    mean_prec_gain_Binom_VS1 = {
-      v  = precision_gain_Binom_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_Binom_VS1   = {
-      v  = precision_gain_Binom_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # Binom_VS1 precision-gain (full)
-    mean_prec_gain_Binom_VS1_full  = mean(precision_gain_Binom_VS1, na.rm = TRUE),
-    sd_prec_gain_Binom_VS1_full    = sd(precision_gain_Binom_VS1,   na.rm = TRUE),
-    
-    # SL1_VS1 precision-gain *outlier removed*
-    mean_prec_gain_SL1_VS1 = {
-      v  = precision_gain_SL1_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL1_VS1   = {
-      v  = precision_gain_SL1_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL1_VS1 precision-gain (full)
-    mean_prec_gain_SL1_VS1_full  = mean(precision_gain_SL1_VS1, na.rm = TRUE),
-    sd_prec_gain_SL1_VS1_full    = sd(precision_gain_SL1_VS1,   na.rm = TRUE),
-    
-    # SL2_VS1 precision-gain *outlier removed*
-    mean_prec_gain_SL2_VS1 = {
-      v  = precision_gain_SL2_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL2_VS1   = {
-      v  = precision_gain_SL2_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL2_VS1 precision-gain (full)
-    mean_prec_gain_SL2_VS1_full  = mean(precision_gain_SL2_VS1, na.rm = TRUE),
-    sd_prec_gain_SL2_VS1_full    = sd(precision_gain_SL2_VS1,   na.rm = TRUE),
-    
-    # TMLE_VS1 precision-gain *outlier removed*
-    mean_prec_gain_TMLE_VS1 = {
-      v  = precision_gain_TMLE_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_TMLE_VS1   = {
-      v  = precision_gain_TMLE_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # TMLE_VS1 precision-gain (full)
-    mean_prec_gain_TMLE_VS1_full  = mean(precision_gain_TMLE_VS1, na.rm = TRUE),
-    sd_prec_gain_TMLE_VS1_full    = sd(precision_gain_TMLE_VS1,   na.rm = TRUE),
-    
-    # SuperLearner Components VS1
-    mean_prec_gain_SL_rpart_VS1 = {
-      v  = precision_gain_SL_rpart_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_rpart_VS1   = {
-      v  = precision_gain_SL_rpart_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    mean_prec_gain_SL_rpart_VS1_full  = mean(precision_gain_SL_rpart_VS1, na.rm = TRUE),
-    sd_prec_gain_SL_rpart_VS1_full    = sd(precision_gain_SL_rpart_VS1,   na.rm = TRUE),
-    
-    mean_prec_gain_SL_randomForest_VS1 = {
-      v  = precision_gain_SL_randomForest_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_randomForest_VS1   = {
-      v  = precision_gain_SL_randomForest_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    mean_prec_gain_SL_randomForest_VS1_full  = mean(precision_gain_SL_randomForest_VS1, na.rm = TRUE),
-    sd_prec_gain_SL_randomForest_VS1_full    = sd(precision_gain_SL_randomForest_VS1,   na.rm = TRUE),
-    
-    mean_prec_gain_SL_glmnet_VS1 = {
-      v  = precision_gain_SL_glmnet_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_glmnet_VS1   = {
-      v  = precision_gain_SL_glmnet_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    mean_prec_gain_SL_glmnet_VS1_full  = mean(precision_gain_SL_glmnet_VS1, na.rm = TRUE),
-    sd_prec_gain_SL_glmnet_VS1_full    = sd(precision_gain_SL_glmnet_VS1,   na.rm = TRUE),
-    
-    mean_prec_gain_SL_gam_VS1 = {
-      v  = precision_gain_SL_gam_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_gam_VS1   = {
-      v  = precision_gain_SL_gam_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    mean_prec_gain_SL_gam_VS1_full  = mean(precision_gain_SL_gam_VS1, na.rm = TRUE),
-    sd_prec_gain_SL_gam_VS1_full    = sd(precision_gain_SL_gam_VS1,   na.rm = TRUE),
-    
-    mean_prec_gain_SL_bartMachine_VS1 = {
-      v  = precision_gain_SL_bartMachine_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_bartMachine_VS1   = {
-      v  = precision_gain_SL_bartMachine_VS1
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    mean_prec_gain_SL_bartMachine_VS1_full  = mean(precision_gain_SL_bartMachine_VS1, na.rm = TRUE),
-    sd_prec_gain_SL_bartMachine_VS1_full    = sd(precision_gain_SL_bartMachine_VS1,   na.rm = TRUE),
-    
-    # ── VS2 Methods ─────────────────────────────────────────────────────────
-    
-    # ANCOVA_VS2 precision-gain *outlier removed*
-    mean_prec_gain_ANCOVA_VS2 = {
-      v  = precision_gain_ANCOVA_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANCOVA_VS2   = {
-      v  = precision_gain_ANCOVA_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # ANCOVA_VS2 precision-gain (full)
-    mean_prec_gain_ANCOVA_VS2_full  = mean(precision_gain_ANCOVA_VS2, na.rm = TRUE),
-    sd_prec_gain_ANCOVA_VS2_full    = sd(precision_gain_ANCOVA_VS2,   na.rm = TRUE),
-    
-    # ANHECOVA_VS2 precision-gain *outlier removed*
-    mean_prec_gain_ANHECOVA_VS2 = {
-      v  = precision_gain_ANHECOVA_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANHECOVA_VS2   = {
-      v  = precision_gain_ANHECOVA_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # ANHECOVA_VS2 precision-gain (full)
-    mean_prec_gain_ANHECOVA_VS2_full  = mean(precision_gain_ANHECOVA_VS2, na.rm = TRUE),
-    sd_prec_gain_ANHECOVA_VS2_full    = sd(precision_gain_ANHECOVA_VS2,   na.rm = TRUE),
-    
-    # Binom_VS2 precision-gain *outlier removed*
-    mean_prec_gain_Binom_VS2 = {
-      v  = precision_gain_Binom_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_Binom_VS2   = {
-      v  = precision_gain_Binom_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # Binom_VS2 precision-gain (full)
-    mean_prec_gain_Binom_VS2_full  = mean(precision_gain_Binom_VS2, na.rm = TRUE),
-    sd_prec_gain_Binom_VS2_full    = sd(precision_gain_Binom_VS2,   na.rm = TRUE),
-    
-    # SL1_VS2 precision-gain *outlier removed*
-    mean_prec_gain_SL1_VS2 = {
-      v  = precision_gain_SL1_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL1_VS2   = {
-      v  = precision_gain_SL1_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    # SL1_VS2 precision-gain (full)
-    mean_prec_gain_SL1_VS2_full  = mean(precision_gain_SL1_VS2, na.rm = TRUE),
-    sd_prec_gain_SL1_VS2_full    = sd(precision_gain_SL1_VS2,   na.rm = TRUE),
-    
-    # SL2_VS2 precision-gain *outlier removed*
-    mean_prec_gain_SL2_VS2 = {
-      v  = precision_gain_SL2_VS2
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL2_VS2   = {
-      v  = precision_gain_SL2_VS2
-      ub = quantile(v, 0.75, na.
-```
-### Outlier Removed Table
-```{r}
-df_summary_filtered = df_new %>%
-  group_by(outcome_group) %>%
-  summarise(
-    # ANCOVA precision-gain (no outlier removal)
-    mean_prec_gain_ANCOVA     = mean(precision_gain_ANCOVA, na.rm = TRUE),
-    sd_prec_gain_ANCOVA       = sd(precision_gain_ANCOVA,   na.rm = TRUE),
-    
-    # ANCOVA robust vs model-based variance ratio (no outlier removal)
-    mean_var_ratio_robust_model     = mean(variance_ratio_robust_model, na.rm = TRUE),
-    sd_var_ratio_robust_model       = sd(variance_ratio_robust_model,   na.rm = TRUE),
-    
-    # ── ANCOVA vs ANHECOVA variance ratio *low outlier removed* ─────────────────────
-    mean_var_ratio_ANCOVA_ANHECOVA = {
-      v  = variance_ratio_ANCOVA_ANHECOVA
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v >= lb], na.rm = TRUE)
-    },
-    sd_var_ratio_ANCOVA_ANHECOVA   = {
-      v  = variance_ratio_ANCOVA_ANHECOVA
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v >= lb], na.rm = TRUE)
-    },
-    
-    # ── ANHECOVA precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_ANHECOVA = {
-      v  = precision_gain_ANHECOVA
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANHECOVA   = {
-      v  = precision_gain_ANHECOVA
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── Binom precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_Binom = {
-      v  = precision_gain_Binom
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_Binom   = {
-      v  = precision_gain_Binom
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SuperLearner precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL = {
-      v  = precision_gain_SL
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL   = {
-      v  = precision_gain_SL
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_rpart precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_rpart = {
-      v  = precision_gain_SL_rpart
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_rpart   = {
-      v  = precision_gain_SL_rpart
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_randomForest precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_randomForest = {
-      v  = precision_gain_SL_randomForest
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_randomForest   = {
-      v  = precision_gain_SL_randomForest
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_glmnet precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_glmnet = {
-      v  = precision_gain_SL_glmnet
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_glmnet   = {
-      v  = precision_gain_SL_glmnet
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_gam precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_gam = {
-      v  = precision_gain_SL_gam
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_gam   = {
-      v  = precision_gain_SL_gam
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_bartMachine precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_bartMachine = {
-      v  = precision_gain_SL_bartMachine
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_bartMachine   = {
-      v  = precision_gain_SL_bartMachine
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── ANCOVA_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_ANCOVA_VS = {
-      v  = precision_gain_ANCOVA_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANCOVA_VS   = {
-      v  = precision_gain_ANCOVA_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── ANHECOVA_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_ANHECOVA_VS = {
-      v  = precision_gain_ANHECOVA_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_ANHECOVA_VS   = {
-      v  = precision_gain_ANHECOVA_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── Binom_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_Binom_VS = {
-      v  = precision_gain_Binom_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_Binom_VS   = {
-      v  = precision_gain_Binom_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_VS = {
-      v  = precision_gain_SL_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_VS   = {
-      v  = precision_gain_SL_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_rpart_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_rpart_VS = {
-      v  = precision_gain_SL_rpart_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_rpart_VS   = {
-      v  = precision_gain_SL_rpart_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_randomForest_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_randomForest_VS = {
-      v  = precision_gain_SL_randomForest_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_randomForest_VS   = {
-      v  = precision_gain_SL_randomForest_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_glmnet_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_glmnet_VS = {
-      v  = precision_gain_SL_glmnet_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_glmnet_VS   = {
-      v  = precision_gain_SL_glmnet_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_gam_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_gam_VS = {
-      v  = precision_gain_SL_gam_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_gam_VS   = {
-      v  = precision_gain_SL_gam_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── SL_bartMachine_VS precision-gain *outlier removed* ─────────────────────
-    mean_prec_gain_SL_bartMachine_VS = {
-      v  = precision_gain_SL_bartMachine_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v <= ub], na.rm = TRUE)
-    },
-    sd_prec_gain_SL_bartMachine_VS   = {
-      v  = precision_gain_SL_bartMachine_VS
-      ub = quantile(v, 0.75, na.rm = TRUE) + 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v <= ub], na.rm = TRUE)
-    },
-    
-    # ── Additional variance ratio variables *outlier removed* ─────────────────────
-    # Robust vs model-based variance ratio VS
-    mean_var_ratio_robust_model_VS = {
-      v  = variance_ratio_robust_model_VS
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v >= lb], na.rm = TRUE)
-    },
-    sd_var_ratio_robust_model_VS   = {
-      v  = variance_ratio_robust_model_VS
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v >= lb], na.rm = TRUE)
-    },
-    
-    # ANCOVA_VS vs ANHECOVA_VS variance ratio
-    mean_var_ratio_ANCOVA_ANHECOVA_VS = {
-      v  = variance_ratio_ANCOVA_ANHECOVA_VS
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      mean(v[v >= lb], na.rm = TRUE)
-    },
-    sd_var_ratio_ANCOVA_ANHECOVA_VS   = {
-      v  = variance_ratio_ANCOVA_ANHECOVA_VS
-      lb = quantile(v, 0.25, na.rm = TRUE) - 1.5 * IQR(v, na.rm = TRUE)
-      sd(v[v >= lb], na.rm = TRUE)
-    }
-    
-  ) %>%
-  ungroup()
-
-print(df_summary_filtered)
 ```
 
 
@@ -4063,574 +3392,282 @@ library(tidyr)
 ##################################
 
 # Function to remove upper outliers
-# remove_upper_outliers = function(x) {
-#   ub = quantile(x, 0.75, na.rm = TRUE) + 1.5 * IQR(x, na.rm = TRUE)
-#   ifelse(x <= ub, x, NA)
-# }
-
 remove_upper_outliers = function(x) {
   ifelse(x >= 2, NA, x)
 }
 
-# Apply outlier removal to all methods except ANCOVA
+# Apply outlier removal to all methods except ANCOVA (base methods)
 df_outlier_removed = df_new %>%
   mutate(
+    # Base methods - no outlier removal for ANCOVA
     precision_gain_ANHECOVA = remove_upper_outliers(precision_gain_ANHECOVA),
     precision_gain_Binom = remove_upper_outliers(precision_gain_Binom),
-    precision_gain_SL = remove_upper_outliers(precision_gain_SL),
+    precision_gain_SL1 = remove_upper_outliers(precision_gain_SL1),
     precision_gain_SL_rpart = remove_upper_outliers(precision_gain_SL_rpart),
     precision_gain_SL_randomForest = remove_upper_outliers(precision_gain_SL_randomForest),
     precision_gain_SL_glmnet = remove_upper_outliers(precision_gain_SL_glmnet),
     precision_gain_SL_gam = remove_upper_outliers(precision_gain_SL_gam),
     precision_gain_SL_bartMachine = remove_upper_outliers(precision_gain_SL_bartMachine),
-    precision_gain_ANCOVA_VS = remove_upper_outliers(precision_gain_ANCOVA_VS),
-    precision_gain_ANHECOVA_VS = remove_upper_outliers(precision_gain_ANHECOVA_VS),
-    precision_gain_Binom_VS = remove_upper_outliers(precision_gain_Binom_VS),
-    precision_gain_SL_VS = remove_upper_outliers(precision_gain_SL_VS),
-    precision_gain_SL_rpart_VS = remove_upper_outliers(precision_gain_SL_rpart_VS),
-    precision_gain_SL_randomForest_VS = remove_upper_outliers(precision_gain_SL_randomForest_VS),
-    precision_gain_SL_glmnet_VS = remove_upper_outliers(precision_gain_SL_glmnet_VS),
-    precision_gain_SL_gam_VS = remove_upper_outliers(precision_gain_SL_gam_VS),
-    precision_gain_SL_bartMachine_VS = remove_upper_outliers(precision_gain_SL_bartMachine_VS)
-    # Note: precision_gain_ANCOVA is kept as-is (no outlier removal)
+    precision_gain_SL2 = remove_upper_outliers(precision_gain_SL2),
+    precision_gain_TMLE = remove_upper_outliers(precision_gain_TMLE),
+    
+    # VS1 methods - no outlier removal for ANCOVA_VS1
+    precision_gain_ANHECOVA_VS1 = remove_upper_outliers(precision_gain_ANHECOVA_VS1),
+    precision_gain_Binom_VS1 = remove_upper_outliers(precision_gain_Binom_VS1),
+    precision_gain_SL1_VS1 = remove_upper_outliers(precision_gain_SL1_VS1),
+    precision_gain_SL_rpart_VS1 = remove_upper_outliers(precision_gain_SL_rpart_VS1),
+    precision_gain_SL_randomForest_VS1 = remove_upper_outliers(precision_gain_SL_randomForest_VS1),
+    precision_gain_SL_glmnet_VS1 = remove_upper_outliers(precision_gain_SL_glmnet_VS1),
+    precision_gain_SL_gam_VS1 = remove_upper_outliers(precision_gain_SL_gam_VS1),
+    precision_gain_SL_bartMachine_VS1 = remove_upper_outliers(precision_gain_SL_bartMachine_VS1),
+    precision_gain_SL2_VS1 = remove_upper_outliers(precision_gain_SL2_VS1),
+    precision_gain_TMLE_VS1 = remove_upper_outliers(precision_gain_TMLE_VS1),
+    
+    # VS2 methods - no outlier removal for ANCOVA_VS2
+    precision_gain_ANHECOVA_VS2 = remove_upper_outliers(precision_gain_ANHECOVA_VS2),
+    precision_gain_Binom_VS2 = remove_upper_outliers(precision_gain_Binom_VS2),
+    precision_gain_SL1_VS2 = remove_upper_outliers(precision_gain_SL1_VS2),
+    precision_gain_SL_rpart_VS2 = remove_upper_outliers(precision_gain_SL_rpart_VS2),
+    precision_gain_SL_randomForest_VS2 = remove_upper_outliers(precision_gain_SL_randomForest_VS2),
+    precision_gain_SL_gam_VS2 = remove_upper_outliers(precision_gain_SL_gam_VS2),
+    precision_gain_SL_bartMachine_VS2 = remove_upper_outliers(precision_gain_SL_bartMachine_VS2),
+    precision_gain_SL2_VS2 = remove_upper_outliers(precision_gain_SL2_VS2)
+    # Note: precision_gain_ANCOVA, precision_gain_ANCOVA_VS1, precision_gain_ANCOVA_VS2 kept as-is (no outlier removal)
   )
 
 # Create long format data with outlier-removed precision gain methods
 df_long_outlier_removed = df_outlier_removed %>%
   select(outcome_group, sample_size_cat, 
-         precision_gain_ANCOVA, precision_gain_ANHECOVA, precision_gain_Binom, precision_gain_SL,
+         # Base methods
+         precision_gain_ANCOVA, precision_gain_ANHECOVA, precision_gain_Binom, precision_gain_SL1,
          precision_gain_SL_rpart, precision_gain_SL_randomForest, precision_gain_SL_glmnet, 
-         precision_gain_SL_gam, precision_gain_SL_bartMachine,
-         precision_gain_ANCOVA_VS, precision_gain_ANHECOVA_VS, precision_gain_Binom_VS,
-         precision_gain_SL_VS, precision_gain_SL_rpart_VS, precision_gain_SL_randomForest_VS,
-         precision_gain_SL_glmnet_VS, precision_gain_SL_gam_VS, precision_gain_SL_bartMachine_VS) %>%
+         precision_gain_SL_gam, precision_gain_SL_bartMachine, precision_gain_SL2, precision_gain_TMLE,
+         # VS1 methods
+         precision_gain_ANCOVA_VS1, precision_gain_ANHECOVA_VS1, precision_gain_Binom_VS1, precision_gain_SL1_VS1,
+         precision_gain_SL_rpart_VS1, precision_gain_SL_randomForest_VS1, precision_gain_SL_glmnet_VS1,
+         precision_gain_SL_gam_VS1, precision_gain_SL_bartMachine_VS1, precision_gain_SL2_VS1, precision_gain_TMLE_VS1,
+         # VS2 methods
+         precision_gain_ANCOVA_VS2, precision_gain_ANHECOVA_VS2, precision_gain_Binom_VS2, precision_gain_SL1_VS2,
+         precision_gain_SL_rpart_VS2, precision_gain_SL_randomForest_VS2, precision_gain_SL_gam_VS2,
+         precision_gain_SL_bartMachine_VS2, precision_gain_SL2_VS2) %>%
   pivot_longer(cols = starts_with("precision_gain_"), 
                names_to = "method", 
                values_to = "precision_gain") %>%
   filter(!is.na(precision_gain)) %>%  # Remove NA values explicitly
   mutate(
     method = case_when(
+      # Base methods
       method == "precision_gain_ANCOVA" ~ "ANCOVA",
       method == "precision_gain_ANHECOVA" ~ "ANHECOVA", 
       method == "precision_gain_Binom" ~ "Binom",
-      method == "precision_gain_SL" ~ "SL",
+      method == "precision_gain_SL1" ~ "SL1",
       method == "precision_gain_SL_rpart" ~ "SL_rpart",
       method == "precision_gain_SL_randomForest" ~ "SL_randomForest",
       method == "precision_gain_SL_glmnet" ~ "SL_glmnet",
       method == "precision_gain_SL_gam" ~ "SL_gam",
       method == "precision_gain_SL_bartMachine" ~ "SL_bartMachine",
-      method == "precision_gain_ANCOVA_VS" ~ "ANCOVA_VS",
-      method == "precision_gain_ANHECOVA_VS" ~ "ANHECOVA_VS",
-      method == "precision_gain_Binom_VS" ~ "Binom_VS",
-      method == "precision_gain_SL_VS" ~ "SL_VS",
-      method == "precision_gain_SL_rpart_VS" ~ "SL_rpart_VS",
-      method == "precision_gain_SL_randomForest_VS" ~ "SL_randomForest_VS",
-      method == "precision_gain_SL_glmnet_VS" ~ "SL_glmnet_VS",
-      method == "precision_gain_SL_gam_VS" ~ "SL_gam_VS",
-      method == "precision_gain_SL_bartMachine_VS" ~ "SL_bartMachine_VS"
+      method == "precision_gain_SL2" ~ "SL2",
+      method == "precision_gain_TMLE" ~ "TMLE",
+      # VS1 methods
+      method == "precision_gain_ANCOVA_VS1" ~ "ANCOVA_VS1",
+      method == "precision_gain_ANHECOVA_VS1" ~ "ANHECOVA_VS1",
+      method == "precision_gain_Binom_VS1" ~ "Binom_VS1",
+      method == "precision_gain_SL1_VS1" ~ "SL1_VS1",
+      method == "precision_gain_SL_rpart_VS1" ~ "SL_rpart_VS1",
+      method == "precision_gain_SL_randomForest_VS1" ~ "SL_randomForest_VS1",
+      method == "precision_gain_SL_glmnet_VS1" ~ "SL_glmnet_VS1",
+      method == "precision_gain_SL_gam_VS1" ~ "SL_gam_VS1",
+      method == "precision_gain_SL_bartMachine_VS1" ~ "SL_bartMachine_VS1",
+      method == "precision_gain_SL2_VS1" ~ "SL2_VS1",
+      method == "precision_gain_TMLE_VS1" ~ "TMLE_VS1",
+      # VS2 methods
+      method == "precision_gain_ANCOVA_VS2" ~ "ANCOVA_VS2",
+      method == "precision_gain_ANHECOVA_VS2" ~ "ANHECOVA_VS2",
+      method == "precision_gain_Binom_VS2" ~ "Binom_VS2",
+      method == "precision_gain_SL1_VS2" ~ "SL1_VS2",
+      method == "precision_gain_SL_rpart_VS2" ~ "SL_rpart_VS2",
+      method == "precision_gain_SL_randomForest_VS2" ~ "SL_randomForest_VS2",
+      method == "precision_gain_SL_gam_VS2" ~ "SL_gam_VS2",
+      method == "precision_gain_SL_bartMachine_VS2" ~ "SL_bartMachine_VS2",
+      method == "precision_gain_SL2_VS2" ~ "SL2_VS2"
     ),
-    method = factor(method, levels = c("ANCOVA", "ANHECOVA", "Binom", "SL", "SL_rpart", "SL_randomForest", 
-                                     "SL_glmnet", "SL_gam", "SL_bartMachine",
-                                     "ANCOVA_VS", "ANHECOVA_VS", "Binom_VS", "SL_VS", "SL_rpart_VS", 
-                                     "SL_randomForest_VS", "SL_glmnet_VS", "SL_gam_VS", "SL_bartMachine_VS"))
+    method = factor(method, levels = c(
+      # Base methods
+      "ANCOVA", "ANHECOVA", "Binom", "SL1", "SL_rpart", "SL_randomForest", 
+      "SL_glmnet", "SL_gam", "SL_bartMachine", "SL2", "TMLE",
+      # VS1 methods
+      "ANCOVA_VS1", "ANHECOVA_VS1", "Binom_VS1", "SL1_VS1", "SL_rpart_VS1", 
+      "SL_randomForest_VS1", "SL_glmnet_VS1", "SL_gam_VS1", "SL_bartMachine_VS1", "SL2_VS1", "TMLE_VS1",
+      # VS2 methods
+      "ANCOVA_VS2", "ANHECOVA_VS2", "Binom_VS2", "SL1_VS2", "SL_rpart_VS2", 
+      "SL_randomForest_VS2", "SL_gam_VS2", "SL_bartMachine_VS2", "SL2_VS2"))
   )
 
-# Color palette for methods
-method_colors = c("ANCOVA" = "#1f77b4", "ANHECOVA" = "#ff7f0e", "Binom" = "#2ca02c", "SL" = "#d62728",
-                  "SL_rpart" = "#9467bd", "SL_randomForest" = "#8c564b", "SL_glmnet" = "#e377c2", 
-                  "SL_gam" = "#7f7f7f", "SL_bartMachine" = "#bcbd22",
-                  "ANCOVA_VS" = "#17becf", "ANHECOVA_VS" = "#ff9896", "Binom_VS" = "#98df8a",
-                  "SL_VS" = "#ffbb78", "SL_rpart_VS" = "#c5b0d5", "SL_randomForest_VS" = "#c49c94", 
-                  "SL_glmnet_VS" = "#f7b6d3", "SL_gam_VS" = "#c7c7c7", "SL_bartMachine_VS" = "#dbdb8d")
+# Color palette for methods (expanded for VS1 and VS2)
+method_colors = c(
+  # Base methods
+  "ANCOVA" = "#1f77b4", "ANHECOVA" = "#ff7f0e", "Binom" = "#2ca02c", "SL1" = "#d62728",
+  "SL_rpart" = "#9467bd", "SL_randomForest" = "#8c564b", "SL_glmnet" = "#e377c2", 
+  "SL_gam" = "#7f7f7f", "SL_bartMachine" = "#bcbd22", "SL2" = "#17becf", "TMLE" = "#aec7e8",
+  # VS1 methods
+  "ANCOVA_VS1" = "#1f77b4", "ANHECOVA_VS1" = "#ff9896", "Binom_VS1" = "#98df8a", "SL1_VS1" = "#ffbb78",
+  "SL_rpart_VS1" = "#c5b0d5", "SL_randomForest_VS1" = "#c49c94", "SL_glmnet_VS1" = "#f7b6d3", 
+  "SL_gam_VS1" = "#c7c7c7", "SL_bartMachine_VS1" = "#dbdb8d", "SL2_VS1" = "#9edae5", "TMLE_VS1" = "#393b79",
+  # VS2 methods  
+  "ANCOVA_VS2" = "#637939", "ANHECOVA_VS2" = "#8c6d31", "Binom_VS2" = "#843c39", "SL1_VS2" = "#7b4173",
+  "SL_rpart_VS2" = "#5254a3", "SL_randomForest_VS2" = "#6b6ecf", "SL_gam_VS2" = "#9c9ede", 
+  "SL_bartMachine_VS2" = "#637939", "SL2_VS2" = "#8ca252"
+)
 
 ##################################
-## All Methods Together (Outlier Removed) - By Outcome Type
+## All Methods Together (Outlier Removed) - By Outcome Type with VS Split
 ##################################
 
-# 1. Binary Outcome Group - All Methods (Outlier Removed)
-df_binary_or = df_long_outlier_removed %>% filter(outcome_group == "binary")
+# Function to create plots for each outcome group and VS type
+create_outcome_plot = function(outcome_type, vs_type = "none", title_suffix = "") {
+  
+  # Filter data based on VS type
+  if (vs_type == "none") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, !grepl("_VS[12]$", method))
+  } else if (vs_type == "VS1") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, grepl("_VS1$", method))
+  } else if (vs_type == "VS2") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, grepl("_VS2$", method))
+  }
+  
+  # Create title
+  vs_label = ifelse(vs_type == "none", "Base Methods", paste0(vs_type, " Methods"))
+  plot_title = paste0("Precision Gain vs Unadjusted - ", stringr::str_to_title(outcome_type), 
+                     " (", vs_label, ")", title_suffix)
+  
+  ggplot(data_filtered, aes(x = method, y = precision_gain)) +
+    geom_violin(aes(fill = method), trim = FALSE, alpha = 0.6) +
+    geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+    scale_fill_manual(values = method_colors, guide = "none") +
+    scale_color_manual(values = size_colors, name = "Sample Size") +
+    labs(
+      title = plot_title,
+      subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
+      x = "",
+      y = "Variance Ratio"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+          plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
+          axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+          panel.grid.minor = element_blank(),
+          legend.position = "right",
+          legend.title = element_text(size = 10),
+          legend.text = element_text(size = 9),
+          legend.key.size = unit(0.4, "cm"))
+}
 
-ggplot(df_binary_or, aes(x = method, y = precision_gain)) +
-  geom_violin(aes(fill = method), trim = FALSE, alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_fill_manual(values = method_colors, guide = "none") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "Precision Gain vs Unadjusted - Binary \n(Outlier Removed)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# Create all 12 plots (4 outcome types × 3 VS types)
+outcomes = c("binary", "continuous", "categorical", "time_to_event")
+vs_types = c("none", "VS1", "VS2")
 
-# 2. Continuous Outcome Group - All Methods (Outlier Removed)
-df_continuous_or = df_long_outlier_removed %>% filter(outcome_group == "continuous")
+# Binary plots
+p_binary_base = create_outcome_plot("binary", "none", "\n(Outlier Removed)")
+p_binary_vs1 = create_outcome_plot("binary", "VS1", "\n(Outlier Removed)")
+p_binary_vs2 = create_outcome_plot("binary", "VS2", "\n(Outlier Removed)")
 
-ggplot(df_continuous_or, aes(x = method, y = precision_gain)) +
-  geom_violin(aes(fill = method), trim = FALSE, alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_fill_manual(values = method_colors, guide = "none") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "Precision Gain vs Unadjusted - Continuous \n(Outlier Removed)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# Continuous plots  
+p_continuous_base = create_outcome_plot("continuous", "none", "\n(Outlier Removed)")
+p_continuous_vs1 = create_outcome_plot("continuous", "VS1", "\n(Outlier Removed)")
+p_continuous_vs2 = create_outcome_plot("continuous", "VS2", "\n(Outlier Removed)")
 
-# 3. Categorical Outcome Group - All Methods (Outlier Removed)
-df_categorical_or = df_long_outlier_removed %>% filter(outcome_group == "categorical")
+# Categorical plots
+p_categorical_base = create_outcome_plot("categorical", "none", "\n(Outlier Removed)")
+p_categorical_vs1 = create_outcome_plot("categorical", "VS1", "\n(Outlier Removed)")
+p_categorical_vs2 = create_outcome_plot("categorical", "VS2", "\n(Outlier Removed)")
 
-ggplot(df_categorical_or, aes(x = method, y = precision_gain)) +
-  geom_violin(aes(fill = method), trim = FALSE, alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_fill_manual(values = method_colors, guide = "none") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "Precision Gain vs Unadjusted - Categorical \n(Outlier Removed)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# Time-to-event plots
+p_time_to_event_base = create_outcome_plot("time_to_event", "none", "\n(Outlier Removed)")
+p_time_to_event_vs1 = create_outcome_plot("time_to_event", "VS1", "\n(Outlier Removed)")
+p_time_to_event_vs2 = create_outcome_plot("time_to_event", "VS2", "\n(Outlier Removed)")
 
-# 4. Time-to-Event Outcome Group - All Methods (Outlier Removed)
-df_time_to_event_or = df_long_outlier_removed %>% filter(outcome_group == "time_to_event")
-
-ggplot(df_time_to_event_or, aes(x = method, y = precision_gain)) +
-  geom_violin(aes(fill = method), trim = FALSE, alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_fill_manual(values = method_colors, guide = "none") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "Precision Gain vs Unadjusted - Time-to-Event\n (Outlier Removed)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# Display all plots
+p_binary_base
+p_binary_vs1  
+p_binary_vs2
+p_continuous_base
+p_continuous_vs1
+p_continuous_vs2
+p_categorical_base
+p_categorical_vs1
+p_categorical_vs2
+p_time_to_event_base
+p_time_to_event_vs1
+p_time_to_event_vs2
 
 ##################################
-## Individual Method Plots (No Outlier Removal)
+## Individual Method Plots (Full Data - No Outlier Removal)
 ##################################
 
-# ANCOVA (already no outlier removal)
-ggplot(df_new %>% filter(!is.na(precision_gain_ANCOVA)), aes(x = outcome_group, y = precision_gain_ANCOVA)) +
-  geom_violin(trim = FALSE, fill = "#1f77b4", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "ANCOVA Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# Function to create individual method plots
+create_individual_method_plot = function(method_name, color_val) {
+  var_name = paste0("precision_gain_", method_name)
+  
+  ggplot(df_new %>% filter(!is.na(.data[[var_name]])), 
+         aes(x = outcome_group, y = .data[[var_name]])) +
+    geom_violin(trim = FALSE, fill = color_val, alpha = 0.6) +
+    geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+    scale_color_manual(values = size_colors, name = "Sample Size") +
+    labs(
+      title = paste(method_name, "Precision Gain vs Unadjusted (Full Data)"),
+      subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
+      x = "Outcome Group",
+      y = "Variance Ratio"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+          plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
+          panel.grid.minor = element_blank(),
+          legend.position = "right",
+          legend.title = element_text(size = 10),
+          legend.text = element_text(size = 9),
+          legend.key.size = unit(0.4, "cm"))
+}
 
-# ANHECOVA (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_ANHECOVA)), aes(x = outcome_group, y = precision_gain_ANHECOVA)) +
-  geom_violin(trim = FALSE, fill = "#ff7f0e", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "ANHECOVA Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# Create individual plots for each method (example for key methods)
+p_ancova_individual = create_individual_method_plot("ANCOVA", "#1f77b4")
+p_anhecova_individual = create_individual_method_plot("ANHECOVA", "#ff7f0e") 
+p_sl1_individual = create_individual_method_plot("SL1", "#d62728")
+p_tmle_individual = create_individual_method_plot("TMLE", "#aec7e8")
 
-# Binom (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_Binom)), aes(x = outcome_group, y = precision_gain_Binom)) +
-  geom_violin(trim = FALSE, fill = "#2ca02c", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "Binom Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# VS1 methods
+p_ancova_vs1_individual = create_individual_method_plot("ANCOVA_VS1", "#1f77b4")
+p_anhecova_vs1_individual = create_individual_method_plot("ANHECOVA_VS1", "#ff9896")
+p_sl1_vs1_individual = create_individual_method_plot("SL1_VS1", "#ffbb78")
+p_tmle_vs1_individual = create_individual_method_plot("TMLE_VS1", "#393b79")
 
-# Super Learner (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL)), aes(x = outcome_group, y = precision_gain_SL)) +
-  geom_violin(trim = FALSE, fill = "#d62728", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "Super Learner Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# VS2 methods
+p_ancova_vs2_individual = create_individual_method_plot("ANCOVA_VS2", "#637939")
+p_anhecova_vs2_individual = create_individual_method_plot("ANHECOVA_VS2", "#8c6d31")
+p_sl1_vs2_individual = create_individual_method_plot("SL1_VS2", "#7b4173")
+p_sl2_vs2_individual = create_individual_method_plot("SL2_VS2", "#8ca252")
 
-# SL_rpart (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_rpart)), aes(x = outcome_group, y = precision_gain_SL_rpart)) +
-  geom_violin(trim = FALSE, fill = "#9467bd", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_rpart Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_randomForest (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_randomForest)), aes(x = outcome_group, y = precision_gain_SL_randomForest)) +
-  geom_violin(trim = FALSE, fill = "#8c564b", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_randomForest Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_glmnet (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_glmnet)), aes(x = outcome_group, y = precision_gain_SL_glmnet)) +
-  geom_violin(trim = FALSE, fill = "#e377c2", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_glmnet Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_gam (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_gam)), aes(x = outcome_group, y = precision_gain_SL_gam)) +
-  geom_violin(trim = FALSE, fill = "#7f7f7f", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_gam Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_bartMachine (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_bartMachine)), aes(x = outcome_group, y = precision_gain_SL_bartMachine)) +
-  geom_violin(trim = FALSE, fill = "#bcbd22", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_bartMachine Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# ANCOVA_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_ANCOVA_VS)), aes(x = outcome_group, y = precision_gain_ANCOVA_VS)) +
-  geom_violin(trim = FALSE, fill = "#17becf", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "ANCOVA_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# ANHECOVA_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_ANHECOVA_VS)), aes(x = outcome_group, y = precision_gain_ANHECOVA_VS)) +
-  geom_violin(trim = FALSE, fill = "#ff9896", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "ANHECOVA_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# Binom_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_Binom_VS)), aes(x = outcome_group, y = precision_gain_Binom_VS)) +
-  geom_violin(trim = FALSE, fill = "#98df8a", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "Binom_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_VS)), aes(x = outcome_group, y = precision_gain_SL_VS)) +
-  geom_violin(trim = FALSE, fill = "#ffbb78", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_rpart_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_rpart_VS)), aes(x = outcome_group, y = precision_gain_SL_rpart_VS)) +
-  geom_violin(trim = FALSE, fill = "#c5b0d5", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_rpart_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_randomForest_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_randomForest_VS)), aes(x = outcome_group, y = precision_gain_SL_randomForest_VS)) +
-  geom_violin(trim = FALSE, fill = "#c49c94", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_randomForest_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_glmnet_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_glmnet_VS)), aes(x = outcome_group, y = precision_gain_SL_glmnet_VS)) +
-  geom_violin(trim = FALSE, fill = "#f7b6d3", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_glmnet_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_gam_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_gam_VS)), aes(x = outcome_group, y = precision_gain_SL_gam_VS)) +
-  geom_violin(trim = FALSE, fill = "#c7c7c7", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_gam_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
-
-# SL_bartMachine_VS (full data)
-ggplot(df_new %>% filter(!is.na(precision_gain_SL_bartMachine_VS)), aes(x = outcome_group, y = precision_gain_SL_bartMachine_VS)) +
-  geom_violin(trim = FALSE, fill = "#dbdb8d", alpha = 0.6) +
-  geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_color_manual(values = size_colors, name = "Sample Size") +
-  labs(
-    title = "SL_bartMachine_VS Precision Gain vs Unadjusted (Full Data)",
-    subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-    x = "Outcome Group",
-    y = "Variance Ratio"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-        panel.grid.minor = element_blank(),
-        legend.position = "right",
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 9),
-        legend.key.size = unit(0.4, "cm"))
+# Display individual plots
+p_ancova_individual
+p_anhecova_individual
+p_sl1_individual
+p_tmle_individual
+p_ancova_vs1_individual
+p_anhecova_vs1_individual
+p_sl1_vs1_individual
+p_tmle_vs1_individual
+p_ancova_vs2_individual
+p_anhecova_vs2_individual
+p_sl1_vs2_individual
+p_sl2_vs2_individual
 ```
 
-# More Plots
+## More Plots
 ```{r}
 ###############################################################################
 ##  0.  Long data BEFORE trimming --------------------------------------------
@@ -4688,13 +3725,13 @@ build_caption = function(outcome_type, vs_type = "none") {
   ## Filter methods based on VS type
   method_filter = function(methods) {
     if (vs_type == "none") {
-      methods[!grepl("_VS[12]$", methods)]  # No VS1 or VS2
+      methods[!grepl("_VS[12]$", methods)]
     } else if (vs_type == "VS1") {
-      methods[grepl("_VS1$", methods)]      # Only VS1
+      methods[grepl("_VS1$", methods)]
     } else if (vs_type == "VS2") {
-      methods[grepl("_VS2$", methods)]      # Only VS2
+      methods[grepl("_VS2$", methods)]
     } else {
-      methods  # fallback: all methods
+      methods
     }
   }
 
@@ -4713,7 +3750,7 @@ build_caption = function(outcome_type, vs_type = "none") {
     summarise(na_removed = sum(is.na(pg)), .groups = "drop") %>%
     filter(method %in% method_filter(method))
 
-  ## For *continuous* outcome, drop Binom variants from NA line
+  ## For *continuous* outcome, drop Binom methods from NA line
   if (outcome_type == "continuous") {
     binom_methods = if (vs_type == "none") {
       "Binom"
@@ -4721,8 +3758,6 @@ build_caption = function(outcome_type, vs_type = "none") {
       "Binom_VS1"
     } else if (vs_type == "VS2") {
       "Binom_VS2"
-    } else {
-      c("Binom", "Binom_VS1", "Binom_VS2")
     }
     nas = nas %>% filter(!method %in% binom_methods)
   }
@@ -4765,7 +3800,7 @@ make_plot = function(data, title_txt, caption_txt) {
 }
 
 ###############################################################################
-##  3.  Binary plots (3 plots: Base, VS1, VS2) ------------------------------
+##  3.  Binary plots ----------------------------------------------------------
 ###############################################################################
 
 # Base methods (no VS)
@@ -4805,7 +3840,7 @@ p_binary_vs2 = make_plot(
 ggsave("cleaned_data/Plot/precision_gain_binary_vs2.png", p_binary_vs2, width = 12, height = 6, dpi = 1200)
 
 ###############################################################################
-##  4.  Continuous plots (3 plots: Base, VS1, VS2) --------------------------
+##  4.  Continuous plots ------------------------------------------------------
 ###############################################################################
 
 # Base methods (no VS)
@@ -4844,17 +3879,227 @@ p_cont_vs2 = make_plot(
 )
 ggsave("cleaned_data/Plot/precision_gain_continuous_vs2.png", p_cont_vs2, width = 12, height = 6, dpi = 1200)
 
-###############################################################################
-##  5.  Display all 6 plots --------------------------------------------------
-###############################################################################
-cat("Displaying all 6 plots:\n")
-cat("Binary outcomes:\n")
+# Display all 6 plots
 p_binary_base
-p_binary_vs1  
+p_binary_vs1
 p_binary_vs2
-cat("\nContinuous outcomes:\n")
 p_cont_base
 p_cont_vs1
 p_cont_vs2
+```
+
+## Variance Summary
+```{r}
+###############################################################################
+##  Summary Tables: Mean and Variance for Each Method by Outcome Type -------
+##  Using OUTLIER REMOVED data
+###############################################################################
+
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# Function to create summary tables using outlier-removed data
+create_summary_table = function(outcome_type, vs_type = "none") {
+  
+  # Filter methods based on VS type using df_long_outlier_removed
+  if (vs_type == "none") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, !grepl("_VS[12]$", method))
+  } else if (vs_type == "VS1") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, grepl("_VS1$", method))
+  } else if (vs_type == "VS2") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, grepl("_VS2$", method))
+  }
+  
+  # Calculate summary statistics (data already filtered for outliers and NAs)
+  summary_stats = data_filtered %>%
+    group_by(method) %>%
+    summarise(
+      N = n(),
+      Mean = round(mean(precision_gain, na.rm = TRUE), 4),
+      Variance = round(var(precision_gain, na.rm = TRUE), 4),
+      SD = round(sd(precision_gain, na.rm = TRUE), 4),
+      Min = round(min(precision_gain, na.rm = TRUE), 4),
+      Max = round(max(precision_gain, na.rm = TRUE), 4),
+      Q25 = round(quantile(precision_gain, 0.25, na.rm = TRUE), 4),
+      Median = round(median(precision_gain, na.rm = TRUE), 4),
+      Q75 = round(quantile(precision_gain, 0.75, na.rm = TRUE), 4),
+      .groups = "drop"
+    ) %>%
+    arrange(method)
+  
+  # Create table title
+  vs_label = case_when(
+    vs_type == "none" ~ "Base Methods",
+    vs_type == "VS1" ~ "VS1 Methods", 
+    vs_type == "VS2" ~ "VS2 Methods"
+  )
+  
+  table_title = paste0("Summary Statistics: ", stringr::str_to_title(outcome_type), 
+                      " Outcomes - ", vs_label)
+  
+  # Return formatted table
+  summary_stats %>%
+    kable(caption = table_title,
+          format = "html",
+          align = "c") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                  full_width = FALSE,
+                  position = "center") %>%
+    column_spec(1, bold = TRUE) %>%
+    add_header_above(c(" " = 1, "Sample" = 1, "Central Tendency" = 3, "Spread" = 5))
+}
+
+###############################################################################
+##  1. BINARY OUTCOME TABLES -------------------------------------------------
+###############################################################################
+
+# Binary - Base Methods
+table_binary_base = create_summary_table("binary", "none")
+print(table_binary_base)
+
+# Binary - VS1 Methods  
+table_binary_vs1 = create_summary_table("binary", "VS1")
+print(table_binary_vs1)
+
+# Binary - VS2 Methods
+table_binary_vs2 = create_summary_table("binary", "VS2")
+print(table_binary_vs2)
+
+###############################################################################
+##  2. CONTINUOUS OUTCOME TABLES ---------------------------------------------
+###############################################################################
+
+# Continuous - Base Methods
+table_continuous_base = create_summary_table("continuous", "none")
+print(table_continuous_base)
+
+# Continuous - VS1 Methods
+table_continuous_vs1 = create_summary_table("continuous", "VS1")
+print(table_continuous_vs1)
+
+# Continuous - VS2 Methods  
+table_continuous_vs2 = create_summary_table("continuous", "VS2")
+print(table_continuous_vs2)
+
+###############################################################################
+##  3. Simple Data Frame Tables (outlier removed) ---------------------------
+###############################################################################
+
+# Function to create simple data frame tables using outlier-removed data
+create_simple_table = function(outcome_type, vs_type = "none") {
+  
+  # Filter methods based on VS type using df_long_outlier_removed  
+  if (vs_type == "none") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, !grepl("_VS[12]$", method))
+  } else if (vs_type == "VS1") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, grepl("_VS1$", method))
+  } else if (vs_type == "VS2") {
+    data_filtered = df_long_outlier_removed %>% 
+      filter(outcome_group == outcome_type, grepl("_VS2$", method))
+  }
+  
+  # Calculate summary statistics (data already has outliers removed and NAs filtered)
+  summary_stats = data_filtered %>%
+    group_by(method) %>%
+    summarise(
+      N = n(),
+      Mean = round(mean(precision_gain, na.rm = TRUE), 4),
+      Variance = round(var(precision_gain, na.rm = TRUE), 4),
+      SD = round(sd(precision_gain, na.rm = TRUE), 4),
+      Median = round(median(precision_gain, na.rm = TRUE), 4),
+      .groups = "drop"
+    ) %>%
+    arrange(method)
+  
+  return(summary_stats)
+}
+
+# Create simple tables
+cat("\n=== BINARY OUTCOMES ===\n")
+
+cat("\n--- Binary: Base Methods ---\n")
+df_binary_base_simple = create_simple_table("binary", "none")
+print(df_binary_base_simple)
+
+cat("\n--- Binary: VS1 Methods ---\n") 
+df_binary_vs1_simple = create_simple_table("binary", "VS1")
+print(df_binary_vs1_simple)
+
+cat("\n--- Binary: VS2 Methods ---\n")
+df_binary_vs2_simple = create_simple_table("binary", "VS2") 
+print(df_binary_vs2_simple)
+
+cat("\n=== CONTINUOUS OUTCOMES ===\n")
+
+cat("\n--- Continuous: Base Methods ---\n")
+df_continuous_base_simple = create_simple_table("continuous", "none")
+print(df_continuous_base_simple)
+
+cat("\n--- Continuous: VS1 Methods ---\n")
+df_continuous_vs1_simple = create_simple_table("continuous", "VS1")
+print(df_continuous_vs1_simple)
+
+cat("\n--- Continuous: VS2 Methods ---\n")
+df_continuous_vs2_simple = create_simple_table("continuous", "VS2")
+print(df_continuous_vs2_simple)
+
+
+
+###############################################################################
+##  4. COMBINED COMPARISON TABLE (outlier removed) ---------------------------
+###############################################################################
+
+# Create a comparison table showing mean precision gain across all methods and VS types
+create_comparison_table = function(outcome_type) {
+  
+  # Get base methods
+  base_data = df_long_outlier_removed %>% 
+    filter(outcome_group == outcome_type, !grepl("_VS[12]$", method)) %>%
+    group_by(method) %>%
+    summarise(Base_Mean = round(mean(precision_gain), 4), Base_N = n(), .groups = "drop") %>%
+    mutate(method_base = gsub("_VS[12]$", "", method))
+  
+  # Get VS1 methods  
+  vs1_data = df_long_outlier_removed %>% 
+    filter(outcome_group == outcome_type, grepl("_VS1$", method)) %>%
+    group_by(method) %>%
+    summarise(VS1_Mean = round(mean(precision_gain), 4), VS1_N = n(), .groups = "drop") %>%
+    mutate(method_base = gsub("_VS1$", "", method))
+  
+  # Get VS2 methods
+  vs2_data = df_long_outlier_removed %>% 
+    filter(outcome_group == outcome_type, grepl("_VS2$", method)) %>%
+    group_by(method) %>%
+    summarise(VS2_Mean = round(mean(precision_gain), 4), VS2_N = n(), .groups = "drop") %>%
+    mutate(method_base = gsub("_VS2$", "", method))
+  
+  # Merge all together
+  comparison = base_data %>%
+    full_join(vs1_data, by = "method_base", suffix = c("", "_vs1")) %>%
+    full_join(vs2_data, by = "method_base", suffix = c("", "_vs2")) %>%
+    select(Method = method_base, 
+           Base_Mean, Base_N,
+           VS1_Mean, VS1_N, 
+           VS2_Mean, VS2_N) %>%
+    arrange(Method)
+  
+  return(comparison)
+}
+
+cat("\n=== COMPARISON TABLES (OUTLIER REMOVED) ===\n")
+
+cat("\n--- Binary Outcomes: Method Comparison ---\n")
+binary_comparison = create_comparison_table("binary")
+print(binary_comparison)
+
+cat("\n--- Continuous Outcomes: Method Comparison ---\n") 
+continuous_comparison = create_comparison_table("continuous")
+print(continuous_comparison)
 ```
 
