@@ -683,14 +683,14 @@ update_df = function(trial_no,
   sl_members = gsub("^Est_", "", est_cols)
   
   # Remove any glm or mean methods if they exist
-  sl_members = sl_members[!grepl("glm|mean", sl_members, ignore.case = TRUE)]
+  sl_members = sl_members[!grepl("^SL_glm$|^SL_mean$", sl_members, ignore.case = TRUE)]
 
   ## ────────────────────────────────────────────────────────────────
   ## 1)  Process results with the given suffix
   ## ────────────────────────────────────────────────────────────────
   
   # Start with core columns that we want to keep
-  core_cols = c("Outcome", "Treatment", "Control", "N_Covariates")
+  core_cols = c("Outcome", "Treatment", "Control")
   results_processed = results[, core_cols, drop = FALSE]
   
   # Add Selected_Covariates with suffix if it exists
@@ -767,7 +767,7 @@ update_df = function(trial_no,
     mutate(
       Trial_No     = trial_no,
       Sample_Size  = results$N,  # Use results$N for Sample_Size but don't keep N column
-      !!ifelse(suffix == "", "N_Covariates", paste0("N_Covariates_", suffix)) := N_Covariates,
+      !!ifelse(suffix == "", "N_Covariates", paste0("N_Covariates_", suffix)) := results$N_Covariates,
       Contrast     = contrast
     )
 
@@ -1950,6 +1950,23 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df22, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(22, type, res3, "VS2", 2)
 ```
+
+```{r}
+# SL2
+res1 = analyze_rct(df22, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(22, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df22, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(22, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df22, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(22, type, res3, "VS2", 2)
+```
+
 
 # Trial 23
 

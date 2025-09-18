@@ -1909,7 +1909,7 @@ analyze_rct_tmle = function(df,
                             covariate_col = NULL,
                             treatment_col = "Treatment",
                             K = 5,
-                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam"),
+                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet"),
                             selection = FALSE,
                             variable_selection_type = 1,  # 1: correlation, 2: manual
                             manual_covariates = NULL,
@@ -2343,7 +2343,7 @@ analyze_rct_tmle = function(df,
                             covariate_col = NULL,
                             treatment_col = "Treatment",
                             K = 5,
-                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam"),
+                            SL_methods = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet"),
                             selection = FALSE,
                             n_select = 3,
                             n_cores = parallel::detectCores() - 2,
@@ -2588,8 +2588,8 @@ analyze_rct_tmle = function(df,
 ## test
 ```{r}
 res3 = analyze_rct_tmle(df1)
-cat("\n<------------------Variable Seclection------------->\n\n")
-res4 = analyze_rct_tmle(df1, selection = T)
+cat("\n<------------------Variable Selection------------->\n\n")
+res4 = analyze_rct_tmle(df1, selection = TRUE, variable_selection_type = 1)
 ```
 
 ```{r}
@@ -2692,6 +2692,648 @@ if (nrow(diff1) == 0 & nrow(diff2) == 0) {
 
 ```{r}
 write_xlsx(final_results, "cleaned_data/tmle_results.xlsx")
+```
+
+
+# Latest TMLE
+```{r}
+## analyze_rct_tmle() - Enhanced version with variable selection methods
+
+analyze_rct_tmle = function(df,
+                            outcome_cols = NULL,
+                            covariate_col = NULL,
+                            treatment_col = "Treatment",
+                            selection = FALSE,
+                            variable_selection_type = 1,  # 1: correlation, 2: manual
+                            manual_covariates = NULL,
+                            K = 5,
+                            SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.gam"),
+                            n_select = 3,
+                            n_cores = parallel::detectCores() - 2,
+                            seed = 123) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+  require(DescTools)
+  
+  # Set seed once at the beginning for reproducibility
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    # All YP columns
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    
+    # Numeric and binary YS columns
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) &&
+           length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    
+    outcome_cols = c(yp_cols, ys_valid)
+    cat(
+      "Auto-detected",
+      length(outcome_cols),
+      "outcome columns:",
+      paste(outcome_cols, collapse = ", "),
+      "\n"
+    )
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    # Add n_participants if it exists
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), DescTools::Mode(., na.rm = TRUE)[1])
+    }))
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  # Process each outcome
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Check missing proportion for outcome
+    missing_prop = mean(is.na(df[[outcome]]))
+    if (missing_prop > 0.4) {
+      cat(
+        "REMOVED outcome:",
+        outcome,
+        "- Missing proportion:",
+        round(missing_prop, 3),
+        "(> 0.4)\n"
+      )
+      next
+    }
+    
+    # Filter complete cases for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    
+    cat(
+      "Outcome:",
+      outcome,
+      "- Sample size:",
+      nrow(df_complete),
+      "(",
+      nrow(df) - nrow(df_complete),
+      "rows removed)\n"
+    )
+    
+    # Check for single-level factors after filtering
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:",
+          outcome,
+          "- Only one level after filtering\n")
+      next
+    }
+    
+    # Check covariates for single levels and remove them
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat(
+          "REMOVED covariate:",
+          cov,
+          "- Only one level after filtering (outcome:",
+          outcome,
+          ")\n"
+        )
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    # Determine if outcome is binary
+    is_binary = is.factor(df_complete[[outcome]]) && 
+                length(levels(droplevels(df_complete[[outcome]]))) == 2
+    
+    # For variable selection and traditional models, convert to numeric
+    df_complete_numeric = df_complete
+    if (is_binary) {
+      # Convert binary factor/numeric to 0,1
+      # Handle cases where data is already 0,1 or needs conversion from 1,2
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      unique_vals = sort(unique(numeric_outcome))
+      
+      if (all(unique_vals == c(0, 1))) {
+        # Already 0,1 - keep as is
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(unique_vals == c(1, 2))) {
+        # Convert 1,2 to 0,1
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    # Variable selection based on type
+    if (selection && length(valid_covariates) > 0) {
+      if (variable_selection_type == 1) {
+        # Correlation-based selection
+        selected_covariates = variable_selection_correlation(outcome, valid_covariates, df_complete_numeric, n_select)
+      } else if (variable_selection_type == 2) {
+        # Manual + baseline selection
+        selected_covariates = variable_selection_manual(outcome, valid_covariates, manual_covariates)
+        
+        # Check if we have any covariates to work with for manual selection
+        if (length(selected_covariates) == 0) {
+          cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
+          
+          # Create results with NA values
+          treatment_levels = levels(df_complete[[treatment_col]])[-1]  # Exclude control
+          n_treat = length(treatment_levels)
+          
+          # Base tibble with core columns
+          outcome_results = tibble(
+            Outcome = rep(outcome, n_treat),
+            Treatment = treatment_levels,
+            Control = rep(control_level, n_treat),
+            N = rep(nrow(df_complete), n_treat),
+            N_Covariates = rep(0, n_treat),
+            Est_SL = rep(NA_real_, n_treat),
+            SE_SL = rep(NA_real_, n_treat)
+          )
+          
+          # Add Selected_Covariates column if selection = TRUE
+          if (selection) {
+            outcome_results$Selected_Covariates = rep("", n_treat)
+          }
+          
+          valid_outcomes = c(valid_outcomes, outcome)
+          all_results[[length(valid_outcomes)]] = outcome_results
+          next
+        }
+      }
+      
+      # Use the selected covariates
+      valid_covariates = selected_covariates
+      cat("Selected covariates for", outcome, ":", paste(valid_covariates, collapse = ", "), "\n")
+    }
+    
+    # Create results for this outcome
+    treatment_levels = setdiff(levels(df_complete[[treatment_col]]), control_level)
+    n_treat = length(treatment_levels)
+    
+    # Calculate pairwise sample sizes (control + current treatment)
+    pairwise_n = sapply(treatment_levels, function(treat_level) {
+      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
+    })
+    
+    # Create base outcome results
+    outcome_results = tibble(
+      Outcome = rep(outcome, n_treat),
+      Treatment = treatment_levels,
+      Control = rep(control_level, n_treat),
+      N = pairwise_n,
+      N_Covariates = rep(length(valid_covariates), n_treat),
+      Est_SL = rep(NA_real_, n_treat),
+      SE_SL = rep(NA_real_, n_treat)
+    )
+    
+    # Add Selected_Covariates column only if selection = TRUE
+    if (selection) {
+      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
+    }
+    
+    # TMLE SuperLearner - run ensemble (using numeric version)
+    tryCatch({
+      sl_res = analyze_rct_sl_tmle(
+        data = df_complete_numeric,
+        outcome_cols = outcome,
+        covariate_cols = valid_covariates,
+        treatment_col = treatment_col,
+        reference_arm = control_level,
+        K = K,
+        SL_methods = SL_methods,
+        n_cores = n_cores
+      )
+      outcome_results$Est_SL = sl_res$Est_SL
+      outcome_results$SE_SL = sl_res$SE_SL
+    }, error = function(e) {
+      cat("TMLE Error for outcome", outcome, ":", e$message, "\n")
+      outcome_results$Est_SL <<- rep(NA_real_, n_treat)
+      outcome_results$SE_SL <<- rep(NA_real_, n_treat)
+    })
+    
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) {
+    stop("No valid outcomes remaining after data cleaning")
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    # Round for cleaner output
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5))) %>%
+    # Reorder columns
+    select(
+      Outcome,
+      N,
+      N_Covariates,
+      Treatment,
+      Control,
+      Est_SL,
+      SE_SL,
+      everything()
+    )
+  
+  return(final_results)
+}
+
+## analyze_rct_sl_tmle() - TMLE version using built-in CV (with CV control)
+## [Keep the existing function unchanged]
+
+analyze_rct_sl_tmle = function(data,
+                               treatment_col  = "Treatment",
+                               outcome_cols,
+                               covariate_cols,
+                               reference_arm  = NULL,
+                               K              = 5,
+                               SL_methods     = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.gam"),
+                               n_cores        = parallel::detectCores() - 2) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+  require(foreach)
+  require(doSNOW)
+  require(doRNG)
+  
+  n  = nrow(data)
+  
+  ## ── set up inner cluster ────────────────────────────────────────────────
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  registerDoRNG()
+  on.exit(stopCluster(cl), add = TRUE)
+  
+  arms = levels(data[[treatment_col]])
+  if (is.null(reference_arm))
+    reference_arm = arms[1]
+  if (!(reference_arm %in% arms))
+    stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  
+  combos = expand.grid(
+    Outcome   = outcome_cols,
+    Treatment = setdiff(arms, reference_arm),
+    stringsAsFactors = FALSE
+  )
+  
+  results = foreach(
+    i = seq_len(nrow(combos)),
+    .combine = dplyr::bind_rows,
+    .packages = c("dplyr", "tmle", "SuperLearner")
+  ) %dopar% {
+    Y   = combos$Outcome[i]
+    arm = combos$Treatment[i]
+    pair_arms = c(reference_arm, arm)
+    
+    # Filter data to only include the two arms being compared for this contrast
+    pair_data = data[data[[treatment_col]] %in% pair_arms, ]
+    pair_data[[treatment_col]] = factor(pair_data[[treatment_col]], levels = pair_arms)
+    
+    # Create binary treatment indicator (1 for treatment arm, 0 for reference)
+    A = as.numeric(pair_data[[treatment_col]] == arm)
+    Y_vec = pair_data[[Y]]
+    
+    # Handle covariates
+    if (length(covariate_cols) > 0) {
+      W = pair_data[, covariate_cols, drop = FALSE]
+    } else {
+      W = NULL  # No covariates case
+    }
+    
+    # Check for sufficient variation in treatment
+    if (sum(A) < 2 || sum(1-A) < 2) {
+      return(tibble(
+        Outcome   = Y,
+        Treatment = arm,
+        Control   = reference_arm,
+        Est_SL    = NA_real_,
+        SE_SL     = NA_real_
+      ))
+    }
+    
+    tryCatch({
+      # Fit TMLE with CV control
+      if (is.null(W)) {
+        # No covariates case
+        tmle_fit = tmle(
+          Y = Y_vec,
+          A = A,
+          Q.SL.library = SL_methods,
+          g.SL.library = SL_methods,
+          family = "gaussian"
+        )
+      } else {
+        # With covariates
+        tmle_fit = tmle(
+          Y = Y_vec,
+          A = A,
+          W = W,
+          Q.SL.library = SL_methods,
+          g.SL.library = SL_methods,
+          family = "gaussian"
+        )
+      }
+      
+      # Extract ATE estimate and SE directly from TMLE
+      Est_SL = tmle_fit$estimates$ATE$psi
+      SE_SL = sqrt(tmle_fit$estimates$ATE$var.psi)
+      
+    }, error = function(e) {
+      # Print error for debugging (in real run, you might want to remove this)
+      # cat("TMLE Error for", Y, "vs", arm, ":", e$message, "\n")
+      Est_SL = NA_real_
+      SE_SL = NA_real_
+    })
+    
+    tibble(
+      Outcome   = Y,
+      Treatment = arm,
+      Control   = reference_arm,
+      Est_SL    = Est_SL,
+      SE_SL     = SE_SL
+    )
+  }
+  
+  results
+}
+
+## Variable selection functions (copy from existing code)
+
+variable_selection_correlation = function(outcome, valid_covariates, df_complete_numeric, n_select = 3) {
+  if (length(valid_covariates) > n_select) {
+    # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
+    cov_values = numeric(length(valid_covariates))
+    names(cov_values) = valid_covariates
+    
+    for (cov in valid_covariates) {
+      # Convert covariate to numeric temporarily for correlation computation
+      cov_numeric = as.numeric(df_complete_numeric[[cov]])
+      cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
+    }
+    
+    # Select top n_select by absolute correlation magnitude
+    top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
+    selected_covariates = valid_covariates[top_idx]
+    return(selected_covariates)
+  }
+  # If ≤n_select valid covariates, use all of them
+  return(valid_covariates)
+}
+
+variable_selection_manual = function(outcome, valid_covariates, manual_covariates = NULL) {
+  # Step 1: Look for baseline measures of the outcome
+  baseline_var = NULL
+  
+  # Extract outcome pattern and timing
+  if (startsWith(outcome, "YP_")) {
+    # For YP outcomes: YP_abc_7w -> look for X_abc_0w
+    # For YP_delta outcomes: YP_delta_abc_7w -> look for X_abc_0w (skip "delta")
+    outcome_parts = strsplit(outcome, "_")[[1]]
+    if (length(outcome_parts) >= 3) {
+      # Check if this is a delta outcome
+      if (outcome_parts[2] == "delta") {
+        # For YP_delta_abc_7w, extract from position 3 onwards (excluding last part which is timing)
+        if (length(outcome_parts) >= 4) {
+          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
+          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+        }
+      } else {
+        # For regular YP_abc_7w, extract the middle part(s) and construct baseline variable name
+        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+      }
+      
+      # Look for variables that start with this pattern (case-insensitive)
+      if (exists("baseline_pattern")) {
+        # Case-insensitive search using grepl
+        pattern_regex = paste0("^", gsub("_", "_", baseline_pattern, fixed = TRUE))
+        potential_baseline = valid_covariates[grepl(pattern_regex, valid_covariates, ignore.case = TRUE)]
+        if (length(potential_baseline) > 0) {
+          baseline_var = potential_baseline[1]  # Take the first match
+          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+        }
+      }
+    }
+  } else if (startsWith(outcome, "YS_")) {
+    # For YS outcomes: YS_qwe_8m -> look for X_qwe_0m
+    # For YS_delta outcomes: YS_delta_qwe_8m -> look for X_qwe_0m (skip "delta")
+    outcome_parts = strsplit(outcome, "_")[[1]]
+    if (length(outcome_parts) >= 3) {
+      # Check if this is a delta outcome
+      if (outcome_parts[2] == "delta") {
+        # For YS_delta_qwe_8m, extract from position 3 onwards (excluding last part which is timing)
+        if (length(outcome_parts) >= 4) {
+          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
+          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+        }
+      } else {
+        # For regular YS_qwe_8m, extract the middle part(s) and construct baseline variable name
+        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
+        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
+      }
+      
+      # Look for variables that start with this pattern (case-insensitive)
+      if (exists("baseline_pattern")) {
+        # Case-insensitive search using grepl
+        pattern_regex = paste0("^", gsub("_", "_", baseline_pattern, fixed = TRUE))
+        potential_baseline = valid_covariates[grepl(pattern_regex, valid_covariates, ignore.case = TRUE)]
+        if (length(potential_baseline) > 0) {
+          baseline_var = potential_baseline[1]  # Take the first match
+          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
+        }
+      }
+    }
+  }
+  
+  # Combine baseline variable with manual covariates
+  selected_covariates = character(0)
+  
+  # Add baseline variable if found
+  if (!is.null(baseline_var)) {
+    selected_covariates = c(selected_covariates, baseline_var)
+  }
+  
+  # Add manual covariates if provided
+  if (!is.null(manual_covariates)) {
+    # Filter manual covariates to only include those that exist in valid_covariates
+    manual_available = manual_covariates[manual_covariates %in% valid_covariates]
+    selected_covariates = c(selected_covariates, manual_available)
+  }
+  
+  # Remove duplicates
+  selected_covariates = unique(selected_covariates)
+  
+  return(selected_covariates)
+}
+```
+## test
+```{r}
+# ============================================================================
+# TMLE Analysis with Variable Selection Type 2 for All 50 Trials
+# ============================================================================
+
+# Manual covariates for each trial (extracted from your RMD file)
+manual_covariates_list = list(
+  df1 = c("X_Age_0m", "X_Weight_0m"),
+  df2 = c("X_agegrp_0d", "X_sex_0d"),
+  df3 = c("X_age_0m", "X_sex_0m"),
+  df4 = c("X_Sex_0w", "X_Age_0w", "X_BMI_0w"),
+  df5 = c("X_age_0m", "X_sex_0m"),
+  df6 = c("X_age_0m", "X_sex_0m"),
+  df7 = c("X_Age_0h", "X_Gender_0h"),
+  df8 = c("X_Age_0d", "X_Sex_0d"),
+  df9 = c("X_age_0d"),
+  df10 = c("X_center_0d", "X_sex_0d", "X_age_0d", "X_weight_0d"),
+  df11 = c("X_sex_0w"),
+  df12 = c("X_AuthorGender_0w"),
+  df13 = c("X_AGE_0min"),
+  df14 = c("X_center_0w", "X_sex_0w", "X_age_0w"),
+  df15 = c(),  # Empty - no demo variables
+  df16 = c("X_age_0w", "X_sex_0w"),
+  df17 = c("X_age_0w", "X_sex_0w", "X_BMI_0w"),
+  df18 = c("X_AgeCat_0m", "X_Gender_0m"),
+  df19 = c("X_RECIPIENT_AGE_YEARS_0d", "X_RECIPIENT_GENDER_0d"),
+  df20 = c("X_Age_0w", "X_Sex_0w", "X_Weight_0w"),
+  df21 = c(),  # Empty - no demo variables
+  df22 = c("X_age_0w"),
+  df23 = c(),  # Empty - no demo variables
+  df24 = c("X_Age_0d", "X_Weight_0d"),
+  df25 = c("X_Sex_0w", "X_BMI_0w"),
+  df26 = c("X_Agecat_0m", "X_weight_0m"),
+  df27 = c(),  # Empty - no demo variables
+  df28 = c("X_SEX_0m", "X_Age_0m", "X_BMI_0m"),
+  df29 = c("X_age_0w", "X_sex_0w", "X_on_art_0w"),
+  df30 = c("X_Sex_0d", "X_Age_0d"),
+  df31 = c("X_age_0w"),
+  df32 = c("X_gender_0w"),
+  df33 = c("X_age_0w", "X_Gender_0w", "X_DiseaseGroup_0w"),
+  df34 = c("X_wt_0d", "X_sex_0d"),
+  df35 = c("X_BMI_0w"),
+  df36 = c(),  # Empty - no demo variables
+  df37 = c("X_site_0d", "X_age_0d", "X_gender_0d"),
+  df38 = c("X_age_0w", "X_weight_0w", "X_gender_0w"),
+  df39 = c("X_age_0w", "X_sex_0w", "X_substance_0w"),
+  df40 = c("X_age_0d", "X_gender_0d", "X_BMI_0d"),
+  df41 = c("X_gender_0h", "X_BMI_0h", "X_age_0h"),
+  df42 = c("X_gender_0h", "X_bmi_0h", "X_age_0h"),
+  df43 = c("X_Age_0d", "X_BMI_0d"),
+  df44 = c("X_Age_0m", "X_Sex_0m", "X_Wt_0m"),
+  df45 = c("X_weight_8w", "X_store_0w"),
+  df46 = c("X_Age_0y"),
+  df47 = c("X_gender_0h", "X_age_range_0h", "X_weight_range_0h"),
+  df48 = c("X_age_group", "X_sex"),
+  df49 = c("X_gestAge_0w", "X_birthWt_0d"),
+  df50 = c("X_sex_0w", "X_center_0w", "X_age_0w", "X_weight_0w")
+)
+
+# Initialize empty dataframe to store all results
+final_tmle_results = data.frame()
+
+# Main execution loop
+for (i in 1:50) {
+  df_name = paste0("df", i)
+  
+  cat("\n==================== TMLE Analysis for", df_name, "====================\n")
+  cat("<------------------Variable Selection Type 2 (Manual + Baseline)------------->\n\n")
+  
+  # Load the dataframe
+  df = get(df_name)
+  
+  # Get manual covariates for this trial
+  manual_covs = manual_covariates_list[[df_name]]
+  
+  if (is.null(manual_covs)) {
+    manual_covs = character(0)  # Empty vector if NULL
+  }
+  
+  cat("Manual covariates for", df_name, ":", 
+      ifelse(length(manual_covs) > 0, paste(manual_covs, collapse = ", "), "None"), "\n\n")
+  
+  # Run TMLE analysis with VS2
+  tryCatch({
+    res_tmle = analyze_rct_tmle(df, 
+                               selection = TRUE, 
+                               variable_selection_type = 2,
+                               manual_covariates = manual_covs)
+    
+    # Add trial identifier
+    res_tmle$Trial = i
+    res_tmle$DataFrame = df_name
+    
+    # Add rows to final results
+    final_tmle_results = rbind(final_tmle_results, res_tmle)
+    
+    # Print results summary
+    cat("TMLE Results Summary:\n")
+    cat("- Number of outcomes analyzed:", nrow(res_tmle), "\n")
+    cat("- Outcomes with valid estimates:", sum(!is.na(res_tmle$Est_SL)), "\n")
+    cat("- Outcomes with missing estimates:", sum(is.na(res_tmle$Est_SL)), "\n\n")
+    
+  }, error = function(e) {
+    cat("ERROR in", df_name, ":", e$message, "\n")
+  })
+  
+  cat("Completed", df_name, "\n")
+}
+
+# Final summary
+cat("\n==================== Final Results ====================\n")
+if (nrow(final_tmle_results) > 0) {
+  cat("Total outcome analyses:", nrow(final_tmle_results), "\n")
+  cat("Valid TMLE estimates:", sum(!is.na(final_tmle_results$Est_SL)), "\n")
+  cat("Missing TMLE estimates:", sum(is.na(final_tmle_results$Est_SL)), "\n\n")
+  
+  # Show summary by trial
+  library(dplyr)
+  summary_by_trial = final_tmle_results %>%
+    group_by(Trial, DataFrame) %>%
+    summarise(
+      n_outcomes = n(),
+      valid_estimates = sum(!is.na(Est_SL)),
+      .groups = "drop"
+    )
+  
+  print(summary_by_trial)
+  
+  # Save results
+  write.csv(final_tmle_results, "cleaned_data/tmle_vs2_all_trials_results.csv", row.names = FALSE)
+  cat("\nAll results saved to: tmle_vs2_all_trials_results.csv\n")
+  
+} else {
+  cat("No results to save\n")
+}
 ```
 
 # new update()
