@@ -668,7 +668,15 @@ update_df = function(trial_no,
   library(dplyr)
 
   ## ────────────────────────────────────────────────────────────────
-  ## 0)  Outcome → Outcome-Type lookup
+  ## 0) Check if all N_Covariates are 0 - if so, skip update entirely
+  ## ────────────────────────────────────────────────────────────────
+  if (all(results$N_Covariates == 0)) {
+    cat("Skipping update for trial", trial_no, "- All outcomes have N_Covariates = 0\n")
+    return(df)
+  }
+
+  ## ────────────────────────────────────────────────────────────────
+  ## 1)  Outcome → Outcome-Type lookup
   ## ────────────────────────────────────────────────────────────────
   unique_outcomes = unique(results$Outcome)
   stopifnot(length(outcome_type) == length(unique_outcomes))
@@ -683,14 +691,14 @@ update_df = function(trial_no,
   sl_members = gsub("^Est_", "", est_cols)
   
   # Remove any glm or mean methods if they exist
-  sl_members = sl_members[!grepl("glm|mean", sl_members, ignore.case = TRUE)]
+  sl_members = sl_members[!grepl("^SL_glm$|^SL_mean$", sl_members, ignore.case = TRUE)]
 
   ## ────────────────────────────────────────────────────────────────
-  ## 1)  Process results with the given suffix
+  ## 2)  Process results with the given suffix
   ## ────────────────────────────────────────────────────────────────
   
   # Start with core columns that we want to keep
-  core_cols = c("Outcome", "Treatment", "Control", "N_Covariates")
+  core_cols = c("Outcome", "Treatment", "Control")
   results_processed = results[, core_cols, drop = FALSE]
   
   # Add Selected_Covariates with suffix if it exists
@@ -767,7 +775,7 @@ update_df = function(trial_no,
     mutate(
       Trial_No     = trial_no,
       Sample_Size  = results$N,  # Use results$N for Sample_Size but don't keep N column
-      !!ifelse(suffix == "", "N_Covariates", paste0("N_Covariates_", suffix)) := N_Covariates,
+      !!ifelse(suffix == "", "N_Covariates", paste0("N_Covariates_", suffix)) := results$N_Covariates,
       Contrast     = contrast
     )
 
@@ -873,7 +881,7 @@ update_df = function(trial_no,
   }
 
   ## ────────────────────────────────────────────────────────────────
-  ## 2)  Overwrite / append in df_comparison (with column addition support)
+  ## 3)  Overwrite / append in df_comparison (with column addition support)
   ## ────────────────────────────────────────────────────────────────
   new_rows = results_processed
   
@@ -3285,7 +3293,6 @@ df_comparison = update_df(50, type, res3, "VS2", 2)
 
 
 # Export
-
 ```{r}
 write_xlsx(df_comparison, "cleaned_data/meta_data_comparison.xlsx")
 ```
