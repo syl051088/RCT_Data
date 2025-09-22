@@ -1,540 +1,540 @@
-"Outcome","N","N_Covariates","Treatment","Control","Est_SL","SE_SL","Selected_Covariates","Trial","DataFrame"
-"YP_delta_HOMA_IR_4m",194,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-0.66308,0.24084,"X_HOMA_IR_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YP_delta_HOMA_IR_4m",195,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.19655,0.25261,"X_HOMA_IR_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_BMI_4m",194,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-0.52836,0.17286,"X_BMI_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_BMI_4m",194,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.15551,0.15415,"X_BMI_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_WHR_4m",194,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",0.00134,0.00546,"X_WHR_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_WHR_4m",194,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",0.00068,0.00539,"X_WHR_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_Acne_4m",195,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",0.03059,0.0831,"X_Acne_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_Acne_4m",194,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.08427,0.07545,"X_Acne_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_Hirsutism_4m",195,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",0.04726,0.09482,"X_Hirsutism_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_Hirsutism_4m",195,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.08176,0.1296,"X_Hirsutism_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_FPG_4m",194,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-0.10393,0.07635,"X_FPG_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_FPG_4m",195,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.14083,0.10676,"X_FPG_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_FINS_4m",194,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-2.21628,0.86206,"X_FINS_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_FINS_4m",195,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",0.16446,0.95956,"X_FINS_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_GlucoseAUC_4m",191,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",0.83321,0.3216,"X_GlucoseAUC_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_GlucoseAUC_4m",192,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.19413,0.32337,"X_GlucoseAUC_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_InsulinAUC_4m",193,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-22.10224,15.85346,"X_InsulinAUC_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_InsulinAUC_4m",192,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-34.75742,13.7661,"X_InsulinAUC_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_HOMA_beta_4m",194,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-6.65815,22.9149,"X_HOMA_beta_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_HOMA_beta_4m",195,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",8.86896,19.68197,"X_HOMA_beta_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_Cpeptide_4m",193,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-0.02027,0.03568,"X_Cpeptide_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_Cpeptide_4m",192,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.08093,0.04596,"X_Cpeptide_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_HbA1c_4m",189,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-0.03621,0.03734,"X_HbA1c_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_HbA1c_4m",190,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.01109,0.03464,"X_HbA1c_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_LH_FSH_4m",180,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-0.08628,0.15633,"X_LH_FSH_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_LH_FSH_4m",187,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",0.08433,0.18678,"X_LH_FSH_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_TotalT_4m",182,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-0.19747,0.09105,"X_TotalT_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_TotalT_4m",187,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",-0.01966,0.09502,"X_TotalT_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_FAI_4m",174,3,"Metformin + Sham Acupuncture","Sham Acupuncture + Placebo",-1.0132,0.55043,"X_FAI_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YS_delta_FAI_4m",179,3,"True Acupuncture + Placebo","Sham Acupuncture + Placebo",0.27007,0.47945,"X_FAI_0m, X_Age_0m, X_Weight_0m",1,"df1"
-"YP_recovery_time",400,2,"Ivermectin+Doxycycline","Placebo",-1.66081,0.59276,"X_agegrp_0d, X_sex_0d",2,"df2"
-"YS_severity_worsen",368,2,"Ivermectin+Doxycycline","Placebo",-0.07444,0.0342,"X_agegrp_0d, X_sex_0d",2,"df2"
-"YS_pos_14d",368,2,"Ivermectin+Doxycycline","Placebo",-0.12073,0.03562,"X_agegrp_0d, X_sex_0d",2,"df2"
-"YP_composite_event",6030,2,"Alert","Usual Care",0.00369,0.01052,"X_age_0m, X_sex_0m",3,"df3"
-"YP_composite_time",6030,2,"Alert","Usual Care",0.00491,0.11047,"X_age_0m, X_sex_0m",3,"df3"
-"YS_aki_progression_event",6030,2,"Alert","Usual Care",0.00329,0.00935,"X_age_0m, X_sex_0m",3,"df3"
-"YS_death_event",6030,2,"Alert","Usual Care",-2e-04,0.00733,"X_age_0m, X_sex_0m",3,"df3"
-"YS_dialysis_event",6030,2,"Alert","Usual Care",0.00304,0.00459,"X_age_0m, X_sex_0m",3,"df3"
-"YS_discharge_home",6030,2,"Alert","Usual Care",-0.01321,0.01254,"X_age_0m, X_sex_0m",3,"df3"
-"YS_los_since_alert",6027,2,"Alert","Usual Care",-0.27121,0.36291,"X_age_0m, X_sex_0m",3,"df3"
-"YS_discharge_inpatient_hospice",6030,2,"Alert","Usual Care",0.01378,0.01255,"X_age_0m, X_sex_0m",3,"df3"
-"YP_delta_TGF_6w",75,4,"VD","Placebo",0.15628,1.15144,"X_TGF_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,"df4"
-"YP_delta_TIMP_6w",75,4,"VD","Placebo",-5.63261,10.47687,"X_TIMP_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,"df4"
-"YP_delta_MMP_6w",75,4,"VD","Placebo",132.62169,88.15486,"X_MMP_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,"df4"
-"YP_delta_P3NP_6w",75,4,"VD","Placebo",-0.07863,1.0809,"X_P3NP_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,"df4"
-"YP_composite_14d",5060,2,"Alert","Usual Care",-0.02117,0.01202,"X_age_0m, X_sex_0m",5,"df5"
-"YS_los_since_alert",5047,2,"Alert","Usual Care",0.10177,0.44327,"X_age_0m, X_sex_0m",5,"df5"
-"YS_death_14d",5060,2,"Alert","Usual Care",-0.01172,0.00863,"X_age_0m, X_sex_0m",5,"df5"
-"YS_dialysis_14d",5060,2,"Alert","Usual Care",-0.00103,0.00607,"X_age_0m, X_sex_0m",5,"df5"
-"YS_aki_progression_14d",5060,2,"Alert","Usual Care",-0.01064,0.01105,"X_age_0m, X_sex_0m",5,"df5"
-"YS_inpatient_mortality",5060,2,"Alert","Usual Care",-0.00369,0.00981,"X_age_0m, X_sex_0m",5,"df5"
-"YS_inpatient_dialysis",5060,2,"Alert","Usual Care",0.0062,0.00648,"X_age_0m, X_sex_0m",5,"df5"
-"YS_progression_stage2_14d",5060,2,"Alert","Usual Care",-0.00251,0.00832,"X_age_0m, X_sex_0m",5,"df5"
-"YS_progression_stage3_14d",5060,2,"Alert","Usual Care",-0.00925,0.00823,"X_age_0m, X_sex_0m",5,"df5"
-"YS_ppi_stopped_24h",3298,2,"Alert","Usual Care",0.04603,0.01371,"X_age_0m, X_sex_0m",5,"df5"
-"YS_no_ppi_during_aki",3298,2,"Alert","Usual Care",0.04657,0.01543,"X_age_0m, X_sex_0m",5,"df5"
-"YS_transfuserbc_14d",3298,2,"Alert","Usual Care",-0.00771,0.01528,"X_age_0m, X_sex_0m",5,"df5"
-"YS_duration_of_alert",5060,2,"Alert","Usual Care",-0.22265,0.22453,"X_age_0m, X_sex_0m",5,"df5"
-"YS_duration_of_aki",5060,2,"Alert","Usual Care",-0.06435,0.37957,"X_age_0m, X_sex_0m",5,"df5"
-"YS_aki_stage_14d",4673,2,"Alert","Usual Care",-0.05278,0.02645,"X_age_0m, X_sex_0m",5,"df5"
-"YS_readmit_30d",5060,2,"Alert","Usual Care",-0.01275,0.00957,"X_age_0m, X_sex_0m",5,"df5"
-"YP_delta_CCA_IMT_24m",345,3,"Sitagliptin","Conventional",0.00036,0.01231,"X_cca_imt_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_hba1c_12m",391,3,"Sitagliptin","Conventional",-0.10367,0.0528,"X_hba1c_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_hba1c_24m",370,3,"Sitagliptin","Conventional",-0.16328,0.0593,"X_hba1c_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_fbg_12m",369,3,"Sitagliptin","Conventional",1.97975,3.26549,"X_fbg_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_fbg_24m",348,3,"Sitagliptin","Conventional",-0.70093,3.46601,"X_fbg_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_creatinine_12m",396,3,"Sitagliptin","Conventional",0.01324,0.01061,"X_creatinine_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_creatinine_24m",376,3,"Sitagliptin","Conventional",0.0102,0.01637,"X_creatinine_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_egfr_12m",396,3,"Sitagliptin","Conventional",-1.02506,0.83849,"X_egfr_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_egfr_24m",376,3,"Sitagliptin","Conventional",-0.41136,0.96218,"X_egfr_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_weight_12m",373,3,"Sitagliptin","Conventional",0.13132,0.27763,"X_weight_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_weight_24m",345,3,"Sitagliptin","Conventional",-0.62587,0.35317,"X_weight_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_1_5ag_12m",308,3,"Sitagliptin","Conventional",0.9115,0.56709,"X_1_5ag_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_1_5ag_24m",312,3,"Sitagliptin","Conventional",1.06922,0.60441,"X_1_5ag_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_sdldl_12m",308,3,"Sitagliptin","Conventional",-1.4306,1.47588,"X_sdldl_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_sdldl_24m",307,3,"Sitagliptin","Conventional",-2.69702,1.68352,"X_sdldl_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_adipo_12m",308,3,"Sitagliptin","Conventional",-0.88478,0.31408,"X_adipo_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_adipo_24m",308,3,"Sitagliptin","Conventional",-0.66779,0.35,"X_adipo_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_rlpc_12m",308,3,"Sitagliptin","Conventional",-0.49497,0.33102,"X_rlpc_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_rlpc_24m",312,3,"Sitagliptin","Conventional",-0.11166,0.42953,"X_rlpc_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_mda_ldl_12m",308,3,"Sitagliptin","Conventional",3.4508,3.29667,"X_mda_ldl_0m, X_age_0m, X_sex_0m",6,"df6"
-"YS_delta_mda_ldl_24m",312,3,"Sitagliptin","Conventional",-5.69642,3.55364,"X_mda_ldl_0m, X_age_0m, X_sex_0m",6,"df6"
-"YP_delta_COG2_60h",38,3,"Brain Lab","ThinkRx",-5.9963,4.70462,"X_COG2_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_delta_COG3_60h",38,3,"Brain Lab","ThinkRx",-3.70571,2.88496,"X_COG3_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_delta_COG4_60h",38,3,"Brain Lab","ThinkRx",7.46217,3.82493,"X_COG4_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_delta_COG5_60h",38,3,"Brain Lab","ThinkRx",0.42983,2.84798,"X_COG5_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_delta_COG6_60h",38,3,"Brain Lab","ThinkRx",-1.79401,2.48205,"X_COG6_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_delta_COG7_60h",38,3,"Brain Lab","ThinkRx",0.18616,4.92485,"X_COG7_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_delta_COG10_60h",38,3,"Brain Lab","ThinkRx",-11.53443,4.89729,"X_COG10_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_delta_IQ_60h",38,3,"Brain Lab","ThinkRx",1.6039,3.02388,"X_IQ_0h, X_Age_0h, X_Gender_0h",7,"df7"
-"YP_RTPCR_negative_6d",103,2,"Ivermectin","Placebo",0.06506,0.07274,"X_Age_0d, X_Sex_0d",8,"df8"
-"YS_symptom_free_6d",114,2,"Ivermectin","Placebo",0.05158,0.06444,"X_Age_0d, X_Sex_0d",8,"df8"
-"YS_discharged_10d",114,2,"Ivermectin","Placebo",-0.03841,0.07929,"X_Age_0d, X_Sex_0d",8,"df8"
-"YS_final_discharge",114,2,"Ivermectin","Placebo",-0.08511,0.03701,"X_Age_0d, X_Sex_0d",8,"df8"
-"YS_ICU",114,2,"Ivermectin","Placebo",0.00838,0.0552,"X_Age_0d, X_Sex_0d",8,"df8"
-"YS_intubation_mv",114,2,"Ivermectin","Placebo",0.06762,0.04412,"X_Age_0d, X_Sex_0d",8,"df8"
-"YP_manual_removal",577,1,"Oxytocin","Placebo",-0.00851,0.04047,"X_age_0d",9,"df9"
-"YS_pulse_after_30min",542,1,"Oxytocin","Placebo",2.09779,1.08757,"X_age_0d",9,"df9"
-"YS_bp_sys_after_30min",547,1,"Oxytocin","Placebo",-0.2541,1.40529,"X_age_0d",9,"df9"
-"YS_bp_dia_after_30min",545,1,"Oxytocin","Placebo",0.44194,0.95453,"X_age_0d",9,"df9"
-"YS_blood_loss_ml",569,1,"Oxytocin","Placebo",21.20884,41.58596,"X_age_0d",9,"df9"
-"YS_blood_loss_over_500ml",569,1,"Oxytocin","Placebo",0.00229,0.04009,"X_age_0d",9,"df9"
-"YS_blood_loss_over_1000ml",569,1,"Oxytocin","Placebo",0.00835,0.02561,"X_age_0d",9,"df9"
-"YS_blood_transfusion",576,1,"Oxytocin","Placebo",-0.02546,0.02489,"X_age_0d",9,"df9"
-"YS_mother_sep_gt1h",574,1,"Oxytocin","Placebo",0.02699,0.03774,"X_age_0d",9,"df9"
-"YS_general_anaesthetic",381,1,"Oxytocin","Placebo",-0.07369,0.04141,"X_age_0d",9,"df9"
-"YS_side_effect",535,1,"Oxytocin","Placebo",-0.00046,0.02058,"X_age_0d",9,"df9"
-"YS_maternal_pyrexia",571,1,"Oxytocin","Placebo",0.00974,0.01502,"X_age_0d",9,"df9"
-"YS_return_to_theatre",576,1,"Oxytocin","Placebo",-0.00366,0.00777,"X_age_0d",9,"df9"
-"YS_antibiotic_use",577,1,"Oxytocin","Placebo",0.02282,0.02666,"X_age_0d",9,"df9"
-"YS_further_treatment",577,1,"Oxytocin","Placebo",NA,NA,"X_age_0d",9,"df9"
-"YS_hb_after_delivery",546,1,"Oxytocin","Placebo",-0.0839,0.16384,"X_age_0d",9,"df9"
-"YS_maternal_mortality",577,1,"Oxytocin","Placebo",NA,NA,"X_age_0d",9,"df9"
-"YS_baby_mortality",577,1,"Oxytocin","Placebo",NA,NA,"X_age_0d",9,"df9"
-"YS_delta_hb_pct",541,1,"Oxytocin","Placebo",0.49882,1.2754,"X_age_0d",9,"df9"
-"YS_hb_fall_over_10pct",541,1,"Oxytocin","Placebo",0.01565,0.04055,"X_age_0d",9,"df9"
-"YS_hb_fall_over_20pct",541,1,"Oxytocin","Placebo",-0.00836,0.04131,"X_age_0d",9,"df9"
-"YP_help_needed_intub",256,4,"Video","No Video",-0.0985,0.06128,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_burp_intub",256,4,"Video","No Video",-0.08587,0.05994,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_railroading_intub",256,4,"Video","No Video",0.01552,0.03976,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_pogo_intub",256,4,"Video","No Video",14.99234,3.15326,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_force_intub",256,4,"Video","No Video",-0.12494,0.04498,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_esophageal_intub",248,4,"Video","No Video",-0.0128,0.01937,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_removing_cover_intub",256,4,"Video","No Video",-0.07205,0.02365,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_time_to_intubation_intub",217,4,"Video","No Video",4.52915,7.5678,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_ease_intubation_intub",256,4,"Video","No Video",-0.88644,0.28931,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_HR_before_induc",244,4,"Video","No Video",1.10967,1.89747,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_HR_before_intub",251,4,"Video","No Video",1.84982,1.45633,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_HR_after_intub",252,4,"Video","No Video",-1.67715,2.15699,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_MAP_before_induc",242,4,"Video","No Video",-2.5744,2.05398,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_MAP_before_intub",243,4,"Video","No Video",-1.68659,2.16968,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_MAP_after_intub",238,4,"Video","No Video",-7.70429,3.2543,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_BIS_before_intub",172,3,"Video","No Video",-3.52166,2.04592,"X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_BIS_after_intub",190,4,"Video","No Video",-4.58065,2.01403,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_NMT_before_intub",173,3,"Video","No Video",-0.40806,0.26238,"X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_NMT_after_intub",196,4,"Video","No Video",0.2011,0.63739,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_SpO2_before_intub",175,3,"Video","No Video",-0.95452,1.023,"X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_SpO2_during_intub",182,3,"Video","No Video",0.11885,0.1875,"X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YS_SpO2_after_intub",183,3,"Video","No Video",-0.2032,1.46394,"X_sex_0d, X_age_0d, X_weight_0d",10,"df10"
-"YP_delta_log10_biomass_oral_8w",40,1,"active","placebo",-0.11628,0.23878,"X_sex_0w",11,"df11"
-"YP_delta_log10_biomass_sputum_8w",35,1,"active","placebo",0.61188,0.37112,"X_sex_0w",11,"df11"
-"YS_delta_shannon_oral_8w",40,1,"active","placebo",-0.37354,0.09863,"X_sex_0w",11,"df11"
-"YS_delta_shannon_sputum_8w",35,1,"active","placebo",-0.55823,0.18226,"X_sex_0w",11,"df11"
-"YS_delta_simpson_oral_8w",40,1,"active","placebo",-0.03591,0.0078,"X_sex_0w",11,"df11"
-"YS_delta_simpson_sputum_8w",35,1,"active","placebo",-0.0917,0.03234,"X_sex_0w",11,"df11"
-"YS_delta_crp_8w",40,2,"active","placebo",1.57092,2.12692,"X_crp_0w, X_sex_0w",11,"df11"
-"YS_delta_fibrinogen_8w",39,2,"active","placebo",12.23658,22.16828,"X_fibrinogen_0w, X_sex_0w",11,"df11"
-"YS_delta_leukocyte_8w",39,2,"active","placebo",-0.41308,0.56426,"X_leukocyte_0w, X_sex_0w",11,"df11"
-"YS_delta_sgrq_total_8w",40,1,"active","placebo",-6.24941,2.70069,"X_sex_0w",11,"df11"
-"YS_delta_bcss_8w",37,1,"active","placebo",-0.21795,0.58565,"X_sex_0w",11,"df11"
-"YS_PaperReviewed",3714,1,"DoubleBlind","SingleBlind",0.01426,0.01598,"X_AuthorGender_0w",12,"df12"
-"YS_RevisionInvited",3652,1,"DoubleBlind","SingleBlind",-0.02345,0.01108,"X_AuthorGender_0w",12,"df12"
-"YS_ResubInvited",3652,1,"DoubleBlind","SingleBlind",0.00419,0.00866,"X_AuthorGender_0w",12,"df12"
-"YP_TOTALBLOOD",477,1,"IV infusion","IM injection",-41.83239,30.36966,"X_AGE_0min",13,"df13"
-"YP_PPH500",477,1,"IV infusion","IM injection",-0.03192,0.03789,"X_AGE_0min",13,"df13"
-"YS_SYSBP_30min",478,1,"IV infusion","IM injection",0.01121,1.32224,"X_AGE_0min",13,"df13"
-"YS_DIASBP_30min",478,1,"IV infusion","IM injection",-0.41215,1.02532,"X_AGE_0min",13,"df13"
-"YS_HR_30min",478,1,"IV infusion","IM injection",-1.21594,1.51223,"X_AGE_0min",13,"df13"
-"YS_BLD_30min",478,1,"IV infusion","IM injection",-33.30673,26.83988,"X_AGE_0min",13,"df13"
-"YS_SYSBP_60min",477,1,"IV infusion","IM injection",0.94012,1.28586,"X_AGE_0min",13,"df13"
-"YS_DIASBP_60min",477,1,"IV infusion","IM injection",-0.98871,0.99545,"X_AGE_0min",13,"df13"
-"YS_HR_60min",477,1,"IV infusion","IM injection",-1.77595,1.48123,"X_AGE_0min",13,"df13"
-"YS_BLD_60min",476,1,"IV infusion","IM injection",-42.4461,30.26537,"X_AGE_0min",13,"df13"
-"YS_UTEROTONICOS",480,1,"IV infusion","IM injection",-0.06862,0.02573,"X_AGE_0min",13,"df13"
-"YS_PPH1000",477,1,"IV infusion","IM injection",-0.01522,0.02265,"X_AGE_0min",13,"df13"
-"YS_SI_15min",480,1,"IV infusion","IM injection",-0.01953,0.01779,"X_AGE_0min",13,"df13"
-"YS_SI_30min",478,1,"IV infusion","IM injection",-0.0062,0.02156,"X_AGE_0min",13,"df13"
-"YS_SI_45min",477,1,"IV infusion","IM injection",0.00824,0.02178,"X_AGE_0min",13,"df13"
-"YS_SI_60min",477,1,"IV infusion","IM injection",-0.0242,0.01951,"X_AGE_0min",13,"df13"
-"YS_HB_CHG",475,1,"IV infusion","IM injection",0.09195,0.15393,"X_AGE_0min",13,"df13"
-"YP_6MWD_6w",112,4,"TERECO","No Active Rehabilitation",67.05175,9.81505,"X_6MWD_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YP_6MWD_28w",105,4,"TERECO","No Active Rehabilitation",62.31264,10.06866,"X_6MWD_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_squat_6w",112,4,"TERECO","No Active Rehabilitation",21.25845,4.418,"X_squat_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_squat_28w",105,4,"TERECO","No Active Rehabilitation",22.40756,4.19559,"X_squat_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_fvc_6w",111,4,"TERECO","No Active Rehabilitation",-0.02946,0.08422,"X_fvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_fvc_28w",103,4,"TERECO","No Active Rehabilitation",-0.06899,0.073,"X_fvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_fev1_6w",111,4,"TERECO","No Active Rehabilitation",0.03498,0.09429,"X_fev1_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_fev1_28w",103,4,"TERECO","No Active Rehabilitation",-0.08902,0.07732,"X_fev1_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_fevfvc_6w",111,4,"TERECO","No Active Rehabilitation",0.02064,0.01852,"X_fevfvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_fevfvc_28w",103,4,"TERECO","No Active Rehabilitation",-0.01207,0.01691,"X_fevfvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_mvv_6w",111,4,"TERECO","No Active Rehabilitation",8.71569,3.61534,"X_mvv_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_mvv_28w",103,4,"TERECO","No Active Rehabilitation",2.04044,3.87831,"X_mvv_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_pef_6w",111,4,"TERECO","No Active Rehabilitation",0.42514,0.33435,"X_pef_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_pef_28w",103,4,"TERECO","No Active Rehabilitation",-0.17656,0.33528,"X_pef_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_SF12_PCS_6w",112,4,"TERECO","No Active Rehabilitation",3.77994,1.22342,"X_SF12_PCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_SF12_PCS_28w",105,4,"TERECO","No Active Rehabilitation",2.42092,1.5562,"X_SF12_PCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_SF12_MCS_6w",112,4,"TERECO","No Active Rehabilitation",2.74587,1.5357,"X_SF12_MCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_SF12_MCS_28w",105,4,"TERECO","No Active Rehabilitation",2.1003,1.51167,"X_SF12_MCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_dyspnea_6w",112,3,"TERECO","No Active Rehabilitation",0.29193,0.07643,"X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_dyspnea_28w",105,3,"TERECO","No Active Rehabilitation",0.12642,0.09162,"X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_dyspnea_2w",114,3,"TERECO","No Active Rehabilitation",0.1218,0.09387,"X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_dyspnea_4w",114,3,"TERECO","No Active Rehabilitation",0.06412,0.08989,"X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YS_AE",119,3,"TERECO","No Active Rehabilitation",-0.04015,0.08777,"X_center_0w, X_sex_0w, X_age_0w",14,"df14"
-"YP_delta_EmoReact_4w",28,1,"Conventional+Snoezelen","Conventional Only",-12.2985,5.21588,"X_EmoReact_0w",15,"df15"
-"YS_delta_CBCLTotal_4w",28,1,"Conventional+Snoezelen","Conventional Only",-3.69835,5.10224,"X_CBCLTotal_0w",15,"df15"
-"YS_delta_Internal_4w",28,1,"Conventional+Snoezelen","Conventional Only",-2.6226,3.84898,"X_Internal_0w",15,"df15"
-"YS_delta_External_4w",28,1,"Conventional+Snoezelen","Conventional Only",-10.86847,6.67104,"X_External_0w",15,"df15"
-"YS_delta_Anx_Dep_4w",28,1,"Conventional+Snoezelen","Conventional Only",6.08298,7.83045,"X_Anx_Dep_0w",15,"df15"
-"YS_delta_Somatic_4w",28,1,"Conventional+Snoezelen","Conventional Only",5.03918,7.45257,"X_Somatic_0w",15,"df15"
-"YS_delta_Withdrawn_4w",28,1,"Conventional+Snoezelen","Conventional Only",-5.17196,5.39159,"X_Withdrawn_0w",15,"df15"
-"YS_delta_Sleep_4w",28,1,"Conventional+Snoezelen","Conventional Only",-0.25476,9.2408,"X_Sleep_0w",15,"df15"
-"YS_delta_Attention_4w",28,1,"Conventional+Snoezelen","Conventional Only",-2.04688,5.60731,"X_Attention_0w",15,"df15"
-"YS_delta_Aggressive_4w",28,1,"Conventional+Snoezelen","Conventional Only",-9.21365,8.00729,"X_Aggressive_0w",15,"df15"
-"YS_delta_Others_4w",28,1,"Conventional+Snoezelen","Conventional Only",-1.36581,5.68002,"X_Others_0w",15,"df15"
-"YS_delta_Child_Stress_4w",28,1,"Conventional+Snoezelen","Conventional Only",-7.83439,6.95482,"X_Child_Stress_0w",15,"df15"
-"YS_delta_Parent_Stress_4w",28,1,"Conventional+Snoezelen","Conventional Only",-4.43,5.02265,"X_Parent_Stress_0w",15,"df15"
-"YS_delta_PSI_Total_4w",28,1,"Conventional+Snoezelen","Conventional Only",-12.18368,6.34748,"X_PSI_Total_0w",15,"df15"
-"YP_delta_BDI_9w",48,3,"Internet Delivered","Waitlist",-5.54871,1.93687,"X_BDI_0w, X_age_0w, X_sex_0w",16,"df16"
-"YS_delta_MADRS_9w",48,3,"Internet Delivered","Waitlist",-4.15216,1.97802,"X_MADRS_0w, X_age_0w, X_sex_0w",16,"df16"
-"YS_delta_BAI_9w",48,3,"Internet Delivered","Waitlist",-0.75205,1.0758,"X_BAI_0w, X_age_0w, X_sex_0w",16,"df16"
-"YS_delta_QOLI_9w",48,3,"Internet Delivered","Waitlist",0.16395,0.34097,"X_QOLI_0w, X_age_0w, X_sex_0w",16,"df16"
-"YS_delta_IPAQ_9w",46,3,"Internet Delivered","Waitlist",310.25671,273.41151,"X_IPAQ_0w, X_age_0w, X_sex_0w",16,"df16"
-"YP_delta_LDL_24w",147,4,"combine3","statin",-0.89924,0.12589,"X_LDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YP_delta_LDL_24w",148,4,"statin_EZ","statin",-0.10275,0.12956,"X_LDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YP_delta_LDL_24w",149,4,"statin_pcsk9","statin",-0.61615,0.13238,"X_LDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_TC_24w",147,4,"combine3","statin",-1.00491,0.14627,"X_TC_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_TC_24w",148,4,"statin_EZ","statin",-0.01282,0.14257,"X_TC_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_TC_24w",149,4,"statin_pcsk9","statin",-0.60768,0.1536,"X_TC_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_TG_24w",147,4,"combine3","statin",-0.22606,0.09957,"X_TG_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_TG_24w",148,4,"statin_EZ","statin",-0.01303,0.10631,"X_TG_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_TG_24w",149,4,"statin_pcsk9","statin",-0.13766,0.09463,"X_TG_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_HDL_24w",147,4,"combine3","statin",0.09025,0.03894,"X_HDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_HDL_24w",148,4,"statin_EZ","statin",0.02138,0.03633,"X_HDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YS_delta_HDL_24w",149,4,"statin_pcsk9","statin",0.06644,0.03992,"X_HDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,"df17"
-"YP_time_to_disengaged_12m",295,2,"Kanyakla","Standard Care",-16.02599,10.25028,"X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YP_prop_time_in_care_12m",295,2,"Kanyakla","Standard Care",-0.04498,0.03434,"X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_StigInternal_12m",250,3,"Kanyakla","Standard Care",-0.46656,0.101,"X_StigInternal_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_StigAnticipate_12m",250,3,"Kanyakla","Standard Care",-0.39466,0.0795,"X_StigAnticipate_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_StigEnact_12m",248,3,"Kanyakla","Standard Care",-0.03948,0.03766,"X_StigEnact_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_StigOverall_12m",248,2,"Kanyakla","Standard Care",-0.30991,0.07684,"X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_yourHIVTotal_12m",241,3,"Kanyakla","Standard Care",0.69295,0.16462,"X_yourHIVTotal_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_theirHIVTotal_12m",241,3,"Kanyakla","Standard Care",0.49817,0.15443,"X_theirHIVTotal_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_MaterialSupportMean_12m",240,3,"Kanyakla","Standard Care",0.32666,0.1316,"X_MaterialSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_EmotionalSupportMean_12m",241,3,"Kanyakla","Standard Care",0.36448,0.11708,"X_EmotionalSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_ClinicSupportMean_12m",241,3,"Kanyakla","Standard Care",0.34774,0.13895,"X_ClinicSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YS_delta_MedSupportMean_12m",241,3,"Kanyakla","Standard Care",0.24326,0.14995,"X_MedSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,"df18"
-"YP_FHVP_CVP_GRADIENT",32,2,"Piggyback","Conventional",-0.02359,0.84461,"X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_1d",32,3,"Piggyback","Conventional",-0.0514,0.25526,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_2d",32,3,"Piggyback","Conventional",-0.81537,0.35266,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_3d",32,3,"Piggyback","Conventional",-1.09043,0.42966,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_5d",32,3,"Piggyback","Conventional",-1.0603,0.46765,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_6d",32,3,"Piggyback","Conventional",-0.69914,0.42236,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_7d",32,3,"Piggyback","Conventional",-0.64832,0.39742,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_14d",32,3,"Piggyback","Conventional",-0.64438,0.2826,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_21d",32,3,"Piggyback","Conventional",-0.53981,0.28725,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_CREATININE_28d",32,3,"Piggyback","Conventional",-0.61232,0.23074,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YS_MASSIVE_ASCITES",32,2,"Piggyback","Conventional",NA,NA,"X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,"df19"
-"YP_IWT_minutes_12w",37,3,"IWT+Support","IWT only",379.07448,186.8274,"X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_HbA1c_12w",31,4,"IWT+Support","IWT only",1.82518,1.23702,"X_HbA1c_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_AndroidFat_12w",31,4,"IWT+Support","IWT only",0.00131,0.00646,"X_AndroidFat_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_GynoidFat_12w",31,4,"IWT+Support","IWT only",0.00064,0.00724,"X_GynoidFat_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_TotalFat_12w",31,4,"IWT+Support","IWT only",0.00396,0.00503,"X_TotalFat_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_Weight_12w",31,3,"IWT+Support","IWT only",0.30991,0.79656,"X_Weight_0w, X_Age_0w, X_Sex_0w",20,"df20"
-"YS_delta_PAEE_12w",29,4,"IWT+Support","IWT only",3.85365,4.28699,"X_PAEE_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_QoL_Physical_12w",27,4,"IWT+Support","IWT only",-1.06476,3.04264,"X_QoL_Physical_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_QoL_Mental_12w",27,4,"IWT+Support","IWT only",4.5706,3.38225,"X_QoL_Mental_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YS_delta_VO2max_12w",29,4,"IWT+Support","IWT only",-35.01329,73.17812,"X_VO2max_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,"df20"
-"YP_days_to_tb_initiation",1462,0,"HIV","SOC",NA,NA,"",21,"df21"
-"YP_days_to_tb_initiation",1462,0,"HIV-TB","SOC",NA,NA,"",21,"df21"
-"YS_undiagnosed_tb",1206,0,"HIV","SOC",NA,NA,"",21,"df21"
-"YS_undiagnosed_tb",1206,0,"HIV-TB","SOC",NA,NA,"",21,"df21"
-"YS_same_day_tb_treatment",1462,0,"HIV","SOC",NA,NA,"",21,"df21"
-"YS_same_day_tb_treatment",1462,0,"HIV-TB","SOC",NA,NA,"",21,"df21"
-"YS_undiagnosed_hiv",1206,0,"HIV","SOC",NA,NA,"",21,"df21"
-"YS_undiagnosed_hiv",1206,0,"HIV-TB","SOC",NA,NA,"",21,"df21"
-"YS_mortality",1320,0,"HIV","SOC",NA,NA,"",21,"df21"
-"YS_mortality",1320,0,"HIV-TB","SOC",NA,NA,"",21,"df21"
-"YS_eq5d_56d",799,1,"HIV","SOC",0.02922,0.01275,"X_eq5d_0d",21,"df21"
-"YS_eq5d_56d",798,1,"HIV-TB","SOC",0.02649,0.01253,"X_eq5d_0d",21,"df21"
-"YP_prenatal_gt1wk",146,1,"Intervention","Control",0.0676,0.07962,"X_age_0w",22,"df22"
-"YS_prenatal_any",146,1,"Intervention","Control",0.01634,0.07532,"X_age_0w",22,"df22"
-"YS_prenatal_weeks",110,1,"Intervention","Control",0.15994,0.35107,"X_age_0w",22,"df22"
-"YS_postnatal_any",146,1,"Intervention","Control",0.0062,0.01883,"X_age_0w",22,"df22"
-"YS_postnatal_weeks",131,1,"Intervention","Control",0.38132,1.03088,"X_age_0w",22,"df22"
-"YP_time_28d",92,0,"rhTM","No rhTM",NA,NA,"",23,"df23"
-"YP_time_90d",92,0,"rhTM","No rhTM",NA,NA,"",23,"df23"
-"YS_delta_Ddimer_3d",85,1,"rhTM","No rhTM",-0.46608,0.13284,"X_Ddimer_0d",23,"df23"
-"YS_delta_Ddimer_5d",81,1,"rhTM","No rhTM",-0.61608,0.17627,"X_Ddimer_0d",23,"df23"
-"YS_delta_Ddimer_7d",79,1,"rhTM","No rhTM",-0.87473,0.32813,"X_Ddimer_0d",23,"df23"
-"YS_delta_Ddimer_10d",79,1,"rhTM","No rhTM",-0.79998,0.55601,"X_Ddimer_0d",23,"df23"
-"YS_delta_platelet_3d",85,1,"rhTM","No rhTM",0.11337,0.08511,"X_platelet_0d",23,"df23"
-"YS_delta_platelet_5d",81,1,"rhTM","No rhTM",0.29852,0.13892,"X_platelet_0d",23,"df23"
-"YS_delta_platelet_7d",80,1,"rhTM","No rhTM",0.70112,0.2997,"X_platelet_0d",23,"df23"
-"YS_delta_platelet_10d",81,1,"rhTM","No rhTM",0.81837,0.36868,"X_platelet_0d",23,"df23"
-"YS_delta_SOFA_3d",86,1,"rhTM","No rhTM",-0.36878,0.48247,"X_SOFA_0d",23,"df23"
-"YS_delta_SOFA_5d",81,1,"rhTM","No rhTM",-0.37575,0.53346,"X_SOFA_0d",23,"df23"
-"YS_delta_SOFA_7d",81,1,"rhTM","No rhTM",-0.59225,0.5333,"X_SOFA_0d",23,"df23"
-"YS_delta_SOFA_10d",76,1,"rhTM","No rhTM",-0.14299,0.51932,"X_SOFA_0d",23,"df23"
-"YP_catheterized",50,2,"Auriculotherapy","Sham Comparator",-0.24185,0.1131,"X_Age_0d, X_Weight_0d",24,"df24"
-"YS_anxiety_6h",33,2,"Auriculotherapy","Sham Comparator",0.48575,0.46795,"X_Age_0d, X_Weight_0d",24,"df24"
-"YS_comfort_6h",34,2,"Auriculotherapy","Sham Comparator",-0.22427,0.65964,"X_Age_0d, X_Weight_0d",24,"df24"
-"YP_delta_GQ1_8w",48,3,"Probiotic with prebiotic","Placebo",0.23323,0.18234,"X_GQ1_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ2_8w",48,3,"Probiotic with prebiotic","Placebo",0.26947,0.25264,"X_GQ2_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ3_8w",48,3,"Probiotic with prebiotic","Placebo",0.03168,0.18277,"X_GQ3_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ4_8w",48,3,"Probiotic with prebiotic","Placebo",0.08458,0.17549,"X_GQ4_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ5_8w",48,3,"Probiotic with prebiotic","Placebo",0.40035,0.27072,"X_GQ5_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ6_8w",48,3,"Probiotic with prebiotic","Placebo",-0.45202,0.16041,"X_GQ6_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ7_8w",48,3,"Probiotic with prebiotic","Placebo",0.06544,0.14733,"X_GQ7_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ8_8w",48,3,"Probiotic with prebiotic","Placebo",0.39554,0.22931,"X_GQ8_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_GQ9_8w",48,3,"Probiotic with prebiotic","Placebo",0.05931,0.27016,"X_GQ9_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_BOF_8w",48,3,"Probiotic with prebiotic","Placebo",-1.34275,0.38837,"X_BOF_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_WGTT_8w",48,3,"Probiotic with prebiotic","Placebo",-38.66547,15.61163,"X_WGTT_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YS_DelayedGTT_8w",48,3,"Probiotic with prebiotic","Placebo",0.18941,0.13782,"X_DelayedGTT_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YS_BM_less3_8w",48,3,"Probiotic with prebiotic","Placebo",0.32945,0.12714,"X_BM_less3_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YS_NMSS_8w",48,3,"Probiotic with prebiotic","Placebo",13.88709,4.18744,"X_NMSS_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YS_PDQ39SI_8w",48,3,"Probiotic with prebiotic","Placebo",4.3181,2.81224,"X_PDQ39SI_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YS_UPDRS11_8w",48,3,"Probiotic with prebiotic","Placebo",1.00464,0.59749,"X_UPDRS11_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YS_UPDRS111_8w",48,3,"Probiotic with prebiotic","Placebo",5.96672,1.44834,"X_UPDRS111_0w, X_Sex_0w, X_BMI_0w",25,"df25"
-"YP_delta_Adherence_6m",224,3,"Reminder module","Standard Care",-8.35952,0.94376,"X_Adherence_0m, X_Agecat_0m, X_weight_0m",26,"df26"
-"YP_optimal_adherence_6m",224,2,"Reminder module","Standard Care",-0.66128,0.04957,"X_Agecat_0m, X_weight_0m",26,"df26"
-"YP_attendance_6m",242,2,"Reminder module","Standard Care",-0.27295,0.08433,"X_Agecat_0m, X_weight_0m",26,"df26"
-"YS_delta_CD4_6m",224,3,"Reminder module","Standard Care",-52.75769,15.01968,"X_CD4_0m, X_Agecat_0m, X_weight_0m",26,"df26"
-"YS_delta_weight_6m",226,2,"Reminder module","Standard Care",0.6162,0.72243,"X_weight_0m, X_Agecat_0m",26,"df26"
-"YS_delta_TB_status_6m",225,3,"Reminder module","Standard Care",0.06518,0.07256,"X_TB_status_0m, X_Agecat_0m, X_weight_0m",26,"df26"
-"YS_delta_OI_index_6m",225,3,"Reminder module","Standard Care",0.07733,0.06315,"X_OI_index_0m, X_Agecat_0m, X_weight_0m",26,"df26"
-"YP_bleeding_text",96,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YP_surgical_problem_bleeding",87,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YP_bleeding_score",96,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YP_bleeding_category3",96,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YS_surgery_duration_min",97,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YS_vent_settings_changes",99,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YS_vent_mode_modification",99,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YS_min_SpO2",99,0,"PCV","VCV",NA,NA,"",27,"df27"
-"YP_ContrSBP_6m",120,4,"Edu+Visit","Usual Care",0.18328,0.09176,"X_ContrSBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_BMI_6m",120,3,"Edu+Visit","Usual Care",-0.84585,0.39932,"X_BMI_0m, X_SEX_0m, X_Age_0m",28,"df28"
-"YS_delta_BMI_6m",120,3,"Edu+Visit","Usual Care",0.7366,0.38157,"X_BMI_0m, X_SEX_0m, X_Age_0m",28,"df28"
-"YS_WC_6m",120,4,"Edu+Visit","Usual Care",-1.46143,1.4278,"X_WC_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_delta_WC_6m",120,4,"Edu+Visit","Usual Care",1.30678,1.3986,"X_WC_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_MeanSBP_6m",120,4,"Edu+Visit","Usual Care",-4.07729,3.24379,"X_MeanSBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_MeanDBP_6m",120,4,"Edu+Visit","Usual Care",-3.8528,2.17068,"X_MeanDBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_delta_MeanSBP_6m",120,4,"Edu+Visit","Usual Care",5.32816,3.29959,"X_MeanSBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_ContrDBP_6m",120,4,"Edu+Visit","Usual Care",0.06272,0.09119,"X_ContrDBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_delta_MeanDBP_6m",120,4,"Edu+Visit","Usual Care",4.59003,2.15136,"X_MeanDBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_ControlledBP_6m",120,3,"Edu+Visit","Usual Care",0.10519,0.08732,"X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_TotalScoreA_6m",120,4,"Edu+Visit","Usual Care",2.68772,0.27756,"X_TotalScoreA_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YS_delta_TotalScoreA_6m",120,4,"Edu+Visit","Usual Care",-2.68029,0.28415,"X_TotalScoreA_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,"df28"
-"YP_survival_18w",460,3,"Sertraline","Placebo",-9.10744,5.3524,"X_age_0w, X_sex_0w, X_on_art_0w",29,"df29"
-"YS_sterile_14d",460,3,"Sertraline","Placebo",-0.02804,0.04608,"X_age_0w, X_sex_0w, X_on_art_0w",29,"df29"
-"YS_sterile_18w",460,3,"Sertraline","Placebo",0.00619,0.04641,"X_age_0w, X_sex_0w, X_on_art_0w",29,"df29"
-"YS_num_lumbar_punctures",460,3,"Sertraline","Placebo",-0.06799,0.33101,"X_age_0w, X_sex_0w, X_on_art_0w",29,"df29"
-"YP_Adherence",40,2,"Pool-REST","Chair-REST",0.02647,0.06101,"X_Sex_0d, X_Age_0d",30,"df30"
-"YP_Adherence",40,2,"Pool-REST preferred","Chair-REST",0.06419,0.05542,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Credibility1",45,2,"Pool-REST","Chair-REST",0.99826,0.5501,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Credibility1",46,2,"Pool-REST preferred","Chair-REST",0.4025,0.46497,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Credibility2",45,2,"Pool-REST","Chair-REST",1.01886,0.45447,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Credibility2",46,2,"Pool-REST preferred","Chair-REST",0.62146,0.43403,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Credibility3",45,2,"Pool-REST","Chair-REST",0.99165,0.57292,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Credibility3",46,2,"Pool-REST preferred","Chair-REST",0.35216,0.64084,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Expectancy",45,2,"Pool-REST","Chair-REST",0.05057,0.07693,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Expectancy",46,2,"Pool-REST preferred","Chair-REST",0.04346,0.07115,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_MeanDuration",45,2,"Pool-REST","Chair-REST",-4.72364,2.40453,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_MeanDuration",46,2,"Pool-REST preferred","Chair-REST",16.73092,5.0202,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Dropout",50,2,"Pool-REST","Chair-REST",-0.03977,0.13098,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_Dropout",50,2,"Pool-REST preferred","Chair-REST",-0.16001,0.12278,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_AdverseCount",44,2,"Pool-REST","Chair-REST",4.43765,2.08172,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_AdverseCount",45,2,"Pool-REST preferred","Chair-REST",4.69257,1.99444,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_EventMean",44,2,"Pool-REST","Chair-REST",0.1117,0.04335,"X_Sex_0d, X_Age_0d",30,"df30"
-"YS_EventMean",45,2,"Pool-REST preferred","Chair-REST",0.10504,0.03861,"X_Sex_0d, X_Age_0d",30,"df30"
-"YP_survival_time",796,1,"TIV","Placebo",10.99911,5.56485,"X_age_0w",31,"df31"
-"YS_hai_titer_4w",778,2,"TIV","Placebo",221.48191,20.31964,"X_hai_titer_0w, X_age_0w",31,"df31"
-"YS_hai_fold_rise_4w",771,1,"TIV","Placebo",33.19104,3.51227,"X_age_0w",31,"df31"
-"YS_hai_40plus_4w",778,2,"TIV","Placebo",0.5443,0.02525,"X_hai_40plus_0w, X_age_0w",31,"df31"
-"YS_hai_4fold_rise_4w",771,1,"TIV","Placebo",0.58662,0.02495,"X_age_0w",31,"df31"
-"YP_radiologic_6m",107,1,"Streptomycin","Control",-1.54544,0.33343,"X_gender_0w",32,"df32"
-"YP_considerable_improvement",107,1,"Streptomycin","Control",0.43583,0.07651,"X_gender_0w",32,"df32"
-"YP_any_improvement",107,1,"Streptomycin","Control",0.36462,0.09177,"X_gender_0w",32,"df32"
-"YS_death",107,1,"Streptomycin","Control",-0.19641,0.07229,"X_gender_0w",32,"df32"
-"YP_TM_total_score",154,3,"Reframing","Control",-6.0032,2.04706,"X_age_0w, X_Gender_0w, X_DiseaseGroup_0w",33,"df33"
-"YS_willing_participate",153,3,"Reframing","Control",-0.04383,0.08112,"X_age_0w, X_Gender_0w, X_DiseaseGroup_0w",33,"df33"
-"YP_sepsisdeath_60d",4556,2,"Synbiotic","Placebo",-0.03671,0.00764,"X_wt_0d, X_sex_0d",34,"df34"
-"YS_delta_wt_60d",4306,2,"Synbiotic","Placebo",29.29565,14.02334,"X_wt_0d, X_sex_0d",34,"df34"
-"YS_sepsisB",4556,2,"Synbiotic","Placebo",-0.00749,0.00323,"X_wt_0d, X_sex_0d",34,"df34"
-"YS_sepsisC",4556,2,"Synbiotic","Placebo",-0.02082,0.00649,"X_wt_0d, X_sex_0d",34,"df34"
-"YS_diarrhea",4556,2,"Synbiotic","Placebo",-0.02069,0.00366,"X_wt_0d, X_sex_0d",34,"df34"
-"YS_omphalitis",4556,2,"Synbiotic","Placebo",-0.0044,0.00175,"X_wt_0d, X_sex_0d",34,"df34"
-"YS_local_inf",4556,2,"Synbiotic","Placebo",-0.00743,0.00306,"X_wt_0d, X_sex_0d",34,"df34"
-"YS_abscess",4556,2,"Synbiotic","Placebo",-0.00263,0.00175,"X_wt_0d, X_sex_0d",34,"df34"
-"YP_delta_Total_weight_gain_delivery",72,1,"Exercise","Control",2.0759,1.39348,"X_BMI_0w",35,"df35"
-"YS_BMI_37w",70,1,"Exercise","Control",-0.01334,0.43576,"X_BMI_0w",35,"df35"
-"YS_BMI_postPP",69,1,"Exercise","Control",0.66805,0.50342,"X_BMI_0w",35,"df35"
-"YS_IOM_delivery",72,1,"Exercise","Control",0.20146,0.11772,"X_BMI_0w",35,"df35"
-"YS_delta_anxiety_pre_post",57,1,"Exercise","Control",0.83038,1.04948,"X_BMI_0w",35,"df35"
-"YS_delta_deprmood_prepost",57,1,"Exercise","Control",0.09538,0.54247,"X_BMI_0w",35,"df35"
-"YS_delta_Poswell_prepost",58,1,"Exercise","Control",-0.15972,0.75169,"X_BMI_0w",35,"df35"
-"YS_delta_Selfcont_prepost",57,1,"Exercise","Control",-0.0491,0.69588,"X_BMI_0w",35,"df35"
-"YS_delta_Genhealth_prepost",59,1,"Exercise","Control",0.50956,0.83561,"X_BMI_0w",35,"df35"
-"YS_delta_Vitality_prepost",56,2,"Exercise","Control",0.90106,0.85467,"X_Vitality_0w, X_BMI_0w",35,"df35"
-"YP_delta_RAVLT_delayedrecall_12m",75,1,"PI","ACI",-0.30464,0.52229,"X_RAVLT_delayedrecall_0m",36,"df36"
-"YP_delta_RAVLT_delayedrecall_12m",74,1,"MI","ACI",0.63872,0.49805,"X_RAVLT_delayedrecall_0m",36,"df36"
-"YP_delta_MemoryNew_12m",75,1,"PI","ACI",0.11925,0.11892,"X_MemoryNew_0m",36,"df36"
-"YP_delta_MemoryNew_12m",74,1,"MI","ACI",0.25504,0.12899,"X_MemoryNew_0m",36,"df36"
-"YP_delta_AttentionExe_12m",74,1,"PI","ACI",0.12926,0.08487,"X_AttentionExe_0m",36,"df36"
-"YP_delta_AttentionExe_12m",74,1,"MI","ACI",0.26937,0.09036,"X_AttentionExe_0m",36,"df36"
-"YP_delta_VisuoSpNew_12m",75,1,"PI","ACI",-0.16412,0.14313,"X_VisuoSpNew_0m",36,"df36"
-"YP_delta_VisuoSpNew_12m",74,1,"MI","ACI",0.14971,0.13922,"X_VisuoSpNew_0m",36,"df36"
-"YS_WMHvol_cc_12m",112,0,"PI","ACI",NA,NA,"",36,"df36"
-"YS_WMHvol_cc_12m",112,0,"MI","ACI",NA,NA,"",36,"df36"
-"YS_WMperc_12m",112,0,"PI","ACI",NA,NA,"",36,"df36"
-"YS_WMperc_12m",112,0,"MI","ACI",NA,NA,"",36,"df36"
-"YS_nLatVentL_cc_12m",112,0,"PI","ACI",NA,NA,"",36,"df36"
-"YS_nLatVentL_cc_12m",112,0,"MI","ACI",NA,NA,"",36,"df36"
-"YS_nHippoL_cc_12m",113,0,"PI","ACI",NA,NA,"",36,"df36"
-"YS_nHippoL_cc_12m",113,0,"MI","ACI",NA,NA,"",36,"df36"
-"YS_nHippoR_cc_12m",113,0,"PI","ACI",NA,NA,"",36,"df36"
-"YS_nHippoR_cc_12m",113,0,"MI","ACI",NA,NA,"",36,"df36"
-"YS_nLatVentR_cc_12m",112,0,"PI","ACI",NA,NA,"",36,"df36"
-"YS_nLatVentR_cc_12m",112,0,"MI","ACI",NA,NA,"",36,"df36"
-"YS_eigen_cluster_12m",113,0,"PI","ACI",NA,NA,"",36,"df36"
-"YS_eigen_cluster_12m",113,0,"MI","ACI",NA,NA,"",36,"df36"
-"YP_pep_5d",602,4,"Indomethacin","Placebo",-0.07671,0.02687,"X_pep_0d, X_site_0d, X_age_0d, X_gender_0d",37,"df37"
-"YP_time",1054,3,"ZDV_ddI","ZDV",114.41831,18.29279,"X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YP_time",1056,3,"ZDV_Zal","ZDV",104.3071,18.57824,"X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YP_time",1093,3,"ddI","ZDV",93.68955,18.57231,"X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YS_CD4_20w",1054,4,"ZDV_ddI","ZDV",73.11336,7.24792,"X_CD4_0w, X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YS_CD4_20w",1056,4,"ZDV_Zal","ZDV",37.35494,6.3139,"X_CD4_0w, X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YS_CD4_20w",1093,4,"ddI","ZDV",43.33657,6.46088,"X_CD4_0w, X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YS_CD8_20w",1054,4,"ZDV_ddI","ZDV",29.58182,18.35769,"X_CD8_0w, X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YS_CD8_20w",1056,4,"ZDV_Zal","ZDV",-25.20961,17.20287,"X_CD8_0w, X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YS_CD8_20w",1093,4,"ddI","ZDV",25.06888,17.15019,"X_CD8_0w, X_age_0w, X_weight_0w, X_gender_0w",38,"df38"
-"YP_dayslink",447,3,"HELP","Usual Care",-132.08533,12.63893,"X_age_0w, X_sex_0w, X_substance_0w",39,"df39"
-"YP_total_intubation_time",99,3,"AWS","Macintosh",15.40867,3.78419,"X_age_0d, X_gender_0d, X_BMI_0d",40,"df40"
-"YS_attempts",99,3,"AWS","Macintosh",0.09531,0.07666,"X_age_0d, X_gender_0d, X_BMI_0d",40,"df40"
-"YS_failures",99,3,"AWS","Macintosh",0.10277,0.07834,"X_age_0d, X_gender_0d, X_BMI_0d",40,"df40"
-"YS_bleeding",99,3,"AWS","Macintosh",0.03557,0.02468,"X_age_0d, X_gender_0d, X_BMI_0d",40,"df40"
-"YS_ease",99,3,"AWS","Macintosh",13.50516,5.73035,"X_age_0d, X_gender_0d, X_BMI_0d",40,"df40"
-"YS_sore_throat",98,3,"AWS","Macintosh",0.07244,0.15554,"X_age_0d, X_gender_0d, X_BMI_0d",40,"df40"
-"YS_view",99,3,"AWS","Macintosh",0.08024,0.0763,"X_age_0d, X_gender_0d, X_BMI_0d",40,"df40"
-"YP_throat_30min",233,3,"Licorice","Sugar",-0.16432,0.05688,"X_gender_0h, X_BMI_0h, X_age_0h",41,"df41"
-"YP_throat_90min",233,3,"Licorice","Sugar",-0.24236,0.0531,"X_gender_0h, X_BMI_0h, X_age_0h",41,"df41"
-"YP_throat_4h",233,3,"Licorice","Sugar",-0.24788,0.05931,"X_gender_0h, X_BMI_0h, X_age_0h",41,"df41"
-"YS_throat_1d",233,3,"Licorice","Sugar",-0.19755,0.058,"X_gender_0h, X_BMI_0h, X_age_0h",41,"df41"
-"YS_cough_1d",233,3,"Licorice","Sugar",-0.15259,0.06144,"X_gender_0h, X_BMI_0h, X_age_0h",41,"df41"
-"YP_onset_sensory",103,3,"Sequential","Combined",4.05644,2.31832,"X_gender_0h, X_bmi_0h, X_age_0h",42,"df42"
-"YS_onset_first_sensory",103,3,"Sequential","Combined",0.66594,0.53147,"X_gender_0h, X_bmi_0h, X_age_0h",42,"df42"
-"YS_onset_motor",103,3,"Sequential","Combined",3.95404,2.26437,"X_gender_0h, X_bmi_0h, X_age_0h",42,"df42"
-"YS_vps_rest",103,3,"Sequential","Combined",-0.36431,0.59699,"X_gender_0h, X_bmi_0h, X_age_0h",42,"df42"
-"YS_vps_movement",103,3,"Sequential","Combined",-0.76259,0.595,"X_gender_0h, X_bmi_0h, X_age_0h",42,"df42"
-"YS_opioid_total",103,3,"Sequential","Combined",5.33505,11.79326,"X_gender_0h, X_bmi_0h, X_age_0h",42,"df42"
-"YP_GA_days",823,2,"Intervention","Control",1.38488,1.96837,"X_Age_0d, X_BMI_0d",43,"df43"
-"YS_birthweight_g",809,2,"Intervention","Control",35.46125,48.12009,"X_Age_0d, X_BMI_0d",43,"df43"
-"YS_Apgar1_1min",782,2,"Intervention","Control",-0.09737,0.10325,"X_Age_0d, X_BMI_0d",43,"df43"
-"YS_Apgar5_5min",782,2,"Intervention","Control",-0.02041,0.06492,"X_Age_0d, X_BMI_0d",43,"df43"
-"YS_anySAE_flag",823,2,"Intervention","Control",-0.0129,0.02033,"X_Age_0d, X_BMI_0d",43,"df43"
-"YP_intravascular",127,3,"Alternative","Conventional",-0.16816,0.05444,"X_Age_0m, X_Sex_0m, X_Wt_0m",44,"df44"
-"YS_Pain_1m",111,4,"Alternative","Conventional",-0.25326,0.19177,"X_Pain_0m, X_Age_0m, X_Sex_0m, X_Wt_0m",44,"df44"
-"YS_During_Pain",126,3,"Alternative","Conventional",-1.55287,0.20928,"X_Age_0m, X_Sex_0m, X_Wt_0m",44,"df44"
-"YS_PGIC_1m",112,3,"Alternative","Conventional",0.02903,0.11453,"X_Age_0m, X_Sex_0m, X_Wt_0m",44,"df44"
-"YP_delta_fruit_24w",44,2,"15% Discount","0% Discount",-43.46264,29.55369,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_fruit_24w",39,2,"30% Discount","0% Discount",-60.18402,41.94188,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_veg_24w",44,2,"15% Discount","0% Discount",6.05624,45.60363,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_veg_24w",39,2,"30% Discount","0% Discount",131.52987,57.26553,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_soda_24w",44,2,"15% Discount","0% Discount",-9.4748,31.94639,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_soda_24w",39,2,"30% Discount","0% Discount",-4.31974,30.94726,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_bottledwater_24w",44,2,"15% Discount","0% Discount",-76.698,95.18615,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_bottledwater_24w",39,2,"30% Discount","0% Discount",-30.85974,110.66974,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_seltzerwater_24w",44,2,"15% Discount","0% Discount",-76.55973,62.15679,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_seltzerwater_24w",39,2,"30% Discount","0% Discount",-16.67205,68.21362,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_noncalbev_24w",44,2,"15% Discount","0% Discount",-133.38049,115.88657,"X_weight_8w, X_store_0w",45,"df45"
-"YP_delta_noncalbev_24w",39,2,"30% Discount","0% Discount",-51.45638,138.25739,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_shopping_24w",44,2,"15% Discount","0% Discount",-5.4111,5.38897,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_shopping_24w",39,2,"30% Discount","0% Discount",-5.37819,5.86937,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_weight_24w",44,2,"15% Discount","0% Discount",3.46949,2.13382,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_weight_24w",39,2,"30% Discount","0% Discount",2.15634,2.17891,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_bmi_24w",44,2,"15% Discount","0% Discount",0.15139,0.40474,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_bmi_24w",39,2,"30% Discount","0% Discount",-0.34499,0.69237,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_waist_24w",38,2,"15% Discount","0% Discount",1.71928,0.65351,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_waist_24w",32,2,"30% Discount","0% Discount",1.74701,0.70582,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_fat_24w",44,2,"15% Discount","0% Discount",0.25867,0.97175,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_fat_24w",39,2,"30% Discount","0% Discount",-0.35167,0.89509,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_fm_24w",44,2,"15% Discount","0% Discount",0.2832,1.16172,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_fm_24w",39,2,"30% Discount","0% Discount",-0.09852,1.04881,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_sysbp_24w",44,2,"15% Discount","0% Discount",1.92846,4.92523,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_sysbp_24w",39,2,"30% Discount","0% Discount",2.99784,4.72831,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_diabp_24w",44,2,"15% Discount","0% Discount",-0.28481,2.28156,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_diabp_24w",39,2,"30% Discount","0% Discount",0.41694,2.35223,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_gluc_24w",32,2,"15% Discount","0% Discount",-7.65454,3.93927,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_gluc_24w",32,2,"30% Discount","0% Discount",-6.20737,2.83183,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_tc_24w",43,2,"15% Discount","0% Discount",4.61216,7.12864,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_tc_24w",38,2,"30% Discount","0% Discount",-0.27396,4.58259,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_hdl_24w",43,2,"15% Discount","0% Discount",-2.53365,2.4949,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_hdl_24w",38,2,"30% Discount","0% Discount",0.47443,2.39644,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_kcalfood_24w",44,2,"15% Discount","0% Discount",-32.14292,219.34249,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_kcalfood_24w",39,2,"30% Discount","0% Discount",340.44649,221.28316,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_gramsfood_24w",44,2,"15% Discount","0% Discount",-59.60784,99.65322,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_gramsfood_24w",39,2,"30% Discount","0% Discount",200.60228,116.19253,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_ed_24w",44,2,"15% Discount","0% Discount",0.00926,0.14868,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_ed_24w",39,2,"30% Discount","0% Discount",-0.06781,0.18949,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_fv_24w",44,2,"15% Discount","0% Discount",-49.76861,52.4401,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_fv_24w",39,2,"30% Discount","0% Discount",78.61671,66.42889,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_juice_24w",44,2,"15% Discount","0% Discount",-13.25051,53.12691,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_juice_24w",39,2,"30% Discount","0% Discount",-24.77975,42.40586,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_dietsoda_24w",44,2,"15% Discount","0% Discount",31.78036,16.97146,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_dietsoda_24w",39,2,"30% Discount","0% Discount",59.69293,37.35961,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_totalsnack_24w",44,2,"15% Discount","0% Discount",27.00739,28.24826,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_totalsnack_24w",39,2,"30% Discount","0% Discount",24.05301,33.25957,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_sweet_24w",44,2,"15% Discount","0% Discount",17.29742,23.64571,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_sweet_24w",39,2,"30% Discount","0% Discount",24.46229,28.54651,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_hed_24w",44,2,"15% Discount","0% Discount",25.13758,23.7063,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_hed_24w",39,2,"30% Discount","0% Discount",44.13672,32.77407,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_led_24w",44,2,"15% Discount","0% Discount",22.86307,74.95734,"X_weight_8w, X_store_0w",45,"df45"
-"YS_delta_led_24w",39,2,"30% Discount","0% Discount",139.94886,82.77623,"X_weight_8w, X_store_0w",45,"df45"
-"YP_Total_points",70,1,"Simulator_PE","Control",5.25807,0.87988,"X_Age_0y",46,"df46"
-"YS_Patient_interaction_points",70,1,"Simulator_PE","Control",-0.07007,0.11757,"X_Age_0y",46,"df46"
-"YS_Inspection_points",70,1,"Simulator_PE","Control",1.80306,0.22862,"X_Age_0y",46,"df46"
-"YS_Pulses_points",70,1,"Simulator_PE","Control",1.43825,0.324,"X_Age_0y",46,"df46"
-"YS_Auscultation_points",70,1,"Simulator_PE","Control",1.2791,0.49003,"X_Age_0y",46,"df46"
-"YS_Cardiac_findings_points",70,1,"Simulator_PE","Control",0.46173,0.19852,"X_Age_0y",46,"df46"
-"YP_intubation",252,3,"HFNC","NIV",-0.06094,0.05503,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,"df47"
-"YS_sedation_days",175,3,"HFNC","NIV",-0.35895,0.22174,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,"df47"
-"YS_nasal_pressure_injury",252,3,"HFNC","NIV",-0.08588,0.02497,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,"df47"
-"YS_antibiotic",248,3,"HFNC","NIV",-0.09324,0.06297,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,"df47"
-"YP_mite_presence_6m",77,2,"Treated","Untreated",-0.71774,0.07913,"X_age_group, X_sex",48,"df48"
-"YP_mite_count_6m",77,3,"Treated","Untreated",-49.0072,12.13981,"X_mite_count_0w, X_age_group, X_sex",48,"df48"
-"YP_mite_score_6m",77,3,"Treated","Untreated",-2.02987,0.20747,"X_mite_score_0w, X_age_group, X_sex",48,"df48"
-"YS_otitis_6m",75,3,"Treated","Untreated",-0.91452,0.15135,"X_otitis_0w, X_age_group, X_sex",48,"df48"
-"YS_CGH_6m",75,3,"Treated","Untreated",-1.10209,0.16782,"X_CGH_0w, X_age_group, X_sex",48,"df48"
-"YS_IgG_6m",77,3,"Treated","Untreated",-127252.18112,36189.56033,"X_IgG_0w, X_age_group, X_sex",48,"df48"
-"YS_IgE_6m",77,3,"Treated","Untreated",6.83837,10.24795,"X_IgE_0w, X_age_group, X_sex",48,"df48"
-"YS_tumor_detected_6m",77,3,"Treated","Untreated",0.00751,0.0766,"X_tumor_detected_0w, X_age_group, X_sex",48,"df48"
-"YS_tumor_group_6m",77,3,"Treated","Untreated",-0.11366,0.05794,"X_tumor_group_0w, X_age_group, X_sex",48,"df48"
-"YP_prof",74,2,"OralStimulation","Control",21.47372,3.50229,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YP_txtr",74,2,"OralStimulation","Control",1.23317,0.22206,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YP_da",74,2,"OralStimulation","Control",22.00544,4.20924,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_HR_final",74,3,"OralStimulation","Control",-2.57099,1.89859,"X_HR_0d, X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_OFS_level1",74,2,"OralStimulation","Control",-0.55797,0.0953,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_OFS_level2",74,2,"OralStimulation","Control",0.01643,0.0581,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_OFS_level3",74,2,"OralStimulation","Control",NA,NA,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_OFS_level4",74,2,"OralStimulation","Control",0.58521,0.09673,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_1d",74,2,"OralStimulation","Control",28.01755,4.67237,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_2d",74,2,"OralStimulation","Control",31.21882,5.83345,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_3d",74,2,"OralStimulation","Control",34.34354,6.37941,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_4d",74,2,"OralStimulation","Control",28.10319,7.84126,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_5d",74,2,"OralStimulation","Control",24.50764,8.16249,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_6d",74,2,"OralStimulation","Control",21.45078,8.16224,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_7d",74,2,"OralStimulation","Control",14.2527,8.41858,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_volume_8d",74,2,"OralStimulation","Control",10.99563,8.35908,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YS_length_stay",74,2,"OralStimulation","Control",-2.77901,2.90262,"X_gestAge_0w, X_birthWt_0d",49,"df49"
-"YP_time_to_first_infection",128,4,"rIFN-g","Placebo",57.93048,16.5195,"X_sex_0w, X_center_0w, X_age_0w, X_weight_0w",50,"df50"
-"YS_total_serious_infections",128,4,"rIFN-g","Placebo",-0.57752,0.1853,"X_sex_0w, X_center_0w, X_age_0w, X_weight_0w",50,"df50"
+Outcome,N,N_Covariates,Treatment,Control,Est_SL,SE_SL,Selected_Covariates,Trial,DataFrame
+YP_delta_HOMA_IR_4m,194,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-0.66308,0.24084,"X_HOMA_IR_0m, X_Age_0m, X_Weight_0m",1,df1
+YP_delta_HOMA_IR_4m,195,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.19655,0.25261,"X_HOMA_IR_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_BMI_4m,194,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-0.52836,0.17286,"X_BMI_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_BMI_4m,194,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.15551,0.15415,"X_BMI_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_WHR_4m,194,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,0.00134,0.00546,"X_WHR_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_WHR_4m,194,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,0.00068,0.00539,"X_WHR_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_Acne_4m,195,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,0.03059,0.0831,"X_Acne_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_Acne_4m,194,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.08427,0.07545,"X_Acne_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_Hirsutism_4m,195,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,0.04726,0.09482,"X_Hirsutism_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_Hirsutism_4m,195,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.08176,0.1296,"X_Hirsutism_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_FPG_4m,194,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-0.10393,0.07635,"X_FPG_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_FPG_4m,195,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.14083,0.10676,"X_FPG_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_FINS_4m,194,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-2.21628,0.86206,"X_FINS_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_FINS_4m,195,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,0.16446,0.95956,"X_FINS_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_GlucoseAUC_4m,191,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,0.83321,0.3216,"X_GlucoseAUC_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_GlucoseAUC_4m,192,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.19413,0.32337,"X_GlucoseAUC_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_InsuliUC_4m,193,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-22.10224,15.85346,"X_InsuliUC_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_InsuliUC_4m,192,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-34.75742,13.7661,"X_InsuliUC_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_HOMA_beta_4m,194,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-6.65815,22.9149,"X_HOMA_beta_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_HOMA_beta_4m,195,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,8.86896,19.68197,"X_HOMA_beta_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_Cpeptide_4m,193,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-0.02027,0.03568,"X_Cpeptide_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_Cpeptide_4m,192,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.08093,0.04596,"X_Cpeptide_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_HbA1c_4m,189,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-0.03621,0.03734,"X_HbA1c_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_HbA1c_4m,190,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.01109,0.03464,"X_HbA1c_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_LH_FSH_4m,180,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-0.08628,0.15633,"X_LH_FSH_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_LH_FSH_4m,187,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,0.08433,0.18678,"X_LH_FSH_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_TotalT_4m,182,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-0.19747,0.09105,"X_TotalT_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_TotalT_4m,187,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,-0.01966,0.09502,"X_TotalT_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_FAI_4m,174,3,Metformin + Sham Acupuncture,Sham Acupuncture + Placebo,-1.0132,0.55043,"X_FAI_0m, X_Age_0m, X_Weight_0m",1,df1
+YS_delta_FAI_4m,179,3,True Acupuncture + Placebo,Sham Acupuncture + Placebo,0.27007,0.47945,"X_FAI_0m, X_Age_0m, X_Weight_0m",1,df1
+YP_recovery_time,400,2,Ivermectin+Doxycycline,Placebo,-1.66081,0.59276,"X_agegrp_0d, X_sex_0d",2,df2
+YS_severity_worsen,368,2,Ivermectin+Doxycycline,Placebo,-0.07444,0.0342,"X_agegrp_0d, X_sex_0d",2,df2
+YS_pos_14d,368,2,Ivermectin+Doxycycline,Placebo,-0.12073,0.03562,"X_agegrp_0d, X_sex_0d",2,df2
+YP_composite_event,6030,2,Alert,Usual Care,0.00369,0.01052,"X_age_0m, X_sex_0m",3,df3
+YP_composite_time,6030,2,Alert,Usual Care,0.00491,0.11047,"X_age_0m, X_sex_0m",3,df3
+YS_aki_progression_event,6030,2,Alert,Usual Care,0.00329,0.00935,"X_age_0m, X_sex_0m",3,df3
+YS_death_event,6030,2,Alert,Usual Care,-2.00E-04,0.00733,"X_age_0m, X_sex_0m",3,df3
+YS_dialysis_event,6030,2,Alert,Usual Care,0.00304,0.00459,"X_age_0m, X_sex_0m",3,df3
+YS_discharge_home,6030,2,Alert,Usual Care,-0.01321,0.01254,"X_age_0m, X_sex_0m",3,df3
+YS_los_since_alert,6027,2,Alert,Usual Care,-0.27121,0.36291,"X_age_0m, X_sex_0m",3,df3
+YS_discharge_inpatient_hospice,6030,2,Alert,Usual Care,0.01378,0.01255,"X_age_0m, X_sex_0m",3,df3
+YP_delta_TGF_6w,75,4,VD,Placebo,0.15628,1.15144,"X_TGF_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,df4
+YP_delta_TIMP_6w,75,4,VD,Placebo,-5.63261,10.47687,"X_TIMP_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,df4
+YP_delta_MMP_6w,75,4,VD,Placebo,132.62169,88.15486,"X_MMP_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,df4
+YP_delta_P3NP_6w,75,4,VD,Placebo,-0.07863,1.0809,"X_P3NP_0w, X_Sex_0w, X_Age_0w, X_BMI_0w",4,df4
+YP_composite_14d,5060,2,Alert,Usual Care,-0.02117,0.01202,"X_age_0m, X_sex_0m",5,df5
+YS_los_since_alert,5047,2,Alert,Usual Care,0.10177,0.44327,"X_age_0m, X_sex_0m",5,df5
+YS_death_14d,5060,2,Alert,Usual Care,-0.01172,0.00863,"X_age_0m, X_sex_0m",5,df5
+YS_dialysis_14d,5060,2,Alert,Usual Care,-0.00103,0.00607,"X_age_0m, X_sex_0m",5,df5
+YS_aki_progression_14d,5060,2,Alert,Usual Care,-0.01064,0.01105,"X_age_0m, X_sex_0m",5,df5
+YS_inpatient_mortality,5060,2,Alert,Usual Care,-0.00369,0.00981,"X_age_0m, X_sex_0m",5,df5
+YS_inpatient_dialysis,5060,2,Alert,Usual Care,0.0062,0.00648,"X_age_0m, X_sex_0m",5,df5
+YS_progression_stage2_14d,5060,2,Alert,Usual Care,-0.00251,0.00832,"X_age_0m, X_sex_0m",5,df5
+YS_progression_stage3_14d,5060,2,Alert,Usual Care,-0.00925,0.00823,"X_age_0m, X_sex_0m",5,df5
+YS_ppi_stopped_24h,3298,2,Alert,Usual Care,0.04603,0.01371,"X_age_0m, X_sex_0m",5,df5
+YS_no_ppi_during_aki,3298,2,Alert,Usual Care,0.04657,0.01543,"X_age_0m, X_sex_0m",5,df5
+YS_transfuserbc_14d,3298,2,Alert,Usual Care,-0.00771,0.01528,"X_age_0m, X_sex_0m",5,df5
+YS_duration_of_alert,5060,2,Alert,Usual Care,-0.22265,0.22453,"X_age_0m, X_sex_0m",5,df5
+YS_duration_of_aki,5060,2,Alert,Usual Care,-0.06435,0.37957,"X_age_0m, X_sex_0m",5,df5
+YS_aki_stage_14d,4673,2,Alert,Usual Care,-0.05278,0.02645,"X_age_0m, X_sex_0m",5,df5
+YS_readmit_30d,5060,2,Alert,Usual Care,-0.01275,0.00957,"X_age_0m, X_sex_0m",5,df5
+YP_delta_CCA_IMT_24m,345,3,Sitagliptin,Conventiol,0.00036,0.01231,"X_cca_imt_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_hba1c_12m,391,3,Sitagliptin,Conventiol,-0.10367,0.0528,"X_hba1c_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_hba1c_24m,370,3,Sitagliptin,Conventiol,-0.16328,0.0593,"X_hba1c_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_fbg_12m,369,3,Sitagliptin,Conventiol,1.97975,3.26549,"X_fbg_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_fbg_24m,348,3,Sitagliptin,Conventiol,-0.70093,3.46601,"X_fbg_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_creatinine_12m,396,3,Sitagliptin,Conventiol,0.01324,0.01061,"X_creatinine_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_creatinine_24m,376,3,Sitagliptin,Conventiol,0.0102,0.01637,"X_creatinine_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_egfr_12m,396,3,Sitagliptin,Conventiol,-1.02506,0.83849,"X_egfr_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_egfr_24m,376,3,Sitagliptin,Conventiol,-0.41136,0.96218,"X_egfr_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_weight_12m,373,3,Sitagliptin,Conventiol,0.13132,0.27763,"X_weight_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_weight_24m,345,3,Sitagliptin,Conventiol,-0.62587,0.35317,"X_weight_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_1_5ag_12m,308,3,Sitagliptin,Conventiol,0.9115,0.56709,"X_1_5ag_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_1_5ag_24m,312,3,Sitagliptin,Conventiol,1.06922,0.60441,"X_1_5ag_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_sdldl_12m,308,3,Sitagliptin,Conventiol,-1.4306,1.47588,"X_sdldl_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_sdldl_24m,307,3,Sitagliptin,Conventiol,-2.69702,1.68352,"X_sdldl_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_adipo_12m,308,3,Sitagliptin,Conventiol,-0.88478,0.31408,"X_adipo_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_adipo_24m,308,3,Sitagliptin,Conventiol,-0.66779,0.35,"X_adipo_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_rlpc_12m,308,3,Sitagliptin,Conventiol,-0.49497,0.33102,"X_rlpc_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_rlpc_24m,312,3,Sitagliptin,Conventiol,-0.11166,0.42953,"X_rlpc_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_mda_ldl_12m,308,3,Sitagliptin,Conventiol,3.4508,3.29667,"X_mda_ldl_0m, X_age_0m, X_sex_0m",6,df6
+YS_delta_mda_ldl_24m,312,3,Sitagliptin,Conventiol,-5.69642,3.55364,"X_mda_ldl_0m, X_age_0m, X_sex_0m",6,df6
+YP_delta_COG2_60h,38,3,Brain Lab,ThinkRx,-5.9963,4.70462,"X_COG2_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_delta_COG3_60h,38,3,Brain Lab,ThinkRx,-3.70571,2.88496,"X_COG3_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_delta_COG4_60h,38,3,Brain Lab,ThinkRx,7.46217,3.82493,"X_COG4_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_delta_COG5_60h,38,3,Brain Lab,ThinkRx,0.42983,2.84798,"X_COG5_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_delta_COG6_60h,38,3,Brain Lab,ThinkRx,-1.79401,2.48205,"X_COG6_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_delta_COG7_60h,38,3,Brain Lab,ThinkRx,0.18616,4.92485,"X_COG7_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_delta_COG10_60h,38,3,Brain Lab,ThinkRx,-11.53443,4.89729,"X_COG10_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_delta_IQ_60h,38,3,Brain Lab,ThinkRx,1.6039,3.02388,"X_IQ_0h, X_Age_0h, X_Gender_0h",7,df7
+YP_RTPCR_negative_6d,103,2,Ivermectin,Placebo,0.06506,0.07274,"X_Age_0d, X_Sex_0d",8,df8
+YS_symptom_free_6d,114,2,Ivermectin,Placebo,0.05158,0.06444,"X_Age_0d, X_Sex_0d",8,df8
+YS_discharged_10d,114,2,Ivermectin,Placebo,-0.03841,0.07929,"X_Age_0d, X_Sex_0d",8,df8
+YS_fil_discharge,114,2,Ivermectin,Placebo,-0.08511,0.03701,"X_Age_0d, X_Sex_0d",8,df8
+YS_ICU,114,2,Ivermectin,Placebo,0.00838,0.0552,"X_Age_0d, X_Sex_0d",8,df8
+YS_intubation_mv,114,2,Ivermectin,Placebo,0.06762,0.04412,"X_Age_0d, X_Sex_0d",8,df8
+YP_manual_removal,577,1,Oxytocin,Placebo,-0.00851,0.04047,X_age_0d,9,df9
+YS_pulse_after_30min,542,1,Oxytocin,Placebo,2.09779,1.08757,X_age_0d,9,df9
+YS_bp_sys_after_30min,547,1,Oxytocin,Placebo,-0.2541,1.40529,X_age_0d,9,df9
+YS_bp_dia_after_30min,545,1,Oxytocin,Placebo,0.44194,0.95453,X_age_0d,9,df9
+YS_blood_loss_ml,569,1,Oxytocin,Placebo,21.20884,41.58596,X_age_0d,9,df9
+YS_blood_loss_over_500ml,569,1,Oxytocin,Placebo,0.00229,0.04009,X_age_0d,9,df9
+YS_blood_loss_over_1000ml,569,1,Oxytocin,Placebo,0.00835,0.02561,X_age_0d,9,df9
+YS_blood_transfusion,576,1,Oxytocin,Placebo,-0.02546,0.02489,X_age_0d,9,df9
+YS_mother_sep_gt1h,574,1,Oxytocin,Placebo,0.02699,0.03774,X_age_0d,9,df9
+YS_general_aesthetic,381,1,Oxytocin,Placebo,-0.07369,0.04141,X_age_0d,9,df9
+YS_side_effect,535,1,Oxytocin,Placebo,-0.00046,0.02058,X_age_0d,9,df9
+YS_materl_pyrexia,571,1,Oxytocin,Placebo,0.00974,0.01502,X_age_0d,9,df9
+YS_return_to_theatre,576,1,Oxytocin,Placebo,-0.00366,0.00777,X_age_0d,9,df9
+YS_antibiotic_use,577,1,Oxytocin,Placebo,0.02282,0.02666,X_age_0d,9,df9
+YS_further_treatment,577,1,Oxytocin,Placebo,,,X_age_0d,9,df9
+YS_hb_after_delivery,546,1,Oxytocin,Placebo,-0.0839,0.16384,X_age_0d,9,df9
+YS_materl_mortality,577,1,Oxytocin,Placebo,,,X_age_0d,9,df9
+YS_baby_mortality,577,1,Oxytocin,Placebo,,,X_age_0d,9,df9
+YS_delta_hb_pct,541,1,Oxytocin,Placebo,0.49882,1.2754,X_age_0d,9,df9
+YS_hb_fall_over_10pct,541,1,Oxytocin,Placebo,0.01565,0.04055,X_age_0d,9,df9
+YS_hb_fall_over_20pct,541,1,Oxytocin,Placebo,-0.00836,0.04131,X_age_0d,9,df9
+YP_help_needed_intub,256,4,Video,No Video,-0.0985,0.06128,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_burp_intub,256,4,Video,No Video,-0.08587,0.05994,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_railroading_intub,256,4,Video,No Video,0.01552,0.03976,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_pogo_intub,256,4,Video,No Video,14.99234,3.15326,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_force_intub,256,4,Video,No Video,-0.12494,0.04498,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_esophageal_intub,248,4,Video,No Video,-0.0128,0.01937,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_removing_cover_intub,256,4,Video,No Video,-0.07205,0.02365,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_time_to_intubation_intub,217,4,Video,No Video,4.52915,7.5678,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_ease_intubation_intub,256,4,Video,No Video,-0.88644,0.28931,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_HR_before_induc,244,4,Video,No Video,1.10967,1.89747,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_HR_before_intub,251,4,Video,No Video,1.84982,1.45633,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_HR_after_intub,252,4,Video,No Video,-1.67715,2.15699,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_MAP_before_induc,242,4,Video,No Video,-2.5744,2.05398,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_MAP_before_intub,243,4,Video,No Video,-1.68659,2.16968,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_MAP_after_intub,238,4,Video,No Video,-7.70429,3.2543,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_BIS_before_intub,172,3,Video,No Video,-3.52166,2.04592,"X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_BIS_after_intub,190,4,Video,No Video,-4.58065,2.01403,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_NMT_before_intub,173,3,Video,No Video,-0.40806,0.26238,"X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_NMT_after_intub,196,4,Video,No Video,0.2011,0.63739,"X_center_0d, X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_SpO2_before_intub,175,3,Video,No Video,-0.95452,1.023,"X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_SpO2_during_intub,182,3,Video,No Video,0.11885,0.1875,"X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YS_SpO2_after_intub,183,3,Video,No Video,-0.2032,1.46394,"X_sex_0d, X_age_0d, X_weight_0d",10,df10
+YP_delta_log10_biomass_oral_8w,40,1,active,placebo,-0.11628,0.23878,X_sex_0w,11,df11
+YP_delta_log10_biomass_sputum_8w,35,1,active,placebo,0.61188,0.37112,X_sex_0w,11,df11
+YS_delta_shannon_oral_8w,40,1,active,placebo,-0.37354,0.09863,X_sex_0w,11,df11
+YS_delta_shannon_sputum_8w,35,1,active,placebo,-0.55823,0.18226,X_sex_0w,11,df11
+YS_delta_simpson_oral_8w,40,1,active,placebo,-0.03591,0.0078,X_sex_0w,11,df11
+YS_delta_simpson_sputum_8w,35,1,active,placebo,-0.0917,0.03234,X_sex_0w,11,df11
+YS_delta_crp_8w,40,2,active,placebo,1.57092,2.12692,"X_crp_0w, X_sex_0w",11,df11
+YS_delta_fibrinogen_8w,39,2,active,placebo,12.23658,22.16828,"X_fibrinogen_0w, X_sex_0w",11,df11
+YS_delta_leukocyte_8w,39,2,active,placebo,-0.41308,0.56426,"X_leukocyte_0w, X_sex_0w",11,df11
+YS_delta_sgrq_total_8w,40,1,active,placebo,-6.24941,2.70069,X_sex_0w,11,df11
+YS_delta_bcss_8w,37,1,active,placebo,-0.21795,0.58565,X_sex_0w,11,df11
+YS_PaperReviewed,3714,1,DoubleBlind,SingleBlind,0.01426,0.01598,X_AuthorGender_0w,12,df12
+YS_RevisionInvited,3652,1,DoubleBlind,SingleBlind,-0.02345,0.01108,X_AuthorGender_0w,12,df12
+YS_ResubInvited,3652,1,DoubleBlind,SingleBlind,0.00419,0.00866,X_AuthorGender_0w,12,df12
+YP_TOTALBLOOD,477,1,IV infusion,IM injection,-41.83239,30.36966,X_AGE_0min,13,df13
+YP_PPH500,477,1,IV infusion,IM injection,-0.03192,0.03789,X_AGE_0min,13,df13
+YS_SYSBP_30min,478,1,IV infusion,IM injection,0.01121,1.32224,X_AGE_0min,13,df13
+YS_DIASBP_30min,478,1,IV infusion,IM injection,-0.41215,1.02532,X_AGE_0min,13,df13
+YS_HR_30min,478,1,IV infusion,IM injection,-1.21594,1.51223,X_AGE_0min,13,df13
+YS_BLD_30min,478,1,IV infusion,IM injection,-33.30673,26.83988,X_AGE_0min,13,df13
+YS_SYSBP_60min,477,1,IV infusion,IM injection,0.94012,1.28586,X_AGE_0min,13,df13
+YS_DIASBP_60min,477,1,IV infusion,IM injection,-0.98871,0.99545,X_AGE_0min,13,df13
+YS_HR_60min,477,1,IV infusion,IM injection,-1.77595,1.48123,X_AGE_0min,13,df13
+YS_BLD_60min,476,1,IV infusion,IM injection,-42.4461,30.26537,X_AGE_0min,13,df13
+YS_UTEROTONICOS,480,1,IV infusion,IM injection,-0.06862,0.02573,X_AGE_0min,13,df13
+YS_PPH1000,477,1,IV infusion,IM injection,-0.01522,0.02265,X_AGE_0min,13,df13
+YS_SI_15min,480,1,IV infusion,IM injection,-0.01953,0.01779,X_AGE_0min,13,df13
+YS_SI_30min,478,1,IV infusion,IM injection,-0.0062,0.02156,X_AGE_0min,13,df13
+YS_SI_45min,477,1,IV infusion,IM injection,0.00824,0.02178,X_AGE_0min,13,df13
+YS_SI_60min,477,1,IV infusion,IM injection,-0.0242,0.01951,X_AGE_0min,13,df13
+YS_HB_CHG,475,1,IV infusion,IM injection,0.09195,0.15393,X_AGE_0min,13,df13
+YP_6MWD_6w,112,4,TERECO,No Active Rehabilitation,67.05175,9.81505,"X_6MWD_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YP_6MWD_28w,105,4,TERECO,No Active Rehabilitation,62.31264,10.06866,"X_6MWD_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_squat_6w,112,4,TERECO,No Active Rehabilitation,21.25845,4.418,"X_squat_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_squat_28w,105,4,TERECO,No Active Rehabilitation,22.40756,4.19559,"X_squat_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_fvc_6w,111,4,TERECO,No Active Rehabilitation,-0.02946,0.08422,"X_fvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_fvc_28w,103,4,TERECO,No Active Rehabilitation,-0.06899,0.073,"X_fvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_fev1_6w,111,4,TERECO,No Active Rehabilitation,0.03498,0.09429,"X_fev1_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_fev1_28w,103,4,TERECO,No Active Rehabilitation,-0.08902,0.07732,"X_fev1_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_fevfvc_6w,111,4,TERECO,No Active Rehabilitation,0.02064,0.01852,"X_fevfvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_fevfvc_28w,103,4,TERECO,No Active Rehabilitation,-0.01207,0.01691,"X_fevfvc_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_mvv_6w,111,4,TERECO,No Active Rehabilitation,8.71569,3.61534,"X_mvv_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_mvv_28w,103,4,TERECO,No Active Rehabilitation,2.04044,3.87831,"X_mvv_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_pef_6w,111,4,TERECO,No Active Rehabilitation,0.42514,0.33435,"X_pef_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_pef_28w,103,4,TERECO,No Active Rehabilitation,-0.17656,0.33528,"X_pef_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_SF12_PCS_6w,112,4,TERECO,No Active Rehabilitation,3.77994,1.22342,"X_SF12_PCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_SF12_PCS_28w,105,4,TERECO,No Active Rehabilitation,2.42092,1.5562,"X_SF12_PCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_SF12_MCS_6w,112,4,TERECO,No Active Rehabilitation,2.74587,1.5357,"X_SF12_MCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_SF12_MCS_28w,105,4,TERECO,No Active Rehabilitation,2.1003,1.51167,"X_SF12_MCS_0w, X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_dyspnea_6w,112,3,TERECO,No Active Rehabilitation,0.29193,0.07643,"X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_dyspnea_28w,105,3,TERECO,No Active Rehabilitation,0.12642,0.09162,"X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_dyspnea_2w,114,3,TERECO,No Active Rehabilitation,0.1218,0.09387,"X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_dyspnea_4w,114,3,TERECO,No Active Rehabilitation,0.06412,0.08989,"X_center_0w, X_sex_0w, X_age_0w",14,df14
+YS_AE,119,3,TERECO,No Active Rehabilitation,-0.04015,0.08777,"X_center_0w, X_sex_0w, X_age_0w",14,df14
+YP_delta_EmoReact_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-12.2985,5.21588,X_EmoReact_0w,15,df15
+YS_delta_CBCLTotal_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-3.69835,5.10224,X_CBCLTotal_0w,15,df15
+YS_delta_Interl_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-2.6226,3.84898,X_Interl_0w,15,df15
+YS_delta_Exterl_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-10.86847,6.67104,X_Exterl_0w,15,df15
+YS_delta_Anx_Dep_4w,28,1,Conventiol+Snoezelen,Conventiol Only,6.08298,7.83045,X_Anx_Dep_0w,15,df15
+YS_delta_Somatic_4w,28,1,Conventiol+Snoezelen,Conventiol Only,5.03918,7.45257,X_Somatic_0w,15,df15
+YS_delta_Withdrawn_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-5.17196,5.39159,X_Withdrawn_0w,15,df15
+YS_delta_Sleep_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-0.25476,9.2408,X_Sleep_0w,15,df15
+YS_delta_Attention_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-2.04688,5.60731,X_Attention_0w,15,df15
+YS_delta_Aggressive_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-9.21365,8.00729,X_Aggressive_0w,15,df15
+YS_delta_Others_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-1.36581,5.68002,X_Others_0w,15,df15
+YS_delta_Child_Stress_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-7.83439,6.95482,X_Child_Stress_0w,15,df15
+YS_delta_Parent_Stress_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-4.43,5.02265,X_Parent_Stress_0w,15,df15
+YS_delta_PSI_Total_4w,28,1,Conventiol+Snoezelen,Conventiol Only,-12.18368,6.34748,X_PSI_Total_0w,15,df15
+YP_delta_BDI_9w,48,3,Internet Delivered,Waitlist,-5.54871,1.93687,"X_BDI_0w, X_age_0w, X_sex_0w",16,df16
+YS_delta_MADRS_9w,48,3,Internet Delivered,Waitlist,-4.15216,1.97802,"X_MADRS_0w, X_age_0w, X_sex_0w",16,df16
+YS_delta_BAI_9w,48,3,Internet Delivered,Waitlist,-0.75205,1.0758,"X_BAI_0w, X_age_0w, X_sex_0w",16,df16
+YS_delta_QOLI_9w,48,3,Internet Delivered,Waitlist,0.16395,0.34097,"X_QOLI_0w, X_age_0w, X_sex_0w",16,df16
+YS_delta_IPAQ_9w,46,3,Internet Delivered,Waitlist,310.25671,273.41151,"X_IPAQ_0w, X_age_0w, X_sex_0w",16,df16
+YP_delta_LDL_24w,147,4,combine3,statin,-0.89924,0.12589,"X_LDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YP_delta_LDL_24w,148,4,statin_EZ,statin,-0.10275,0.12956,"X_LDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YP_delta_LDL_24w,149,4,statin_pcsk9,statin,-0.61615,0.13238,"X_LDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_TC_24w,147,4,combine3,statin,-1.00491,0.14627,"X_TC_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_TC_24w,148,4,statin_EZ,statin,-0.01282,0.14257,"X_TC_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_TC_24w,149,4,statin_pcsk9,statin,-0.60768,0.1536,"X_TC_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_TG_24w,147,4,combine3,statin,-0.22606,0.09957,"X_TG_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_TG_24w,148,4,statin_EZ,statin,-0.01303,0.10631,"X_TG_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_TG_24w,149,4,statin_pcsk9,statin,-0.13766,0.09463,"X_TG_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_HDL_24w,147,4,combine3,statin,0.09025,0.03894,"X_HDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_HDL_24w,148,4,statin_EZ,statin,0.02138,0.03633,"X_HDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YS_delta_HDL_24w,149,4,statin_pcsk9,statin,0.06644,0.03992,"X_HDL_0w, X_age_0w, X_sex_0w, X_BMI_0w",17,df17
+YP_time_to_disengaged_12m,295,2,Kanyakla,Standard Care,-16.02599,10.25028,"X_AgeCat_0m, X_Gender_0m",18,df18
+YP_prop_time_in_care_12m,295,2,Kanyakla,Standard Care,-0.04498,0.03434,"X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_StigInterl_12m,250,3,Kanyakla,Standard Care,-0.46656,0.101,"X_StigInterl_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_StigAnticipate_12m,250,3,Kanyakla,Standard Care,-0.39466,0.0795,"X_StigAnticipate_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_StigEct_12m,248,3,Kanyakla,Standard Care,-0.03948,0.03766,"X_StigEct_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_StigOverall_12m,248,2,Kanyakla,Standard Care,-0.30991,0.07684,"X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_yourHIVTotal_12m,241,3,Kanyakla,Standard Care,0.69295,0.16462,"X_yourHIVTotal_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_theirHIVTotal_12m,241,3,Kanyakla,Standard Care,0.49817,0.15443,"X_theirHIVTotal_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_MaterialSupportMean_12m,240,3,Kanyakla,Standard Care,0.32666,0.1316,"X_MaterialSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_EmotiolSupportMean_12m,241,3,Kanyakla,Standard Care,0.36448,0.11708,"X_EmotiolSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_ClinicSupportMean_12m,241,3,Kanyakla,Standard Care,0.34774,0.13895,"X_ClinicSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YS_delta_MedSupportMean_12m,241,3,Kanyakla,Standard Care,0.24326,0.14995,"X_MedSupportMean_0m, X_AgeCat_0m, X_Gender_0m",18,df18
+YP_FHVP_CVP_GRADIENT,32,2,Piggyback,Conventiol,-0.02359,0.84461,"X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_1d,32,3,Piggyback,Conventiol,-0.0514,0.25526,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_2d,32,3,Piggyback,Conventiol,-0.81537,0.35266,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_3d,32,3,Piggyback,Conventiol,-1.09043,0.42966,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_5d,32,3,Piggyback,Conventiol,-1.0603,0.46765,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_6d,32,3,Piggyback,Conventiol,-0.69914,0.42236,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_7d,32,3,Piggyback,Conventiol,-0.64832,0.39742,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_14d,32,3,Piggyback,Conventiol,-0.64438,0.2826,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_21d,32,3,Piggyback,Conventiol,-0.53981,0.28725,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_CREATININE_28d,32,3,Piggyback,Conventiol,-0.61232,0.23074,"X_CREATININE_0d, X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YS_MASSIVE_ASCITES,32,2,Piggyback,Conventiol,,,"X_RECIPIENT_AGE_YEARS_0d, X_RECIPIENT_GENDER_0d",19,df19
+YP_IWT_minutes_12w,37,3,IWT+Support,IWT only,379.07448,186.8274,"X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_HbA1c_12w,31,4,IWT+Support,IWT only,1.82518,1.23702,"X_HbA1c_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_AndroidFat_12w,31,4,IWT+Support,IWT only,0.00131,0.00646,"X_AndroidFat_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_GynoidFat_12w,31,4,IWT+Support,IWT only,0.00064,0.00724,"X_GynoidFat_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_TotalFat_12w,31,4,IWT+Support,IWT only,0.00396,0.00503,"X_TotalFat_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_Weight_12w,31,3,IWT+Support,IWT only,0.30991,0.79656,"X_Weight_0w, X_Age_0w, X_Sex_0w",20,df20
+YS_delta_PAEE_12w,29,4,IWT+Support,IWT only,3.85365,4.28699,"X_PAEE_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_QoL_Physical_12w,27,4,IWT+Support,IWT only,-1.06476,3.04264,"X_QoL_Physical_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_QoL_Mental_12w,27,4,IWT+Support,IWT only,4.5706,3.38225,"X_QoL_Mental_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YS_delta_VO2max_12w,29,4,IWT+Support,IWT only,-35.01329,73.17812,"X_VO2max_0w, X_Age_0w, X_Sex_0w, X_Weight_0w",20,df20
+YP_days_to_tb_initiation,1462,0,HIV,SOC,,,,21,df21
+YP_days_to_tb_initiation,1462,0,HIV-TB,SOC,,,,21,df21
+YS_undiagnosed_tb,1206,0,HIV,SOC,,,,21,df21
+YS_undiagnosed_tb,1206,0,HIV-TB,SOC,,,,21,df21
+YS_same_day_tb_treatment,1462,0,HIV,SOC,,,,21,df21
+YS_same_day_tb_treatment,1462,0,HIV-TB,SOC,,,,21,df21
+YS_undiagnosed_hiv,1206,0,HIV,SOC,,,,21,df21
+YS_undiagnosed_hiv,1206,0,HIV-TB,SOC,,,,21,df21
+YS_mortality,1320,0,HIV,SOC,,,,21,df21
+YS_mortality,1320,0,HIV-TB,SOC,,,,21,df21
+YS_eq5d_56d,799,1,HIV,SOC,0.02922,0.01275,X_eq5d_0d,21,df21
+YS_eq5d_56d,798,1,HIV-TB,SOC,0.02649,0.01253,X_eq5d_0d,21,df21
+YP_pretal_gt1wk,146,1,Intervention,Control,0.0676,0.07962,X_age_0w,22,df22
+YS_pretal_any,146,1,Intervention,Control,0.01634,0.07532,X_age_0w,22,df22
+YS_pretal_weeks,110,1,Intervention,Control,0.15994,0.35107,X_age_0w,22,df22
+YS_posttal_any,146,1,Intervention,Control,0.0062,0.01883,X_age_0w,22,df22
+YS_posttal_weeks,131,1,Intervention,Control,0.38132,1.03088,X_age_0w,22,df22
+YP_time_28d,92,0,rhTM,No rhTM,,,,23,df23
+YP_time_90d,92,0,rhTM,No rhTM,,,,23,df23
+YS_delta_Ddimer_3d,85,1,rhTM,No rhTM,-0.46608,0.13284,X_Ddimer_0d,23,df23
+YS_delta_Ddimer_5d,81,1,rhTM,No rhTM,-0.61608,0.17627,X_Ddimer_0d,23,df23
+YS_delta_Ddimer_7d,79,1,rhTM,No rhTM,-0.87473,0.32813,X_Ddimer_0d,23,df23
+YS_delta_Ddimer_10d,79,1,rhTM,No rhTM,-0.79998,0.55601,X_Ddimer_0d,23,df23
+YS_delta_platelet_3d,85,1,rhTM,No rhTM,0.11337,0.08511,X_platelet_0d,23,df23
+YS_delta_platelet_5d,81,1,rhTM,No rhTM,0.29852,0.13892,X_platelet_0d,23,df23
+YS_delta_platelet_7d,80,1,rhTM,No rhTM,0.70112,0.2997,X_platelet_0d,23,df23
+YS_delta_platelet_10d,81,1,rhTM,No rhTM,0.81837,0.36868,X_platelet_0d,23,df23
+YS_delta_SOFA_3d,86,1,rhTM,No rhTM,-0.36878,0.48247,X_SOFA_0d,23,df23
+YS_delta_SOFA_5d,81,1,rhTM,No rhTM,-0.37575,0.53346,X_SOFA_0d,23,df23
+YS_delta_SOFA_7d,81,1,rhTM,No rhTM,-0.59225,0.5333,X_SOFA_0d,23,df23
+YS_delta_SOFA_10d,76,1,rhTM,No rhTM,-0.14299,0.51932,X_SOFA_0d,23,df23
+YP_catheterized,50,2,Auriculotherapy,Sham Comparator,-0.24185,0.1131,"X_Age_0d, X_Weight_0d",24,df24
+YS_anxiety_6h,33,2,Auriculotherapy,Sham Comparator,0.48575,0.46795,"X_Age_0d, X_Weight_0d",24,df24
+YS_comfort_6h,34,2,Auriculotherapy,Sham Comparator,-0.22427,0.65964,"X_Age_0d, X_Weight_0d",24,df24
+YP_delta_GQ1_8w,48,3,Probiotic with prebiotic,Placebo,0.23323,0.18234,"X_GQ1_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ2_8w,48,3,Probiotic with prebiotic,Placebo,0.26947,0.25264,"X_GQ2_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ3_8w,48,3,Probiotic with prebiotic,Placebo,0.03168,0.18277,"X_GQ3_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ4_8w,48,3,Probiotic with prebiotic,Placebo,0.08458,0.17549,"X_GQ4_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ5_8w,48,3,Probiotic with prebiotic,Placebo,0.40035,0.27072,"X_GQ5_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ6_8w,48,3,Probiotic with prebiotic,Placebo,-0.45202,0.16041,"X_GQ6_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ7_8w,48,3,Probiotic with prebiotic,Placebo,0.06544,0.14733,"X_GQ7_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ8_8w,48,3,Probiotic with prebiotic,Placebo,0.39554,0.22931,"X_GQ8_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_GQ9_8w,48,3,Probiotic with prebiotic,Placebo,0.05931,0.27016,"X_GQ9_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_BOF_8w,48,3,Probiotic with prebiotic,Placebo,-1.34275,0.38837,"X_BOF_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_WGTT_8w,48,3,Probiotic with prebiotic,Placebo,-38.66547,15.61163,"X_WGTT_0w, X_Sex_0w, X_BMI_0w",25,df25
+YS_DelayedGTT_8w,48,3,Probiotic with prebiotic,Placebo,0.18941,0.13782,"X_DelayedGTT_0w, X_Sex_0w, X_BMI_0w",25,df25
+YS_BM_less3_8w,48,3,Probiotic with prebiotic,Placebo,0.32945,0.12714,"X_BM_less3_0w, X_Sex_0w, X_BMI_0w",25,df25
+YS_NMSS_8w,48,3,Probiotic with prebiotic,Placebo,13.88709,4.18744,"X_NMSS_0w, X_Sex_0w, X_BMI_0w",25,df25
+YS_PDQ39SI_8w,48,3,Probiotic with prebiotic,Placebo,4.3181,2.81224,"X_PDQ39SI_0w, X_Sex_0w, X_BMI_0w",25,df25
+YS_UPDRS11_8w,48,3,Probiotic with prebiotic,Placebo,1.00464,0.59749,"X_UPDRS11_0w, X_Sex_0w, X_BMI_0w",25,df25
+YS_UPDRS111_8w,48,3,Probiotic with prebiotic,Placebo,5.96672,1.44834,"X_UPDRS111_0w, X_Sex_0w, X_BMI_0w",25,df25
+YP_delta_Adherence_6m,224,3,Reminder module,Standard Care,-8.35952,0.94376,"X_Adherence_0m, X_Agecat_0m, X_weight_0m",26,df26
+YP_optimal_adherence_6m,224,2,Reminder module,Standard Care,-0.66128,0.04957,"X_Agecat_0m, X_weight_0m",26,df26
+YP_attendance_6m,242,2,Reminder module,Standard Care,-0.27295,0.08433,"X_Agecat_0m, X_weight_0m",26,df26
+YS_delta_CD4_6m,224,3,Reminder module,Standard Care,-52.75769,15.01968,"X_CD4_0m, X_Agecat_0m, X_weight_0m",26,df26
+YS_delta_weight_6m,226,2,Reminder module,Standard Care,0.6162,0.72243,"X_weight_0m, X_Agecat_0m",26,df26
+YS_delta_TB_status_6m,225,3,Reminder module,Standard Care,0.06518,0.07256,"X_TB_status_0m, X_Agecat_0m, X_weight_0m",26,df26
+YS_delta_OI_index_6m,225,3,Reminder module,Standard Care,0.07733,0.06315,"X_OI_index_0m, X_Agecat_0m, X_weight_0m",26,df26
+YP_bleeding_text,96,0,PCV,VCV,,,,27,df27
+YP_surgical_problem_bleeding,87,0,PCV,VCV,,,,27,df27
+YP_bleeding_score,96,0,PCV,VCV,,,,27,df27
+YP_bleeding_category3,96,0,PCV,VCV,,,,27,df27
+YS_surgery_duration_min,97,0,PCV,VCV,,,,27,df27
+YS_vent_settings_changes,99,0,PCV,VCV,,,,27,df27
+YS_vent_mode_modification,99,0,PCV,VCV,,,,27,df27
+YS_min_SpO2,99,0,PCV,VCV,,,,27,df27
+YP_ContrSBP_6m,120,4,Edu+Visit,Usual Care,0.18328,0.09176,"X_ContrSBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_BMI_6m,120,3,Edu+Visit,Usual Care,-0.84585,0.39932,"X_BMI_0m, X_SEX_0m, X_Age_0m",28,df28
+YS_delta_BMI_6m,120,3,Edu+Visit,Usual Care,0.7366,0.38157,"X_BMI_0m, X_SEX_0m, X_Age_0m",28,df28
+YS_WC_6m,120,4,Edu+Visit,Usual Care,-1.46143,1.4278,"X_WC_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_delta_WC_6m,120,4,Edu+Visit,Usual Care,1.30678,1.3986,"X_WC_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_MeanSBP_6m,120,4,Edu+Visit,Usual Care,-4.07729,3.24379,"X_MeanSBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_MeanDBP_6m,120,4,Edu+Visit,Usual Care,-3.8528,2.17068,"X_MeanDBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_delta_MeanSBP_6m,120,4,Edu+Visit,Usual Care,5.32816,3.29959,"X_MeanSBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_ContrDBP_6m,120,4,Edu+Visit,Usual Care,0.06272,0.09119,"X_ContrDBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_delta_MeanDBP_6m,120,4,Edu+Visit,Usual Care,4.59003,2.15136,"X_MeanDBP_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_ControlledBP_6m,120,3,Edu+Visit,Usual Care,0.10519,0.08732,"X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_TotalScoreA_6m,120,4,Edu+Visit,Usual Care,2.68772,0.27756,"X_TotalScoreA_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YS_delta_TotalScoreA_6m,120,4,Edu+Visit,Usual Care,-2.68029,0.28415,"X_TotalScoreA_0m, X_SEX_0m, X_Age_0m, X_BMI_0m",28,df28
+YP_survival_18w,460,3,Sertraline,Placebo,-9.10744,5.3524,"X_age_0w, X_sex_0w, X_on_art_0w",29,df29
+YS_sterile_14d,460,3,Sertraline,Placebo,-0.02804,0.04608,"X_age_0w, X_sex_0w, X_on_art_0w",29,df29
+YS_sterile_18w,460,3,Sertraline,Placebo,0.00619,0.04641,"X_age_0w, X_sex_0w, X_on_art_0w",29,df29
+YS_num_lumbar_punctures,460,3,Sertraline,Placebo,-0.06799,0.33101,"X_age_0w, X_sex_0w, X_on_art_0w",29,df29
+YP_Adherence,40,2,Pool-REST,Chair-REST,0.02647,0.06101,"X_Sex_0d, X_Age_0d",30,df30
+YP_Adherence,40,2,Pool-REST preferred,Chair-REST,0.06419,0.05542,"X_Sex_0d, X_Age_0d",30,df30
+YS_Credibility1,45,2,Pool-REST,Chair-REST,0.99826,0.5501,"X_Sex_0d, X_Age_0d",30,df30
+YS_Credibility1,46,2,Pool-REST preferred,Chair-REST,0.4025,0.46497,"X_Sex_0d, X_Age_0d",30,df30
+YS_Credibility2,45,2,Pool-REST,Chair-REST,1.01886,0.45447,"X_Sex_0d, X_Age_0d",30,df30
+YS_Credibility2,46,2,Pool-REST preferred,Chair-REST,0.62146,0.43403,"X_Sex_0d, X_Age_0d",30,df30
+YS_Credibility3,45,2,Pool-REST,Chair-REST,0.99165,0.57292,"X_Sex_0d, X_Age_0d",30,df30
+YS_Credibility3,46,2,Pool-REST preferred,Chair-REST,0.35216,0.64084,"X_Sex_0d, X_Age_0d",30,df30
+YS_Expectancy,45,2,Pool-REST,Chair-REST,0.05057,0.07693,"X_Sex_0d, X_Age_0d",30,df30
+YS_Expectancy,46,2,Pool-REST preferred,Chair-REST,0.04346,0.07115,"X_Sex_0d, X_Age_0d",30,df30
+YS_MeanDuration,45,2,Pool-REST,Chair-REST,-4.72364,2.40453,"X_Sex_0d, X_Age_0d",30,df30
+YS_MeanDuration,46,2,Pool-REST preferred,Chair-REST,16.73092,5.0202,"X_Sex_0d, X_Age_0d",30,df30
+YS_Dropout,50,2,Pool-REST,Chair-REST,-0.03977,0.13098,"X_Sex_0d, X_Age_0d",30,df30
+YS_Dropout,50,2,Pool-REST preferred,Chair-REST,-0.16001,0.12278,"X_Sex_0d, X_Age_0d",30,df30
+YS_AdverseCount,44,2,Pool-REST,Chair-REST,4.43765,2.08172,"X_Sex_0d, X_Age_0d",30,df30
+YS_AdverseCount,45,2,Pool-REST preferred,Chair-REST,4.69257,1.99444,"X_Sex_0d, X_Age_0d",30,df30
+YS_EventMean,44,2,Pool-REST,Chair-REST,0.1117,0.04335,"X_Sex_0d, X_Age_0d",30,df30
+YS_EventMean,45,2,Pool-REST preferred,Chair-REST,0.10504,0.03861,"X_Sex_0d, X_Age_0d",30,df30
+YP_survival_time,796,1,TIV,Placebo,10.99911,5.56485,X_age_0w,31,df31
+YS_hai_titer_4w,778,2,TIV,Placebo,221.48191,20.31964,"X_hai_titer_0w, X_age_0w",31,df31
+YS_hai_fold_rise_4w,771,1,TIV,Placebo,33.19104,3.51227,X_age_0w,31,df31
+YS_hai_40plus_4w,778,2,TIV,Placebo,0.5443,0.02525,"X_hai_40plus_0w, X_age_0w",31,df31
+YS_hai_4fold_rise_4w,771,1,TIV,Placebo,0.58662,0.02495,X_age_0w,31,df31
+YP_radiologic_6m,107,1,Streptomycin,Control,-1.54544,0.33343,X_gender_0w,32,df32
+YP_considerable_improvement,107,1,Streptomycin,Control,0.43583,0.07651,X_gender_0w,32,df32
+YP_any_improvement,107,1,Streptomycin,Control,0.36462,0.09177,X_gender_0w,32,df32
+YS_death,107,1,Streptomycin,Control,-0.19641,0.07229,X_gender_0w,32,df32
+YP_TM_total_score,154,3,Reframing,Control,-6.0032,2.04706,"X_age_0w, X_Gender_0w, X_DiseaseGroup_0w",33,df33
+YS_willing_participate,153,3,Reframing,Control,-0.04383,0.08112,"X_age_0w, X_Gender_0w, X_DiseaseGroup_0w",33,df33
+YP_sepsisdeath_60d,4556,2,Synbiotic,Placebo,-0.03671,0.00764,"X_wt_0d, X_sex_0d",34,df34
+YS_delta_wt_60d,4306,2,Synbiotic,Placebo,29.29565,14.02334,"X_wt_0d, X_sex_0d",34,df34
+YS_sepsisB,4556,2,Synbiotic,Placebo,-0.00749,0.00323,"X_wt_0d, X_sex_0d",34,df34
+YS_sepsisC,4556,2,Synbiotic,Placebo,-0.02082,0.00649,"X_wt_0d, X_sex_0d",34,df34
+YS_diarrhea,4556,2,Synbiotic,Placebo,-0.02069,0.00366,"X_wt_0d, X_sex_0d",34,df34
+YS_omphalitis,4556,2,Synbiotic,Placebo,-0.0044,0.00175,"X_wt_0d, X_sex_0d",34,df34
+YS_local_inf,4556,2,Synbiotic,Placebo,-0.00743,0.00306,"X_wt_0d, X_sex_0d",34,df34
+YS_abscess,4556,2,Synbiotic,Placebo,-0.00263,0.00175,"X_wt_0d, X_sex_0d",34,df34
+YP_delta_Total_weight_gain_delivery,72,1,Exercise,Control,2.0759,1.39348,X_BMI_0w,35,df35
+YS_BMI_37w,70,1,Exercise,Control,-0.01334,0.43576,X_BMI_0w,35,df35
+YS_BMI_postPP,69,1,Exercise,Control,0.66805,0.50342,X_BMI_0w,35,df35
+YS_IOM_delivery,72,1,Exercise,Control,0.20146,0.11772,X_BMI_0w,35,df35
+YS_delta_anxiety_pre_post,57,1,Exercise,Control,0.83038,1.04948,X_BMI_0w,35,df35
+YS_delta_deprmood_prepost,57,1,Exercise,Control,0.09538,0.54247,X_BMI_0w,35,df35
+YS_delta_Poswell_prepost,58,1,Exercise,Control,-0.15972,0.75169,X_BMI_0w,35,df35
+YS_delta_Selfcont_prepost,57,1,Exercise,Control,-0.0491,0.69588,X_BMI_0w,35,df35
+YS_delta_Genhealth_prepost,59,1,Exercise,Control,0.50956,0.83561,X_BMI_0w,35,df35
+YS_delta_Vitality_prepost,56,2,Exercise,Control,0.90106,0.85467,"X_Vitality_0w, X_BMI_0w",35,df35
+YP_delta_RAVLT_delayedrecall_12m,75,1,PI,ACI,-0.30464,0.52229,X_RAVLT_delayedrecall_0m,36,df36
+YP_delta_RAVLT_delayedrecall_12m,74,1,MI,ACI,0.63872,0.49805,X_RAVLT_delayedrecall_0m,36,df36
+YP_delta_MemoryNew_12m,75,1,PI,ACI,0.11925,0.11892,X_MemoryNew_0m,36,df36
+YP_delta_MemoryNew_12m,74,1,MI,ACI,0.25504,0.12899,X_MemoryNew_0m,36,df36
+YP_delta_AttentionExe_12m,74,1,PI,ACI,0.12926,0.08487,X_AttentionExe_0m,36,df36
+YP_delta_AttentionExe_12m,74,1,MI,ACI,0.26937,0.09036,X_AttentionExe_0m,36,df36
+YP_delta_VisuoSpNew_12m,75,1,PI,ACI,-0.16412,0.14313,X_VisuoSpNew_0m,36,df36
+YP_delta_VisuoSpNew_12m,74,1,MI,ACI,0.14971,0.13922,X_VisuoSpNew_0m,36,df36
+YS_WMHvol_cc_12m,112,0,PI,ACI,,,,36,df36
+YS_WMHvol_cc_12m,112,0,MI,ACI,,,,36,df36
+YS_WMperc_12m,112,0,PI,ACI,,,,36,df36
+YS_WMperc_12m,112,0,MI,ACI,,,,36,df36
+YS_nLatVentL_cc_12m,112,0,PI,ACI,,,,36,df36
+YS_nLatVentL_cc_12m,112,0,MI,ACI,,,,36,df36
+YS_nHippoL_cc_12m,113,0,PI,ACI,,,,36,df36
+YS_nHippoL_cc_12m,113,0,MI,ACI,,,,36,df36
+YS_nHippoR_cc_12m,113,0,PI,ACI,,,,36,df36
+YS_nHippoR_cc_12m,113,0,MI,ACI,,,,36,df36
+YS_nLatVentR_cc_12m,112,0,PI,ACI,,,,36,df36
+YS_nLatVentR_cc_12m,112,0,MI,ACI,,,,36,df36
+YS_eigen_cluster_12m,113,0,PI,ACI,,,,36,df36
+YS_eigen_cluster_12m,113,0,MI,ACI,,,,36,df36
+YP_pep_5d,602,4,Indomethacin,Placebo,-0.07671,0.02687,"X_pep_0d, X_site_0d, X_age_0d, X_gender_0d",37,df37
+YP_time,1054,3,ZDV_ddI,ZDV,114.41831,18.29279,"X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YP_time,1056,3,ZDV_Zal,ZDV,104.3071,18.57824,"X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YP_time,1093,3,ddI,ZDV,93.68955,18.57231,"X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YS_CD4_20w,1054,4,ZDV_ddI,ZDV,73.11336,7.24792,"X_CD4_0w, X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YS_CD4_20w,1056,4,ZDV_Zal,ZDV,37.35494,6.3139,"X_CD4_0w, X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YS_CD4_20w,1093,4,ddI,ZDV,43.33657,6.46088,"X_CD4_0w, X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YS_CD8_20w,1054,4,ZDV_ddI,ZDV,29.58182,18.35769,"X_CD8_0w, X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YS_CD8_20w,1056,4,ZDV_Zal,ZDV,-25.20961,17.20287,"X_CD8_0w, X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YS_CD8_20w,1093,4,ddI,ZDV,25.06888,17.15019,"X_CD8_0w, X_age_0w, X_weight_0w, X_gender_0w",38,df38
+YP_dayslink,447,3,HELP,Usual Care,-132.08533,12.63893,"X_age_0w, X_sex_0w, X_substance_0w",39,df39
+YP_total_intubation_time,99,3,AWS,Macintosh,15.40867,3.78419,"X_age_0d, X_gender_0d, X_BMI_0d",40,df40
+YS_attempts,99,3,AWS,Macintosh,0.09531,0.07666,"X_age_0d, X_gender_0d, X_BMI_0d",40,df40
+YS_failures,99,3,AWS,Macintosh,0.10277,0.07834,"X_age_0d, X_gender_0d, X_BMI_0d",40,df40
+YS_bleeding,99,3,AWS,Macintosh,0.03557,0.02468,"X_age_0d, X_gender_0d, X_BMI_0d",40,df40
+YS_ease,99,3,AWS,Macintosh,13.50516,5.73035,"X_age_0d, X_gender_0d, X_BMI_0d",40,df40
+YS_sore_throat,98,3,AWS,Macintosh,0.07244,0.15554,"X_age_0d, X_gender_0d, X_BMI_0d",40,df40
+YS_view,99,3,AWS,Macintosh,0.08024,0.0763,"X_age_0d, X_gender_0d, X_BMI_0d",40,df40
+YP_throat_30min,233,3,Licorice,Sugar,-0.16432,0.05688,"X_gender_0h, X_BMI_0h, X_age_0h",41,df41
+YP_throat_90min,233,3,Licorice,Sugar,-0.24236,0.0531,"X_gender_0h, X_BMI_0h, X_age_0h",41,df41
+YP_throat_4h,233,3,Licorice,Sugar,-0.24788,0.05931,"X_gender_0h, X_BMI_0h, X_age_0h",41,df41
+YS_throat_1d,233,3,Licorice,Sugar,-0.19755,0.058,"X_gender_0h, X_BMI_0h, X_age_0h",41,df41
+YS_cough_1d,233,3,Licorice,Sugar,-0.15259,0.06144,"X_gender_0h, X_BMI_0h, X_age_0h",41,df41
+YP_onset_sensory,103,3,Sequential,Combined,4.05644,2.31832,"X_gender_0h, X_bmi_0h, X_age_0h",42,df42
+YS_onset_first_sensory,103,3,Sequential,Combined,0.66594,0.53147,"X_gender_0h, X_bmi_0h, X_age_0h",42,df42
+YS_onset_motor,103,3,Sequential,Combined,3.95404,2.26437,"X_gender_0h, X_bmi_0h, X_age_0h",42,df42
+YS_vps_rest,103,3,Sequential,Combined,-0.36431,0.59699,"X_gender_0h, X_bmi_0h, X_age_0h",42,df42
+YS_vps_movement,103,3,Sequential,Combined,-0.76259,0.595,"X_gender_0h, X_bmi_0h, X_age_0h",42,df42
+YS_opioid_total,103,3,Sequential,Combined,5.33505,11.79326,"X_gender_0h, X_bmi_0h, X_age_0h",42,df42
+YP_GA_days,823,2,Intervention,Control,1.38488,1.96837,"X_Age_0d, X_BMI_0d",43,df43
+YS_birthweight_g,809,2,Intervention,Control,35.46125,48.12009,"X_Age_0d, X_BMI_0d",43,df43
+YS_Apgar1_1min,782,2,Intervention,Control,-0.09737,0.10325,"X_Age_0d, X_BMI_0d",43,df43
+YS_Apgar5_5min,782,2,Intervention,Control,-0.02041,0.06492,"X_Age_0d, X_BMI_0d",43,df43
+YS_anySAE_flag,823,2,Intervention,Control,-0.0129,0.02033,"X_Age_0d, X_BMI_0d",43,df43
+YP_intravascular,127,3,Altertive,Conventiol,-0.16816,0.05444,"X_Age_0m, X_Sex_0m, X_Wt_0m",44,df44
+YS_Pain_1m,111,4,Altertive,Conventiol,-0.25326,0.19177,"X_Pain_0m, X_Age_0m, X_Sex_0m, X_Wt_0m",44,df44
+YS_During_Pain,126,3,Altertive,Conventiol,-1.55287,0.20928,"X_Age_0m, X_Sex_0m, X_Wt_0m",44,df44
+YS_PGIC_1m,112,3,Altertive,Conventiol,0.02903,0.11453,"X_Age_0m, X_Sex_0m, X_Wt_0m",44,df44
+YP_delta_fruit_24w,44,2,15% Discount,0% Discount,-43.46264,29.55369,"X_weight_8w, X_store_0w",45,df45
+YP_delta_fruit_24w,39,2,30% Discount,0% Discount,-60.18402,41.94188,"X_weight_8w, X_store_0w",45,df45
+YP_delta_veg_24w,44,2,15% Discount,0% Discount,6.05624,45.60363,"X_weight_8w, X_store_0w",45,df45
+YP_delta_veg_24w,39,2,30% Discount,0% Discount,131.52987,57.26553,"X_weight_8w, X_store_0w",45,df45
+YP_delta_soda_24w,44,2,15% Discount,0% Discount,-9.4748,31.94639,"X_weight_8w, X_store_0w",45,df45
+YP_delta_soda_24w,39,2,30% Discount,0% Discount,-4.31974,30.94726,"X_weight_8w, X_store_0w",45,df45
+YP_delta_bottledwater_24w,44,2,15% Discount,0% Discount,-76.698,95.18615,"X_weight_8w, X_store_0w",45,df45
+YP_delta_bottledwater_24w,39,2,30% Discount,0% Discount,-30.85974,110.66974,"X_weight_8w, X_store_0w",45,df45
+YP_delta_seltzerwater_24w,44,2,15% Discount,0% Discount,-76.55973,62.15679,"X_weight_8w, X_store_0w",45,df45
+YP_delta_seltzerwater_24w,39,2,30% Discount,0% Discount,-16.67205,68.21362,"X_weight_8w, X_store_0w",45,df45
+YP_delta_noncalbev_24w,44,2,15% Discount,0% Discount,-133.38049,115.88657,"X_weight_8w, X_store_0w",45,df45
+YP_delta_noncalbev_24w,39,2,30% Discount,0% Discount,-51.45638,138.25739,"X_weight_8w, X_store_0w",45,df45
+YS_delta_shopping_24w,44,2,15% Discount,0% Discount,-5.4111,5.38897,"X_weight_8w, X_store_0w",45,df45
+YS_delta_shopping_24w,39,2,30% Discount,0% Discount,-5.37819,5.86937,"X_weight_8w, X_store_0w",45,df45
+YS_delta_weight_24w,44,2,15% Discount,0% Discount,3.46949,2.13382,"X_weight_8w, X_store_0w",45,df45
+YS_delta_weight_24w,39,2,30% Discount,0% Discount,2.15634,2.17891,"X_weight_8w, X_store_0w",45,df45
+YS_delta_bmi_24w,44,2,15% Discount,0% Discount,0.15139,0.40474,"X_weight_8w, X_store_0w",45,df45
+YS_delta_bmi_24w,39,2,30% Discount,0% Discount,-0.34499,0.69237,"X_weight_8w, X_store_0w",45,df45
+YS_delta_waist_24w,38,2,15% Discount,0% Discount,1.71928,0.65351,"X_weight_8w, X_store_0w",45,df45
+YS_delta_waist_24w,32,2,30% Discount,0% Discount,1.74701,0.70582,"X_weight_8w, X_store_0w",45,df45
+YS_delta_fat_24w,44,2,15% Discount,0% Discount,0.25867,0.97175,"X_weight_8w, X_store_0w",45,df45
+YS_delta_fat_24w,39,2,30% Discount,0% Discount,-0.35167,0.89509,"X_weight_8w, X_store_0w",45,df45
+YS_delta_fm_24w,44,2,15% Discount,0% Discount,0.2832,1.16172,"X_weight_8w, X_store_0w",45,df45
+YS_delta_fm_24w,39,2,30% Discount,0% Discount,-0.09852,1.04881,"X_weight_8w, X_store_0w",45,df45
+YS_delta_sysbp_24w,44,2,15% Discount,0% Discount,1.92846,4.92523,"X_weight_8w, X_store_0w",45,df45
+YS_delta_sysbp_24w,39,2,30% Discount,0% Discount,2.99784,4.72831,"X_weight_8w, X_store_0w",45,df45
+YS_delta_diabp_24w,44,2,15% Discount,0% Discount,-0.28481,2.28156,"X_weight_8w, X_store_0w",45,df45
+YS_delta_diabp_24w,39,2,30% Discount,0% Discount,0.41694,2.35223,"X_weight_8w, X_store_0w",45,df45
+YS_delta_gluc_24w,32,2,15% Discount,0% Discount,-7.65454,3.93927,"X_weight_8w, X_store_0w",45,df45
+YS_delta_gluc_24w,32,2,30% Discount,0% Discount,-6.20737,2.83183,"X_weight_8w, X_store_0w",45,df45
+YS_delta_tc_24w,43,2,15% Discount,0% Discount,4.61216,7.12864,"X_weight_8w, X_store_0w",45,df45
+YS_delta_tc_24w,38,2,30% Discount,0% Discount,-0.27396,4.58259,"X_weight_8w, X_store_0w",45,df45
+YS_delta_hdl_24w,43,2,15% Discount,0% Discount,-2.53365,2.4949,"X_weight_8w, X_store_0w",45,df45
+YS_delta_hdl_24w,38,2,30% Discount,0% Discount,0.47443,2.39644,"X_weight_8w, X_store_0w",45,df45
+YS_delta_kcalfood_24w,44,2,15% Discount,0% Discount,-32.14292,219.34249,"X_weight_8w, X_store_0w",45,df45
+YS_delta_kcalfood_24w,39,2,30% Discount,0% Discount,340.44649,221.28316,"X_weight_8w, X_store_0w",45,df45
+YS_delta_gramsfood_24w,44,2,15% Discount,0% Discount,-59.60784,99.65322,"X_weight_8w, X_store_0w",45,df45
+YS_delta_gramsfood_24w,39,2,30% Discount,0% Discount,200.60228,116.19253,"X_weight_8w, X_store_0w",45,df45
+YS_delta_ed_24w,44,2,15% Discount,0% Discount,0.00926,0.14868,"X_weight_8w, X_store_0w",45,df45
+YS_delta_ed_24w,39,2,30% Discount,0% Discount,-0.06781,0.18949,"X_weight_8w, X_store_0w",45,df45
+YS_delta_fv_24w,44,2,15% Discount,0% Discount,-49.76861,52.4401,"X_weight_8w, X_store_0w",45,df45
+YS_delta_fv_24w,39,2,30% Discount,0% Discount,78.61671,66.42889,"X_weight_8w, X_store_0w",45,df45
+YS_delta_juice_24w,44,2,15% Discount,0% Discount,-13.25051,53.12691,"X_weight_8w, X_store_0w",45,df45
+YS_delta_juice_24w,39,2,30% Discount,0% Discount,-24.77975,42.40586,"X_weight_8w, X_store_0w",45,df45
+YS_delta_dietsoda_24w,44,2,15% Discount,0% Discount,31.78036,16.97146,"X_weight_8w, X_store_0w",45,df45
+YS_delta_dietsoda_24w,39,2,30% Discount,0% Discount,59.69293,37.35961,"X_weight_8w, X_store_0w",45,df45
+YS_delta_totalsck_24w,44,2,15% Discount,0% Discount,27.00739,28.24826,"X_weight_8w, X_store_0w",45,df45
+YS_delta_totalsck_24w,39,2,30% Discount,0% Discount,24.05301,33.25957,"X_weight_8w, X_store_0w",45,df45
+YS_delta_sweet_24w,44,2,15% Discount,0% Discount,17.29742,23.64571,"X_weight_8w, X_store_0w",45,df45
+YS_delta_sweet_24w,39,2,30% Discount,0% Discount,24.46229,28.54651,"X_weight_8w, X_store_0w",45,df45
+YS_delta_hed_24w,44,2,15% Discount,0% Discount,25.13758,23.7063,"X_weight_8w, X_store_0w",45,df45
+YS_delta_hed_24w,39,2,30% Discount,0% Discount,44.13672,32.77407,"X_weight_8w, X_store_0w",45,df45
+YS_delta_led_24w,44,2,15% Discount,0% Discount,22.86307,74.95734,"X_weight_8w, X_store_0w",45,df45
+YS_delta_led_24w,39,2,30% Discount,0% Discount,139.94886,82.77623,"X_weight_8w, X_store_0w",45,df45
+YP_Total_points,70,1,Simulator_PE,Control,5.25807,0.87988,X_Age_0y,46,df46
+YS_Patient_interaction_points,70,1,Simulator_PE,Control,-0.07007,0.11757,X_Age_0y,46,df46
+YS_Inspection_points,70,1,Simulator_PE,Control,1.80306,0.22862,X_Age_0y,46,df46
+YS_Pulses_points,70,1,Simulator_PE,Control,1.43825,0.324,X_Age_0y,46,df46
+YS_Auscultation_points,70,1,Simulator_PE,Control,1.2791,0.49003,X_Age_0y,46,df46
+YS_Cardiac_findings_points,70,1,Simulator_PE,Control,0.46173,0.19852,X_Age_0y,46,df46
+YP_intubation,252,3,HFNC,NIV,-0.06094,0.05503,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,df47
+YS_sedation_days,175,3,HFNC,NIV,-0.35895,0.22174,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,df47
+YS_sal_pressure_injury,252,3,HFNC,NIV,-0.08588,0.02497,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,df47
+YS_antibiotic,248,3,HFNC,NIV,-0.09324,0.06297,"X_gender_0h, X_age_range_0h, X_weight_range_0h",47,df47
+YP_mite_presence_6m,77,2,Treated,Untreated,-0.71774,0.07913,"X_age_group, X_sex",48,df48
+YP_mite_count_6m,77,3,Treated,Untreated,-49.0072,12.13981,"X_mite_count_0w, X_age_group, X_sex",48,df48
+YP_mite_score_6m,77,3,Treated,Untreated,-2.02987,0.20747,"X_mite_score_0w, X_age_group, X_sex",48,df48
+YS_otitis_6m,75,3,Treated,Untreated,-0.91452,0.15135,"X_otitis_0w, X_age_group, X_sex",48,df48
+YS_CGH_6m,75,3,Treated,Untreated,-1.10209,0.16782,"X_CGH_0w, X_age_group, X_sex",48,df48
+YS_IgG_6m,77,3,Treated,Untreated,-127252.1811,36189.56033,"X_IgG_0w, X_age_group, X_sex",48,df48
+YS_IgE_6m,77,3,Treated,Untreated,6.83837,10.24795,"X_IgE_0w, X_age_group, X_sex",48,df48
+YS_tumor_detected_6m,77,3,Treated,Untreated,0.00751,0.0766,"X_tumor_detected_0w, X_age_group, X_sex",48,df48
+YS_tumor_group_6m,77,3,Treated,Untreated,-0.11366,0.05794,"X_tumor_group_0w, X_age_group, X_sex",48,df48
+YP_prof,74,2,OralStimulation,Control,21.47372,3.50229,"X_gestAge_0w, X_birthWt_0d",49,df49
+YP_txtr,74,2,OralStimulation,Control,1.23317,0.22206,"X_gestAge_0w, X_birthWt_0d",49,df49
+YP_da,74,2,OralStimulation,Control,22.00544,4.20924,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_HR_fil,74,3,OralStimulation,Control,-2.57099,1.89859,"X_HR_0d, X_gestAge_0w, X_birthWt_0d",49,df49
+YS_OFS_level1,74,2,OralStimulation,Control,-0.55797,0.0953,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_OFS_level2,74,2,OralStimulation,Control,0.01643,0.0581,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_OFS_level3,74,2,OralStimulation,Control,,,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_OFS_level4,74,2,OralStimulation,Control,0.58521,0.09673,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_1d,74,2,OralStimulation,Control,28.01755,4.67237,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_2d,74,2,OralStimulation,Control,31.21882,5.83345,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_3d,74,2,OralStimulation,Control,34.34354,6.37941,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_4d,74,2,OralStimulation,Control,28.10319,7.84126,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_5d,74,2,OralStimulation,Control,24.50764,8.16249,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_6d,74,2,OralStimulation,Control,21.45078,8.16224,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_7d,74,2,OralStimulation,Control,14.2527,8.41858,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_volume_8d,74,2,OralStimulation,Control,10.99563,8.35908,"X_gestAge_0w, X_birthWt_0d",49,df49
+YS_length_stay,74,2,OralStimulation,Control,-2.77901,2.90262,"X_gestAge_0w, X_birthWt_0d",49,df49
+YP_time_to_first_infection,128,4,rIFN-g,Placebo,57.93048,16.5195,"X_sex_0w, X_center_0w, X_age_0w, X_weight_0w",50,df50
+YS_total_serious_infections,128,4,rIFN-g,Placebo,-0.57752,0.1853,"X_sex_0w, X_center_0w, X_age_0w, X_weight_0w",50,df50

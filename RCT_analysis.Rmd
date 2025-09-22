@@ -3300,7 +3300,6 @@ write_xlsx(df_comparison, "cleaned_data/meta_data_comparison.xlsx")
 
 # Summary Data
 ```{r}
-
 # Create outcome_group variable
 df_new = df_comparison %>%
   mutate(
@@ -3349,9 +3348,11 @@ df_new = df_new %>%
     precision_gain_SL1_VS2 = `How much precision gain can SL1_VS2 provide?`,
     precision_gain_SL_rpart_VS2 = `How much precision gain can SL_rpart_VS2 provide?`,
     precision_gain_SL_randomForest_VS2 = `How much precision gain can SL_randomForest_VS2 provide?`,
+    precision_gain_SL_glmnet_VS2 = `How much precision gain can SL_glmnet_VS2 provide?`,
     precision_gain_SL_gam_VS2 = `How much precision gain can SL_gam_VS2 provide?`,
     precision_gain_SL_bartMachine_VS2 = `How much precision gain can SL_bartMachine_VS2 provide?`,
     precision_gain_SL2_VS2 = `How much precision gain can SL2_VS2 provide?`,
+    precision_gain_TMLE_VS2 = `How much precision gain can TMLE_VS2 provide?`,
     
     # Base variance ratio columns
     variance_ratio_robust_model = `The ratio between robust and model-based variance estimators`,
@@ -3436,9 +3437,11 @@ df_outlier_removed = df_new %>%
     precision_gain_SL1_VS2 = remove_upper_outliers(precision_gain_SL1_VS2),
     precision_gain_SL_rpart_VS2 = remove_upper_outliers(precision_gain_SL_rpart_VS2),
     precision_gain_SL_randomForest_VS2 = remove_upper_outliers(precision_gain_SL_randomForest_VS2),
+    precision_gain_SL_glmnet_VS2 = remove_upper_outliers(precision_gain_SL_glmnet_VS2),  # ADDED THIS LINE
     precision_gain_SL_gam_VS2 = remove_upper_outliers(precision_gain_SL_gam_VS2),
     precision_gain_SL_bartMachine_VS2 = remove_upper_outliers(precision_gain_SL_bartMachine_VS2),
-    precision_gain_SL2_VS2 = remove_upper_outliers(precision_gain_SL2_VS2)
+    precision_gain_SL2_VS2 = remove_upper_outliers(precision_gain_SL2_VS2),
+    precision_gain_TMLE_VS2 = remove_upper_outliers(precision_gain_TMLE_VS2)  # ADDED THIS LINE
     # Note: precision_gain_ANCOVA, precision_gain_ANCOVA_VS1, precision_gain_ANCOVA_VS2 kept as-is (no outlier removal)
   )
 
@@ -3455,8 +3458,8 @@ df_long_outlier_removed = df_outlier_removed %>%
          precision_gain_SL_gam_VS1, precision_gain_SL_bartMachine_VS1, precision_gain_SL2_VS1, precision_gain_TMLE_VS1,
          # VS2 methods
          precision_gain_ANCOVA_VS2, precision_gain_ANHECOVA_VS2, precision_gain_Binom_VS2, precision_gain_SL1_VS2,
-         precision_gain_SL_rpart_VS2, precision_gain_SL_randomForest_VS2, precision_gain_SL_gam_VS2,
-         precision_gain_SL_bartMachine_VS2, precision_gain_SL2_VS2) %>%
+         precision_gain_SL_rpart_VS2, precision_gain_SL_randomForest_VS2, precision_gain_SL_glmnet_VS2,  # ADDED THIS
+         precision_gain_SL_gam_VS2, precision_gain_SL_bartMachine_VS2, precision_gain_SL2_VS2, precision_gain_TMLE_VS2) %>%  # ADDED TMLE_VS2
   pivot_longer(cols = starts_with("precision_gain_"), 
                names_to = "method", 
                values_to = "precision_gain") %>%
@@ -3494,9 +3497,11 @@ df_long_outlier_removed = df_outlier_removed %>%
       method == "precision_gain_SL1_VS2" ~ "SL1_VS2",
       method == "precision_gain_SL_rpart_VS2" ~ "SL_rpart_VS2",
       method == "precision_gain_SL_randomForest_VS2" ~ "SL_randomForest_VS2",
+      method == "precision_gain_SL_glmnet_VS2" ~ "SL_glmnet_VS2",  # ADDED THIS LINE
       method == "precision_gain_SL_gam_VS2" ~ "SL_gam_VS2",
       method == "precision_gain_SL_bartMachine_VS2" ~ "SL_bartMachine_VS2",
-      method == "precision_gain_SL2_VS2" ~ "SL2_VS2"
+      method == "precision_gain_SL2_VS2" ~ "SL2_VS2",
+      method == "precision_gain_TMLE_VS2" ~ "TMLE_VS2"  # ADDED THIS LINE
     ),
     method = factor(method, levels = c(
       # Base methods
@@ -3507,7 +3512,7 @@ df_long_outlier_removed = df_outlier_removed %>%
       "SL_randomForest_VS1", "SL_glmnet_VS1", "SL_gam_VS1", "SL_bartMachine_VS1", "SL2_VS1", "TMLE_VS1",
       # VS2 methods
       "ANCOVA_VS2", "ANHECOVA_VS2", "Binom_VS2", "SL1_VS2", "SL_rpart_VS2", 
-      "SL_randomForest_VS2", "SL_gam_VS2", "SL_bartMachine_VS2", "SL2_VS2"))
+      "SL_randomForest_VS2", "SL_glmnet_VS2", "SL_gam_VS2", "SL_bartMachine_VS2", "SL2_VS2", "TMLE_VS2"))  # ADDED SL_glmnet_VS2 and TMLE_VS2
   )
 
 # Color palette for methods (expanded for VS1 and VS2)
@@ -3522,8 +3527,8 @@ method_colors = c(
   "SL_gam_VS1" = "#c7c7c7", "SL_bartMachine_VS1" = "#dbdb8d", "SL2_VS1" = "#9edae5", "TMLE_VS1" = "#393b79",
   # VS2 methods  
   "ANCOVA_VS2" = "#637939", "ANHECOVA_VS2" = "#8c6d31", "Binom_VS2" = "#843c39", "SL1_VS2" = "#7b4173",
-  "SL_rpart_VS2" = "#5254a3", "SL_randomForest_VS2" = "#6b6ecf", "SL_gam_VS2" = "#9c9ede", 
-  "SL_bartMachine_VS2" = "#637939", "SL2_VS2" = "#8ca252"
+  "SL_rpart_VS2" = "#5254a3", "SL_randomForest_VS2" = "#6b6ecf", "SL_glmnet_VS2" = "#ce6dbd",  # ADDED COLOR FOR SL_glmnet_VS2
+  "SL_gam_VS2" = "#9c9ede", "SL_bartMachine_VS2" = "#637939", "SL2_VS2" = "#8ca252", "TMLE_VS2" = "#de9ed6"  # ADDED COLOR FOR TMLE_VS2
 )
 
 ##################################
@@ -3657,7 +3662,9 @@ p_tmle_vs1_individual = create_individual_method_plot("TMLE_VS1", "#393b79")
 p_ancova_vs2_individual = create_individual_method_plot("ANCOVA_VS2", "#637939")
 p_anhecova_vs2_individual = create_individual_method_plot("ANHECOVA_VS2", "#8c6d31")
 p_sl1_vs2_individual = create_individual_method_plot("SL1_VS2", "#7b4173")
+p_sl_glmnet_vs2_individual = create_individual_method_plot("SL_glmnet_VS2", "#ce6dbd")  # ADDED THIS LINE
 p_sl2_vs2_individual = create_individual_method_plot("SL2_VS2", "#8ca252")
+p_tmle_vs2_individual = create_individual_method_plot("TMLE_VS2", "#de9ed6")  # ADDED THIS LINE
 
 # Display individual plots
 p_ancova_individual
@@ -3671,7 +3678,9 @@ p_tmle_vs1_individual
 p_ancova_vs2_individual
 p_anhecova_vs2_individual
 p_sl1_vs2_individual
+p_sl_glmnet_vs2_individual  # ADDED THIS LINE
 p_sl2_vs2_individual
+p_tmle_vs2_individual  # ADDED THIS LINE
 ```
 
 ## More Plots
@@ -3721,7 +3730,9 @@ df_long_full = df_new %>%       # df_new in your workspace
     "precision_gain_SL_randomForest_VS2"     ~ "SL_randomForest_VS2",
     "precision_gain_SL_gam_VS2"              ~ "SL_gam_VS2",
     "precision_gain_SL_bartMachine_VS2"      ~ "SL_bartMachine_VS2",
-    "precision_gain_SL2_VS2"                 ~ "SL2_VS2"
+    "precision_gain_SL2_VS2"                 ~ "SL2_VS2",
+    "precision_gain_SL_glmnet_VS2"           ~ "SL_glmnet_VS2",
+    "precision_gain_TMLE_VS2"                ~ "TMLE_VS2"  # ADDED THIS LINE
   ))
 
 ###############################################################################
@@ -4047,66 +4058,5 @@ cat("\n=== CONTINUOUS OUTCOMES ===\n")
 cat("\n--- Continuous: Base Methods ---\n")
 df_continuous_base_simple = create_simple_table("continuous", "none")
 print(df_continuous_base_simple)
-
-cat("\n--- Continuous: VS1 Methods ---\n")
-df_continuous_vs1_simple = create_simple_table("continuous", "VS1")
-print(df_continuous_vs1_simple)
-
-cat("\n--- Continuous: VS2 Methods ---\n")
-df_continuous_vs2_simple = create_simple_table("continuous", "VS2")
-print(df_continuous_vs2_simple)
-
-
-
-###############################################################################
-##  4. COMBINED COMPARISON TABLE (outlier removed) ---------------------------
-###############################################################################
-
-# Create a comparison table showing mean precision gain across all methods and VS types
-create_comparison_table = function(outcome_type) {
-  
-  # Get base methods
-  base_data = df_long_outlier_removed %>% 
-    filter(outcome_group == outcome_type, !grepl("_VS[12]$", method)) %>%
-    group_by(method) %>%
-    summarise(Base_Mean = round(mean(precision_gain), 4), Base_N = n(), .groups = "drop") %>%
-    mutate(method_base = gsub("_VS[12]$", "", method))
-  
-  # Get VS1 methods  
-  vs1_data = df_long_outlier_removed %>% 
-    filter(outcome_group == outcome_type, grepl("_VS1$", method)) %>%
-    group_by(method) %>%
-    summarise(VS1_Mean = round(mean(precision_gain), 4), VS1_N = n(), .groups = "drop") %>%
-    mutate(method_base = gsub("_VS1$", "", method))
-  
-  # Get VS2 methods
-  vs2_data = df_long_outlier_removed %>% 
-    filter(outcome_group == outcome_type, grepl("_VS2$", method)) %>%
-    group_by(method) %>%
-    summarise(VS2_Mean = round(mean(precision_gain), 4), VS2_N = n(), .groups = "drop") %>%
-    mutate(method_base = gsub("_VS2$", "", method))
-  
-  # Merge all together
-  comparison = base_data %>%
-    full_join(vs1_data, by = "method_base", suffix = c("", "_vs1")) %>%
-    full_join(vs2_data, by = "method_base", suffix = c("", "_vs2")) %>%
-    select(Method = method_base, 
-           Base_Mean, Base_N,
-           VS1_Mean, VS1_N, 
-           VS2_Mean, VS2_N) %>%
-    arrange(Method)
-  
-  return(comparison)
-}
-
-cat("\n=== COMPARISON TABLES (OUTLIER REMOVED) ===\n")
-
-cat("\n--- Binary Outcomes: Method Comparison ---\n")
-binary_comparison = create_comparison_table("binary")
-print(binary_comparison)
-
-cat("\n--- Continuous Outcomes: Method Comparison ---\n") 
-continuous_comparison = create_comparison_table("continuous")
-print(continuous_comparison)
 ```
 
