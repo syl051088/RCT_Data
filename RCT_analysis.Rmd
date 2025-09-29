@@ -444,8 +444,8 @@ analyze_rct = function(df,
             SE_RC_ANCOVA = rep(NA_real_, n_treat),
             Est_RC_ANHECOVA = rep(NA_real_, n_treat),
             SE_RC_ANHECOVA = rep(NA_real_, n_treat),
-            Est_RC_Binom = rep(NA_real_, n_treat),
-            SE_RC_Binom = rep(NA_real_, n_treat),
+            Est_RC_Logistic_G_Computation = rep(NA_real_, n_treat),
+            SE_RC_Logistic_G_Computation = rep(NA_real_, n_treat),
             Est_SL = rep(NA_real_, n_treat),
             SE_SL = rep(NA_real_, n_treat)
           )
@@ -545,7 +545,7 @@ analyze_rct = function(df,
       formula_terms = c(treatment_col, valid_covariates)
       glm_formula = as.formula(paste(outcome, "~", paste(formula_terms, collapse = " + ")))
       
-      rc_fit_binom = suppressWarnings(
+      rc_fit_logistic_g_computation = suppressWarnings(
         robincar_glm(
           df_complete_numeric,  # Use numeric version (0,1 for binary outcome)
           treatment_col,
@@ -555,13 +555,13 @@ analyze_rct = function(df,
           contrast_h = "diff"
         )
       )
-      rc_result_binom = rc_fit_binom$contrast$result
-      outcome_results$Est_RC_Binom = rc_result_binom$estimate
-      outcome_results$SE_RC_Binom = rc_result_binom$se
+      rc_result_logistic_g_computation = rc_fit_logistic_g_computation$contrast$result
+      outcome_results$Est_RC_Logistic_G_Computation = rc_result_logistic_g_computation$estimate
+      outcome_results$SE_RC_Logistic_G_Computation = rc_result_logistic_g_computation$se
     } else {
-      # For non-binary outcomes, set Binom results to NA
-      outcome_results$Est_RC_Binom = rep(NA_real_, n_treat)
-      outcome_results$SE_RC_Binom = rep(NA_real_, n_treat)
+      # For non-binary outcomes, set Logistic G-Computation results to NA
+      outcome_results$Est_RC_Logistic_G_Computation = rep(NA_real_, n_treat)
+      outcome_results$SE_RC_Logistic_G_Computation = rep(NA_real_, n_treat)
     }
     
     # SuperLearner - run ensemble and individual methods (using numeric version)
@@ -639,8 +639,8 @@ analyze_rct = function(df,
       SE_RC_ANCOVA,
       Est_RC_ANHECOVA,
       SE_RC_ANHECOVA,
-      Est_RC_Binom,
-      SE_RC_Binom,
+      Est_RC_Logistic_G_Computation,
+      SE_RC_Logistic_G_Computation,
       Est_AC,
       SE_AC,
       Est_UN,
@@ -711,20 +711,26 @@ update_df = function(trial_no,
   }
   
   # Determine SL column names based on ensemble argument
-  sl_base_name = paste0("SL", ensemble)
+  if (ensemble == 1) {
+    sl_base_name = paste0("SL", ensemble)
+  } else if (ensemble == 2) {
+    sl_base_name = "DML"
+  } else {
+    sl_base_name = paste0("SL", ensemble)
+  }
   
   if (suffix == "") {
     results_processed = results_processed %>%
       mutate(
-        ANCOVA_est            = results$Est_RC_ANCOVA,
-        ANCOVA_robust_se      = results$SE_RC_ANCOVA,
-        ANHECOVA_est          = results$Est_RC_ANHECOVA,
-        ANHECOVA_robust_se    = results$SE_RC_ANHECOVA,
-        Binom_est             = results$Est_RC_Binom,
-        Binom_robust_se       = results$SE_RC_Binom,
-        ANCOVA_model_based_se = results$SE_AC,
-        Unadjust_est          = results$Est_UN,
-        Unadjust_se           = results$SE_UN,
+        ANCOVA_est                         = results$Est_RC_ANCOVA,
+        ANCOVA_robust_se                   = results$SE_RC_ANCOVA,
+        ANHECOVA_est                       = results$Est_RC_ANHECOVA,
+        ANHECOVA_robust_se                 = results$SE_RC_ANHECOVA,
+        Logistic_G_Computation_est         = results$Est_RC_Logistic_G_Computation,
+        Logistic_G_Computation_robust_se   = results$SE_RC_Logistic_G_Computation,
+        ANCOVA_model_based_se              = results$SE_AC,
+        Unadjust_est                       = results$Est_UN,
+        Unadjust_se                        = results$SE_UN,
         !!paste0(sl_base_name, "_est") := results$Est_SL,
         !!paste0(sl_base_name, "_se")  := results$SE_SL
       )
@@ -733,17 +739,17 @@ update_df = function(trial_no,
     suffix_clean = paste0("_", suffix)
     results_processed = results_processed %>%
       mutate(
-        !!paste0("ANCOVA", suffix_clean, "_est")            := results$Est_RC_ANCOVA,
-        !!paste0("ANCOVA", suffix_clean, "_robust_se")      := results$SE_RC_ANCOVA,
-        !!paste0("ANHECOVA", suffix_clean, "_est")          := results$Est_RC_ANHECOVA,
-        !!paste0("ANHECOVA", suffix_clean, "_robust_se")    := results$SE_RC_ANHECOVA,
-        !!paste0("Binom", suffix_clean, "_est")             := results$Est_RC_Binom,
-        !!paste0("Binom", suffix_clean, "_robust_se")       := results$SE_RC_Binom,
-        !!paste0("ANCOVA", suffix_clean, "_model_based_se") := results$SE_AC,
-        !!paste0(sl_base_name, suffix_clean, "_est")        := results$Est_SL,
-        !!paste0(sl_base_name, suffix_clean, "_se")         := results$SE_SL,
-        Unadjust_est                                        := results$Est_UN,
-        Unadjust_se                                         := results$SE_UN
+        !!paste0("ANCOVA", suffix_clean, "_est")                         := results$Est_RC_ANCOVA,
+        !!paste0("ANCOVA", suffix_clean, "_robust_se")                   := results$SE_RC_ANCOVA,
+        !!paste0("ANHECOVA", suffix_clean, "_est")                       := results$Est_RC_ANHECOVA,
+        !!paste0("ANHECOVA", suffix_clean, "_robust_se")                 := results$SE_RC_ANHECOVA,
+        !!paste0("Logistic_G_Computation", suffix_clean, "_est")         := results$Est_RC_Logistic_G_Computation,
+        !!paste0("Logistic_G_Computation", suffix_clean, "_robust_se")   := results$SE_RC_Logistic_G_Computation,
+        !!paste0("ANCOVA", suffix_clean, "_model_based_se")              := results$SE_AC,
+        !!paste0(sl_base_name, suffix_clean, "_est")                     := results$Est_SL,
+        !!paste0(sl_base_name, suffix_clean, "_se")                      := results$SE_SL,
+        Unadjust_est                                                     := results$Est_UN,
+        Unadjust_se                                                      := results$SE_UN
       )
   }
 
@@ -793,9 +799,9 @@ update_df = function(trial_no,
   if (suffix == "") {
     results_processed = results_processed %>%
       mutate(
-        `How much precision gain can ANCOVA provide?`   = (ANCOVA_robust_se / Unadjust_se)^2,
-        `How much precision gain can ANHECOVA provide?` = (ANHECOVA_robust_se / Unadjust_se)^2,
-        `How much precision gain can Binom provide?`    = (Binom_robust_se / Unadjust_se)^2,
+        `How much precision gain can ANCOVA provide?`                 = (ANCOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can ANHECOVA provide?`               = (ANHECOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can Logistic G-Computation provide?` = (Logistic_G_Computation_robust_se / Unadjust_se)^2,
         !!paste0("How much precision gain can ", sl_base_name, " provide?") := 
           (.data[[sl_se_col]] / Unadjust_se)^2,
         `ANCOVA vs ANHECOVA variance ratio`             = (ANCOVA_robust_se / ANHECOVA_robust_se)^2,
@@ -807,9 +813,9 @@ update_df = function(trial_no,
         `The difference between unadjusted and ANHECOVA point estimates` =
           (ANHECOVA_est - Unadjust_est) /
           sqrt((ANHECOVA_robust_se^2 + Unadjust_se^2) / 2),
-        `The difference between unadjusted and Binom point estimates` =
-          (Binom_est - Unadjust_est) /
-          sqrt((Binom_robust_se^2 + Unadjust_se^2) / 2),
+        `The difference between unadjusted and Logistic G-Computation point estimates` =
+          (Logistic_G_Computation_est - Unadjust_est) /
+          sqrt((Logistic_G_Computation_robust_se^2 + Unadjust_se^2) / 2),
         !!paste0("The difference between unadjusted and ", sl_base_name, " point estimates") :=
           (.data[[sl_est_col]] - Unadjust_est) /
           sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
@@ -819,12 +825,12 @@ update_df = function(trial_no,
     suffix_clean = paste0("_", suffix)
     ancova_se_col = paste0("ANCOVA", suffix_clean, "_robust_se")
     anhecova_se_col = paste0("ANHECOVA", suffix_clean, "_robust_se")
-    binom_se_col = paste0("Binom", suffix_clean, "_robust_se")
+    logistic_g_computation_se_col = paste0("Logistic_G_Computation", suffix_clean, "_robust_se")
     ancova_model_se_col = paste0("ANCOVA", suffix_clean, "_model_based_se")
     
     ancova_est_col = paste0("ANCOVA", suffix_clean, "_est")
     anhecova_est_col = paste0("ANHECOVA", suffix_clean, "_est")
-    binom_est_col = paste0("Binom", suffix_clean, "_est")
+    logistic_g_computation_est_col = paste0("Logistic_G_Computation", suffix_clean, "_est")
     
     results_processed = results_processed %>%
       mutate(
@@ -832,8 +838,8 @@ update_df = function(trial_no,
           (.data[[ancova_se_col]] / Unadjust_se)^2,
         !!paste0("How much precision gain can ANHECOVA", suffix_clean, " provide?") := 
           (.data[[anhecova_se_col]] / Unadjust_se)^2,
-        !!paste0("How much precision gain can Binom", suffix_clean, " provide?") := 
-          (.data[[binom_se_col]] / Unadjust_se)^2,
+        !!paste0("How much precision gain can Logistic G-Computation", suffix_clean, " provide?") := 
+          (.data[[logistic_g_computation_se_col]] / Unadjust_se)^2,
         !!paste0("How much precision gain can ", sl_base_name, suffix_clean, " provide?") := 
           (.data[[sl_se_col]] / Unadjust_se)^2,
         !!paste0("ANCOVA", suffix_clean, " vs ANHECOVA", suffix_clean, " variance ratio") := 
@@ -846,9 +852,9 @@ update_df = function(trial_no,
         !!paste0("The difference between unadjusted and ANHECOVA", suffix_clean, " point estimates") := 
           (.data[[anhecova_est_col]] - Unadjust_est) /
           sqrt((.data[[anhecova_se_col]]^2 + Unadjust_se^2) / 2),
-        !!paste0("The difference between unadjusted and Binom", suffix_clean, " point estimates") := 
-          (.data[[binom_est_col]] - Unadjust_est) /
-          sqrt((.data[[binom_se_col]]^2 + Unadjust_se^2) / 2),
+        !!paste0("The difference between unadjusted and Logistic G-Computation", suffix_clean, " point estimates") := 
+          (.data[[logistic_g_computation_est_col]] - Unadjust_est) /
+          sqrt((.data[[logistic_g_computation_se_col]]^2 + Unadjust_se^2) / 2),
         !!paste0("The difference between unadjusted and ", sl_base_name, suffix_clean, " point estimates") := 
           (.data[[sl_est_col]] - Unadjust_est) /
           sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
@@ -3318,40 +3324,40 @@ df_new = df_new %>%
     # Base precision gain columns
     precision_gain_ANCOVA = `How much precision gain can ANCOVA provide?`,
     precision_gain_ANHECOVA = `How much precision gain can ANHECOVA provide?`,
-    precision_gain_Binom = `How much precision gain can Binom provide?`,
+    precision_gain_Logistic_G_Computation = `How much precision gain can Logistic G-Computation provide?`,
     precision_gain_SL1 = `How much precision gain can SL1 provide?`,
     precision_gain_SL_rpart = `How much precision gain can SL_rpart provide?`,
     precision_gain_SL_randomForest = `How much precision gain can SL_randomForest provide?`,
     precision_gain_SL_glmnet = `How much precision gain can SL_glmnet provide?`,
     precision_gain_SL_gam = `How much precision gain can SL_gam provide?`,
     precision_gain_SL_bartMachine = `How much precision gain can SL_bartMachine provide?`,
-    precision_gain_SL2 = `How much precision gain can SL2 provide?`,
+    precision_gain_DML = `How much precision gain can DML provide?`,
     precision_gain_TMLE = `How much precision gain can TMLE provide?`,
     
     # VS1 precision gain columns
     precision_gain_ANCOVA_VS1 = `How much precision gain can ANCOVA_VS1 provide?`,
     precision_gain_ANHECOVA_VS1 = `How much precision gain can ANHECOVA_VS1 provide?`,
-    precision_gain_Binom_VS1 = `How much precision gain can Binom_VS1 provide?`,
+    precision_gain_Logistic_G_Computation_VS1 = `How much precision gain can Logistic G-Computation_VS1 provide?`,
     precision_gain_SL1_VS1 = `How much precision gain can SL1_VS1 provide?`,
     precision_gain_SL_rpart_VS1 = `How much precision gain can SL_rpart_VS1 provide?`,
     precision_gain_SL_randomForest_VS1 = `How much precision gain can SL_randomForest_VS1 provide?`,
     precision_gain_SL_glmnet_VS1 = `How much precision gain can SL_glmnet_VS1 provide?`,
     precision_gain_SL_gam_VS1 = `How much precision gain can SL_gam_VS1 provide?`,
     precision_gain_SL_bartMachine_VS1 = `How much precision gain can SL_bartMachine_VS1 provide?`,
-    precision_gain_SL2_VS1 = `How much precision gain can SL2_VS1 provide?`,
+    precision_gain_DML_VS1 = `How much precision gain can DML_VS1 provide?`,
     precision_gain_TMLE_VS1 = `How much precision gain can TMLE_VS1 provide?`,
     
     # VS2 precision gain columns
     precision_gain_ANCOVA_VS2 = `How much precision gain can ANCOVA_VS2 provide?`,
     precision_gain_ANHECOVA_VS2 = `How much precision gain can ANHECOVA_VS2 provide?`,
-    precision_gain_Binom_VS2 = `How much precision gain can Binom_VS2 provide?`,
+    precision_gain_Logistic_G_Computation_VS2 = `How much precision gain can Logistic G-Computation_VS2 provide?`,
     precision_gain_SL1_VS2 = `How much precision gain can SL1_VS2 provide?`,
     precision_gain_SL_rpart_VS2 = `How much precision gain can SL_rpart_VS2 provide?`,
     precision_gain_SL_randomForest_VS2 = `How much precision gain can SL_randomForest_VS2 provide?`,
     precision_gain_SL_glmnet_VS2 = `How much precision gain can SL_glmnet_VS2 provide?`,
     precision_gain_SL_gam_VS2 = `How much precision gain can SL_gam_VS2 provide?`,
     precision_gain_SL_bartMachine_VS2 = `How much precision gain can SL_bartMachine_VS2 provide?`,
-    precision_gain_SL2_VS2 = `How much precision gain can SL2_VS2 provide?`,
+    precision_gain_DML_VS2 = `How much precision gain can DML_VS2 provide?`,
     precision_gain_TMLE_VS2 = `How much precision gain can TMLE_VS2 provide?`,
     
     # Base variance ratio columns
@@ -3409,38 +3415,38 @@ df_outlier_removed = df_new %>%
   mutate(
     # Base methods - no outlier removal for ANCOVA
     precision_gain_ANHECOVA = remove_upper_outliers(precision_gain_ANHECOVA),
-    precision_gain_Binom = remove_upper_outliers(precision_gain_Binom),
+    precision_gain_Logistic_G_Computation = remove_upper_outliers(precision_gain_Logistic_G_Computation),
     precision_gain_SL1 = remove_upper_outliers(precision_gain_SL1),
     precision_gain_SL_rpart = remove_upper_outliers(precision_gain_SL_rpart),
     precision_gain_SL_randomForest = remove_upper_outliers(precision_gain_SL_randomForest),
     precision_gain_SL_glmnet = remove_upper_outliers(precision_gain_SL_glmnet),
     precision_gain_SL_gam = remove_upper_outliers(precision_gain_SL_gam),
     precision_gain_SL_bartMachine = remove_upper_outliers(precision_gain_SL_bartMachine),
-    precision_gain_SL2 = remove_upper_outliers(precision_gain_SL2),
+    precision_gain_DML = remove_upper_outliers(precision_gain_DML),
     precision_gain_TMLE = remove_upper_outliers(precision_gain_TMLE),
     
     # VS1 methods - no outlier removal for ANCOVA_VS1
     precision_gain_ANHECOVA_VS1 = remove_upper_outliers(precision_gain_ANHECOVA_VS1),
-    precision_gain_Binom_VS1 = remove_upper_outliers(precision_gain_Binom_VS1),
+    precision_gain_Logistic_G_Computation_VS1 = remove_upper_outliers(precision_gain_Logistic_G_Computation_VS1),
     precision_gain_SL1_VS1 = remove_upper_outliers(precision_gain_SL1_VS1),
     precision_gain_SL_rpart_VS1 = remove_upper_outliers(precision_gain_SL_rpart_VS1),
     precision_gain_SL_randomForest_VS1 = remove_upper_outliers(precision_gain_SL_randomForest_VS1),
     precision_gain_SL_glmnet_VS1 = remove_upper_outliers(precision_gain_SL_glmnet_VS1),
     precision_gain_SL_gam_VS1 = remove_upper_outliers(precision_gain_SL_gam_VS1),
     precision_gain_SL_bartMachine_VS1 = remove_upper_outliers(precision_gain_SL_bartMachine_VS1),
-    precision_gain_SL2_VS1 = remove_upper_outliers(precision_gain_SL2_VS1),
+    precision_gain_DML_VS1 = remove_upper_outliers(precision_gain_DML_VS1),
     precision_gain_TMLE_VS1 = remove_upper_outliers(precision_gain_TMLE_VS1),
     
     # VS2 methods - no outlier removal for ANCOVA_VS2
     precision_gain_ANHECOVA_VS2 = remove_upper_outliers(precision_gain_ANHECOVA_VS2),
-    precision_gain_Binom_VS2 = remove_upper_outliers(precision_gain_Binom_VS2),
+    precision_gain_Logistic_G_Computation_VS2 = remove_upper_outliers(precision_gain_Logistic_G_Computation_VS2),
     precision_gain_SL1_VS2 = remove_upper_outliers(precision_gain_SL1_VS2),
     precision_gain_SL_rpart_VS2 = remove_upper_outliers(precision_gain_SL_rpart_VS2),
     precision_gain_SL_randomForest_VS2 = remove_upper_outliers(precision_gain_SL_randomForest_VS2),
     precision_gain_SL_glmnet_VS2 = remove_upper_outliers(precision_gain_SL_glmnet_VS2),  # ADDED THIS LINE
     precision_gain_SL_gam_VS2 = remove_upper_outliers(precision_gain_SL_gam_VS2),
     precision_gain_SL_bartMachine_VS2 = remove_upper_outliers(precision_gain_SL_bartMachine_VS2),
-    precision_gain_SL2_VS2 = remove_upper_outliers(precision_gain_SL2_VS2),
+    precision_gain_DML_VS2 = remove_upper_outliers(precision_gain_DML_VS2),
     precision_gain_TMLE_VS2 = remove_upper_outliers(precision_gain_TMLE_VS2)  # ADDED THIS LINE
     # Note: precision_gain_ANCOVA, precision_gain_ANCOVA_VS1, precision_gain_ANCOVA_VS2 kept as-is (no outlier removal)
   )
@@ -3449,17 +3455,17 @@ df_outlier_removed = df_new %>%
 df_long_outlier_removed = df_outlier_removed %>%
   select(outcome_group, sample_size_cat, 
          # Base methods
-         precision_gain_ANCOVA, precision_gain_ANHECOVA, precision_gain_Binom, precision_gain_SL1,
+         precision_gain_ANCOVA, precision_gain_ANHECOVA, precision_gain_Logistic_G_Computation, precision_gain_SL1,
          precision_gain_SL_rpart, precision_gain_SL_randomForest, precision_gain_SL_glmnet, 
-         precision_gain_SL_gam, precision_gain_SL_bartMachine, precision_gain_SL2, precision_gain_TMLE,
+         precision_gain_SL_gam, precision_gain_SL_bartMachine, precision_gain_DML, precision_gain_TMLE,
          # VS1 methods
-         precision_gain_ANCOVA_VS1, precision_gain_ANHECOVA_VS1, precision_gain_Binom_VS1, precision_gain_SL1_VS1,
+         precision_gain_ANCOVA_VS1, precision_gain_ANHECOVA_VS1, precision_gain_Logistic_G_Computation_VS1, precision_gain_SL1_VS1,
          precision_gain_SL_rpart_VS1, precision_gain_SL_randomForest_VS1, precision_gain_SL_glmnet_VS1,
-         precision_gain_SL_gam_VS1, precision_gain_SL_bartMachine_VS1, precision_gain_SL2_VS1, precision_gain_TMLE_VS1,
+         precision_gain_SL_gam_VS1, precision_gain_SL_bartMachine_VS1, precision_gain_DML_VS1, precision_gain_TMLE_VS1,
          # VS2 methods
-         precision_gain_ANCOVA_VS2, precision_gain_ANHECOVA_VS2, precision_gain_Binom_VS2, precision_gain_SL1_VS2,
+         precision_gain_ANCOVA_VS2, precision_gain_ANHECOVA_VS2, precision_gain_Logistic_G_Computation_VS2, precision_gain_SL1_VS2,
          precision_gain_SL_rpart_VS2, precision_gain_SL_randomForest_VS2, precision_gain_SL_glmnet_VS2,  # ADDED THIS
-         precision_gain_SL_gam_VS2, precision_gain_SL_bartMachine_VS2, precision_gain_SL2_VS2, precision_gain_TMLE_VS2) %>%  # ADDED TMLE_VS2
+         precision_gain_SL_gam_VS2, precision_gain_SL_bartMachine_VS2, precision_gain_DML_VS2, precision_gain_TMLE_VS2) %>%  # ADDED TMLE_VS2
   pivot_longer(cols = starts_with("precision_gain_"), 
                names_to = "method", 
                values_to = "precision_gain") %>%
@@ -3469,66 +3475,66 @@ df_long_outlier_removed = df_outlier_removed %>%
       # Base methods
       method == "precision_gain_ANCOVA" ~ "ANCOVA",
       method == "precision_gain_ANHECOVA" ~ "ANHECOVA", 
-      method == "precision_gain_Binom" ~ "Binom",
+      method == "precision_gain_Logistic_G_Computation" ~ "Logistic_G_Computation",
       method == "precision_gain_SL1" ~ "SL1",
       method == "precision_gain_SL_rpart" ~ "SL_rpart",
       method == "precision_gain_SL_randomForest" ~ "SL_randomForest",
       method == "precision_gain_SL_glmnet" ~ "SL_glmnet",
       method == "precision_gain_SL_gam" ~ "SL_gam",
       method == "precision_gain_SL_bartMachine" ~ "SL_bartMachine",
-      method == "precision_gain_SL2" ~ "SL2",
+      method == "precision_gain_DML" ~ "DML",
       method == "precision_gain_TMLE" ~ "TMLE",
       # VS1 methods
       method == "precision_gain_ANCOVA_VS1" ~ "ANCOVA_VS1",
       method == "precision_gain_ANHECOVA_VS1" ~ "ANHECOVA_VS1",
-      method == "precision_gain_Binom_VS1" ~ "Binom_VS1",
+      method == "precision_gain_Logistic_G_Computation_VS1" ~ "Logistic_G_Computation_VS1",
       method == "precision_gain_SL1_VS1" ~ "SL1_VS1",
       method == "precision_gain_SL_rpart_VS1" ~ "SL_rpart_VS1",
       method == "precision_gain_SL_randomForest_VS1" ~ "SL_randomForest_VS1",
       method == "precision_gain_SL_glmnet_VS1" ~ "SL_glmnet_VS1",
       method == "precision_gain_SL_gam_VS1" ~ "SL_gam_VS1",
       method == "precision_gain_SL_bartMachine_VS1" ~ "SL_bartMachine_VS1",
-      method == "precision_gain_SL2_VS1" ~ "SL2_VS1",
+      method == "precision_gain_DML_VS1" ~ "DML_VS1",
       method == "precision_gain_TMLE_VS1" ~ "TMLE_VS1",
       # VS2 methods
       method == "precision_gain_ANCOVA_VS2" ~ "ANCOVA_VS2",
       method == "precision_gain_ANHECOVA_VS2" ~ "ANHECOVA_VS2",
-      method == "precision_gain_Binom_VS2" ~ "Binom_VS2",
+      method == "precision_gain_Logistic_G_Computation_VS2" ~ "Logistic_G_Computation_VS2",
       method == "precision_gain_SL1_VS2" ~ "SL1_VS2",
       method == "precision_gain_SL_rpart_VS2" ~ "SL_rpart_VS2",
       method == "precision_gain_SL_randomForest_VS2" ~ "SL_randomForest_VS2",
       method == "precision_gain_SL_glmnet_VS2" ~ "SL_glmnet_VS2",  # ADDED THIS LINE
       method == "precision_gain_SL_gam_VS2" ~ "SL_gam_VS2",
       method == "precision_gain_SL_bartMachine_VS2" ~ "SL_bartMachine_VS2",
-      method == "precision_gain_SL2_VS2" ~ "SL2_VS2",
+      method == "precision_gain_DML_VS2" ~ "DML_VS2",
       method == "precision_gain_TMLE_VS2" ~ "TMLE_VS2"  # ADDED THIS LINE
     ),
     method = factor(method, levels = c(
       # Base methods
-      "ANCOVA", "ANHECOVA", "Binom", "SL1", "SL_rpart", "SL_randomForest", 
-      "SL_glmnet", "SL_gam", "SL_bartMachine", "SL2", "TMLE",
+      "ANCOVA", "ANHECOVA", "Logistic_G_Computation", "SL1", "SL_rpart", "SL_randomForest", 
+      "SL_glmnet", "SL_gam", "SL_bartMachine", "DML", "TMLE",
       # VS1 methods
-      "ANCOVA_VS1", "ANHECOVA_VS1", "Binom_VS1", "SL1_VS1", "SL_rpart_VS1", 
-      "SL_randomForest_VS1", "SL_glmnet_VS1", "SL_gam_VS1", "SL_bartMachine_VS1", "SL2_VS1", "TMLE_VS1",
+      "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic_G_Computation_VS1", "SL1_VS1", "SL_rpart_VS1", 
+      "SL_randomForest_VS1", "SL_glmnet_VS1", "SL_gam_VS1", "SL_bartMachine_VS1", "DML_VS1", "TMLE_VS1",
       # VS2 methods
-      "ANCOVA_VS2", "ANHECOVA_VS2", "Binom_VS2", "SL1_VS2", "SL_rpart_VS2", 
-      "SL_randomForest_VS2", "SL_glmnet_VS2", "SL_gam_VS2", "SL_bartMachine_VS2", "SL2_VS2", "TMLE_VS2"))  # ADDED SL_glmnet_VS2 and TMLE_VS2
+      "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic_G_Computation_VS2", "SL1_VS2", "SL_rpart_VS2", 
+      "SL_randomForest_VS2", "SL_glmnet_VS2", "SL_gam_VS2", "SL_bartMachine_VS2", "DML_VS2", "TMLE_VS2"))  # ADDED SL_glmnet_VS2 and TMLE_VS2
   )
 
 # Color palette for methods (expanded for VS1 and VS2)
 method_colors = c(
   # Base methods
-  "ANCOVA" = "#1f77b4", "ANHECOVA" = "#ff7f0e", "Binom" = "#2ca02c", "SL1" = "#d62728",
+  "ANCOVA" = "#1f77b4", "ANHECOVA" = "#ff7f0e", "Logistic_G_Computation" = "#2ca02c", "SL1" = "#d62728",
   "SL_rpart" = "#9467bd", "SL_randomForest" = "#8c564b", "SL_glmnet" = "#e377c2", 
-  "SL_gam" = "#7f7f7f", "SL_bartMachine" = "#bcbd22", "SL2" = "#17becf", "TMLE" = "#aec7e8",
+  "SL_gam" = "#7f7f7f", "SL_bartMachine" = "#bcbd22", "DML" = "#17becf", "TMLE" = "#aec7e8",
   # VS1 methods
-  "ANCOVA_VS1" = "#1f77b4", "ANHECOVA_VS1" = "#ff9896", "Binom_VS1" = "#98df8a", "SL1_VS1" = "#ffbb78",
+  "ANCOVA_VS1" = "#1f77b4", "ANHECOVA_VS1" = "#ff9896", "Logistic_G_Computation_VS1" = "#98df8a", "SL1_VS1" = "#ffbb78",
   "SL_rpart_VS1" = "#c5b0d5", "SL_randomForest_VS1" = "#c49c94", "SL_glmnet_VS1" = "#f7b6d3", 
-  "SL_gam_VS1" = "#c7c7c7", "SL_bartMachine_VS1" = "#dbdb8d", "SL2_VS1" = "#9edae5", "TMLE_VS1" = "#393b79",
+  "SL_gam_VS1" = "#c7c7c7", "SL_bartMachine_VS1" = "#dbdb8d", "DML_VS1" = "#9edae5", "TMLE_VS1" = "#393b79",
   # VS2 methods  
-  "ANCOVA_VS2" = "#637939", "ANHECOVA_VS2" = "#8c6d31", "Binom_VS2" = "#843c39", "SL1_VS2" = "#7b4173",
+  "ANCOVA_VS2" = "#637939", "ANHECOVA_VS2" = "#8c6d31", "Logistic_G_Computation_VS2" = "#843c39", "SL1_VS2" = "#7b4173",
   "SL_rpart_VS2" = "#5254a3", "SL_randomForest_VS2" = "#6b6ecf", "SL_glmnet_VS2" = "#ce6dbd",  # ADDED COLOR FOR SL_glmnet_VS2
-  "SL_gam_VS2" = "#9c9ede", "SL_bartMachine_VS2" = "#637939", "SL2_VS2" = "#8ca252", "TMLE_VS2" = "#de9ed6"  # ADDED COLOR FOR TMLE_VS2
+  "SL_gam_VS2" = "#9c9ede", "SL_bartMachine_VS2" = "#637939", "DML_VS2" = "#8ca252", "TMLE_VS2" = "#de9ed6"  # ADDED COLOR FOR TMLE_VS2
 )
 
 ##################################
@@ -3663,7 +3669,7 @@ p_ancova_vs2_individual = create_individual_method_plot("ANCOVA_VS2", "#637939")
 p_anhecova_vs2_individual = create_individual_method_plot("ANHECOVA_VS2", "#8c6d31")
 p_sl1_vs2_individual = create_individual_method_plot("SL1_VS2", "#7b4173")
 p_sl_glmnet_vs2_individual = create_individual_method_plot("SL_glmnet_VS2", "#ce6dbd")  # ADDED THIS LINE
-p_sl2_vs2_individual = create_individual_method_plot("SL2_VS2", "#8ca252")
+p_dml_vs2_individual = create_individual_method_plot("DML_VS2", "#8ca252")
 p_tmle_vs2_individual = create_individual_method_plot("TMLE_VS2", "#de9ed6")  # ADDED THIS LINE
 
 # Display individual plots
@@ -3679,7 +3685,7 @@ p_ancova_vs2_individual
 p_anhecova_vs2_individual
 p_sl1_vs2_individual
 p_sl_glmnet_vs2_individual  # ADDED THIS LINE
-p_sl2_vs2_individual
+p_dml_vs2_individual
 p_tmle_vs2_individual  # ADDED THIS LINE
 ```
 
@@ -3688,57 +3694,58 @@ p_tmle_vs2_individual  # ADDED THIS LINE
 ###############################################################################
 ##  0.  Long data BEFORE trimming --------------------------------------------
 ###############################################################################
-df_long_full = df_new %>%       # df_new in your workspace
-  select(outcome_group, starts_with("precision_gain_")) %>%
-  pivot_longer(cols      = starts_with("precision_gain_"),
-               names_to  = "method_raw",
-               values_to = "pg") %>%
-  mutate(method = dplyr::case_match(
-    method_raw,
-    # Base methods (no VS)
-    "precision_gain_ANCOVA"                  ~ "ANCOVA",
-    "precision_gain_ANHECOVA"                ~ "ANHECOVA",
-    "precision_gain_Binom"                   ~ "Binom",
-    "precision_gain_SL1"                     ~ "SL1",
-    "precision_gain_SL_rpart"                ~ "SL_rpart",
-    "precision_gain_SL_randomForest"         ~ "SL_randomForest",
-    "precision_gain_SL_glmnet"               ~ "SL_glmnet",
-    "precision_gain_SL_gam"                  ~ "SL_gam",
-    "precision_gain_SL_bartMachine"          ~ "SL_bartMachine",
-    "precision_gain_SL2"                     ~ "SL2",
-    "precision_gain_TMLE"                    ~ "TMLE",
-    
-    # VS1 methods
-    "precision_gain_ANCOVA_VS1"              ~ "ANCOVA_VS1",
-    "precision_gain_ANHECOVA_VS1"            ~ "ANHECOVA_VS1",
-    "precision_gain_Binom_VS1"               ~ "Binom_VS1",
-    "precision_gain_SL1_VS1"                 ~ "SL1_VS1",
-    "precision_gain_SL_rpart_VS1"            ~ "SL_rpart_VS1",
-    "precision_gain_SL_randomForest_VS1"     ~ "SL_randomForest_VS1",
-    "precision_gain_SL_glmnet_VS1"           ~ "SL_glmnet_VS1",
-    "precision_gain_SL_gam_VS1"              ~ "SL_gam_VS1",
-    "precision_gain_SL_bartMachine_VS1"      ~ "SL_bartMachine_VS1",
-    "precision_gain_SL2_VS1"                 ~ "SL2_VS1",
-    "precision_gain_TMLE_VS1"                ~ "TMLE_VS1",
-    
-    # VS2 methods
-    "precision_gain_ANCOVA_VS2"              ~ "ANCOVA_VS2",
-    "precision_gain_ANHECOVA_VS2"            ~ "ANHECOVA_VS2",
-    "precision_gain_Binom_VS2"               ~ "Binom_VS2",
-    "precision_gain_SL1_VS2"                 ~ "SL1_VS2",
-    "precision_gain_SL_rpart_VS2"            ~ "SL_rpart_VS2",
-    "precision_gain_SL_randomForest_VS2"     ~ "SL_randomForest_VS2",
-    "precision_gain_SL_gam_VS2"              ~ "SL_gam_VS2",
-    "precision_gain_SL_bartMachine_VS2"      ~ "SL_bartMachine_VS2",
-    "precision_gain_SL2_VS2"                 ~ "SL2_VS2",
-    "precision_gain_SL_glmnet_VS2"           ~ "SL_glmnet_VS2",
-    "precision_gain_TMLE_VS2"                ~ "TMLE_VS2"  # ADDED THIS LINE
-  ))
+
+# First need to filter df_new to get primary and all outcomes datasets
+df_new_all_outcomes = df_new  # All outcomes
+
+# Primary outcomes only (outcomes starting with YP_)
+df_new_primary = df_new %>%
+  filter(str_detect(Outcome, "^YP_"))
+
+# Function to prepare long data
+prepare_long_data = function(data) {
+  data %>%
+    select(outcome_group, starts_with("precision_gain_")) %>%
+    pivot_longer(cols      = starts_with("precision_gain_"),
+                 names_to  = "method_raw",
+                 values_to = "pg") %>%
+    mutate(method = dplyr::case_match(
+      method_raw,
+      # Base methods (no VS) - excluding SL1 and individual SL methods
+      "precision_gain_ANCOVA"                       ~ "ANCOVA",
+      "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
+      "precision_gain_Logistic_G_Computation"       ~ "Logistic_G_Computation",
+      "precision_gain_DML"                          ~ "DML",
+      "precision_gain_TMLE"                         ~ "TMLE",
+      
+      # VS1 methods - excluding SL1 and individual SL methods
+      "precision_gain_ANCOVA_VS1"                   ~ "ANCOVA_VS1",
+      "precision_gain_ANHECOVA_VS1"                 ~ "ANHECOVA_VS1",
+      "precision_gain_Logistic_G_Computation_VS1"   ~ "Logistic_G_Computation_VS1",
+      "precision_gain_DML_VS1"                      ~ "DML_VS1",
+      "precision_gain_TMLE_VS1"                     ~ "TMLE_VS1",
+      
+      # VS2 methods - excluding SL1 and individual SL methods
+      "precision_gain_ANCOVA_VS2"                   ~ "ANCOVA_VS2",
+      "precision_gain_ANHECOVA_VS2"                 ~ "ANHECOVA_VS2",
+      "precision_gain_Logistic_G_Computation_VS2"   ~ "Logistic_G_Computation_VS2",
+      "precision_gain_DML_VS2"                      ~ "DML_VS2",
+      "precision_gain_TMLE_VS2"                     ~ "TMLE_VS2"
+    )) %>%
+    filter(!is.na(method))  # Remove rows where method couldn't be matched
+}
+
+# Create long data for both datasets
+df_long_full_all = prepare_long_data(df_new_all_outcomes)
+df_long_full_primary = prepare_long_data(df_new_primary)
 
 ###############################################################################
 ##  1.  Caption builder for ONE outcome type and method type -----------------
 ###############################################################################
-build_caption = function(outcome_type, vs_type = "none") {
+build_caption = function(outcome_type, vs_type = "none", data_type = "all") {
+
+  # Select appropriate data source
+  df_long_source = if (data_type == "primary") df_long_full_primary else df_long_full_all
 
   ## Filter methods based on VS type
   method_filter = function(methods) {
@@ -3754,7 +3761,7 @@ build_caption = function(outcome_type, vs_type = "none") {
   }
 
   ## ---- counts of outliers (pg ≥ 2) ---------------------------
-  outliers = df_long_full %>%
+  outliers = df_long_source %>%
     filter(outcome_group == outcome_type, !is.na(pg)) %>%
     mutate(outlier = pg >= 2) %>%
     group_by(method) %>%
@@ -3762,22 +3769,22 @@ build_caption = function(outcome_type, vs_type = "none") {
     filter(method %in% method_filter(method))
 
   ## ---- counts of original NA ----------------------------
-  nas = df_long_full %>%
+  nas = df_long_source %>%
     filter(outcome_group == outcome_type) %>%
     group_by(method) %>%
     summarise(na_removed = sum(is.na(pg)), .groups = "drop") %>%
     filter(method %in% method_filter(method))
 
-  ## For *continuous* outcome, drop Binom methods from NA line
+  ## For *continuous* outcome, drop Logistic G-Computation methods from NA line
   if (outcome_type == "continuous") {
-    binom_methods = if (vs_type == "none") {
-      "Binom"
+    logistic_methods = if (vs_type == "none") {
+      "Logistic_G_Computation"
     } else if (vs_type == "VS1") {
-      "Binom_VS1"
+      "Logistic_G_Computation_VS1"
     } else if (vs_type == "VS2") {
-      "Binom_VS2"
+      "Logistic_G_Computation_VS2"
     }
-    nas = nas %>% filter(!method %in% binom_methods)
+    nas = nas %>% filter(!method %in% logistic_methods)
   }
 
   fmt = function(df, val_col)
@@ -3791,26 +3798,14 @@ build_caption = function(outcome_type, vs_type = "none") {
 ###############################################################################
 ##  2.  Style constants -------------------------------------------------------
 ###############################################################################
-size_colors = c("<50"     = "#E41A1C",
-                "50-99"   = "#377EB8",
-                "100-499" = "#4DAF4A",
-                "≥500"    = "#984EA3")
-
-make_plot = function(data, title_txt, caption_txt) {
+make_plot = function(data, caption_txt) {
   ggplot(data, aes(method, precision_gain)) +
     geom_violin(fill = "grey75", colour = "grey25", alpha = .30, width = 1) +
-    geom_jitter(aes(colour = sample_size_cat),
-                width = .12, size = .6, alpha = .65) +
     geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
-    scale_colour_manual(values = size_colors, name = "Sample Size") +
-    labs(title    = title_txt,
-         subtitle = "Variance-ratio < 1 → higher precision than unadjusted",
-         caption  = caption_txt,
+    labs(caption  = caption_txt,
          x = NULL, y = "Variance Ratio") +
     theme_minimal(base_size = 14) +
     theme(
-      plot.title    = element_text(hjust = .5, face = "bold"),       # centred
-      plot.subtitle = element_text(hjust = .5, colour = "grey60"),   # centred, light grey
       plot.caption  = element_text(hjust = 0,  colour = "grey50", size = 7), # left-aligned
       axis.text.x   = element_text(angle = 45, hjust = 1, size = 8),
       panel.grid.minor = element_blank()
@@ -3818,92 +3813,136 @@ make_plot = function(data, title_txt, caption_txt) {
 }
 
 ###############################################################################
-##  3.  Binary plots ----------------------------------------------------------
+##  3.  Create outlier-removed datasets for all outcomes ---------------------
 ###############################################################################
 
-# Base methods (no VS)
-df_binary_base = df_long_outlier_removed %>% 
+# Function to remove outliers
+remove_outliers = function(data) {
+  data %>%
+    mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
+    filter(!is.na(precision_gain))
+}
+
+# Create outlier-removed datasets
+df_long_outlier_removed_all = remove_outliers(df_long_full_all)
+df_long_outlier_removed_primary = remove_outliers(df_long_full_primary)
+
+###############################################################################
+##  4.  Generate all plots (All outcomes) ------------------------------------
+###############################################################################
+
+# Base methods (no VS) - All outcomes
+df_binary_base_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "binary", !grepl("_VS[12]$", method))
-cap_binary_base = build_caption("binary", vs_type = "none")
+cap_binary_base_all = build_caption("binary", vs_type = "none", data_type = "all")
 
-p_binary_base = make_plot(
-  df_binary_base,
-  "Precision Gain vs Unadjusted – Binary (Base Methods)",
-  cap_binary_base
-)
-ggsave("cleaned_data/Plot/precision_gain_binary_base.png", p_binary_base, width = 12, height = 6, dpi = 1200)
+p_binary_base_all = make_plot(df_binary_base_all, cap_binary_base_all)
+ggsave("cleaned_data/Plot/precision_gain_binary_base_all.png", p_binary_base_all, width = 12, height = 6, dpi = 1200)
 
-# VS1 methods
-df_binary_vs1 = df_long_outlier_removed %>% 
+# VS1 methods - All outcomes
+df_binary_vs1_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "binary", grepl("_VS1$", method))
-cap_binary_vs1 = build_caption("binary", vs_type = "VS1")
+cap_binary_vs1_all = build_caption("binary", vs_type = "VS1", data_type = "all")
 
-p_binary_vs1 = make_plot(
-  df_binary_vs1,
-  "Precision Gain vs Unadjusted – Binary (VS1 Methods)",
-  cap_binary_vs1
-)
-ggsave("cleaned_data/Plot/precision_gain_binary_vs1.png", p_binary_vs1, width = 12, height = 6, dpi = 1200)
+p_binary_vs1_all = make_plot(df_binary_vs1_all, cap_binary_vs1_all)
+ggsave("cleaned_data/Plot/precision_gain_binary_vs1_all.png", p_binary_vs1_all, width = 12, height = 6, dpi = 1200)
 
-# VS2 methods
-df_binary_vs2 = df_long_outlier_removed %>% 
+# VS2 methods - All outcomes
+df_binary_vs2_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "binary", grepl("_VS2$", method))
-cap_binary_vs2 = build_caption("binary", vs_type = "VS2")
+cap_binary_vs2_all = build_caption("binary", vs_type = "VS2", data_type = "all")
 
-p_binary_vs2 = make_plot(
-  df_binary_vs2,
-  "Precision Gain vs Unadjusted – Binary (VS2 Methods)",
-  cap_binary_vs2
-)
-ggsave("cleaned_data/Plot/precision_gain_binary_vs2.png", p_binary_vs2, width = 12, height = 6, dpi = 1200)
+p_binary_vs2_all = make_plot(df_binary_vs2_all, cap_binary_vs2_all)
+ggsave("cleaned_data/Plot/precision_gain_binary_vs2_all.png", p_binary_vs2_all, width = 12, height = 6, dpi = 1200)
 
-###############################################################################
-##  4.  Continuous plots ------------------------------------------------------
-###############################################################################
-
-# Base methods (no VS)
-df_continuous_base = df_long_outlier_removed %>% 
+# Continuous plots - All outcomes
+df_continuous_base_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "continuous", !grepl("_VS[12]$", method))
-cap_cont_base = build_caption("continuous", vs_type = "none")
+cap_cont_base_all = build_caption("continuous", vs_type = "none", data_type = "all")
 
-p_cont_base = make_plot(
-  df_continuous_base,
-  "Precision Gain vs Unadjusted – Continuous (Base Methods)",
-  cap_cont_base
-)
-ggsave("cleaned_data/Plot/precision_gain_continuous_base.png", p_cont_base, width = 12, height = 6, dpi = 1200)
+p_cont_base_all = make_plot(df_continuous_base_all, cap_cont_base_all)
+ggsave("cleaned_data/Plot/precision_gain_continuous_base_all.png", p_cont_base_all, width = 12, height = 6, dpi = 1200)
 
-# VS1 methods
-df_continuous_vs1 = df_long_outlier_removed %>% 
+df_continuous_vs1_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "continuous", grepl("_VS1$", method))
-cap_cont_vs1 = build_caption("continuous", vs_type = "VS1")
+cap_cont_vs1_all = build_caption("continuous", vs_type = "VS1", data_type = "all")
 
-p_cont_vs1 = make_plot(
-  df_continuous_vs1,
-  "Precision Gain vs Unadjusted – Continuous (VS1 Methods)",
-  cap_cont_vs1
-)
-ggsave("cleaned_data/Plot/precision_gain_continuous_vs1.png", p_cont_vs1, width = 12, height = 6, dpi = 1200)
+p_cont_vs1_all = make_plot(df_continuous_vs1_all, cap_cont_vs1_all)
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs1_all.png", p_cont_vs1_all, width = 12, height = 6, dpi = 1200)
 
-# VS2 methods
-df_continuous_vs2 = df_long_outlier_removed %>% 
+df_continuous_vs2_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "continuous", grepl("_VS2$", method))
-cap_cont_vs2 = build_caption("continuous", vs_type = "VS2")
+cap_cont_vs2_all = build_caption("continuous", vs_type = "VS2", data_type = "all")
 
-p_cont_vs2 = make_plot(
-  df_continuous_vs2,
-  "Precision Gain vs Unadjusted – Continuous (VS2 Methods)",
-  cap_cont_vs2
-)
-ggsave("cleaned_data/Plot/precision_gain_continuous_vs2.png", p_cont_vs2, width = 12, height = 6, dpi = 1200)
+p_cont_vs2_all = make_plot(df_continuous_vs2_all, cap_cont_vs2_all)
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs2_all.png", p_cont_vs2_all, width = 12, height = 6, dpi = 1200)
 
-# Display all 6 plots
-p_binary_base
-p_binary_vs1
-p_binary_vs2
-p_cont_base
-p_cont_vs1
-p_cont_vs2
+###############################################################################
+##  5.  Generate all plots (Primary outcomes only) --------------------------
+###############################################################################
+
+# Base methods (no VS) - Primary outcomes
+df_binary_base_primary = df_long_outlier_removed_primary %>% 
+  filter(outcome_group == "binary", !grepl("_VS[12]$", method))
+cap_binary_base_primary = build_caption("binary", vs_type = "none", data_type = "primary")
+
+p_binary_base_primary = make_plot(df_binary_base_primary, cap_binary_base_primary)
+ggsave("cleaned_data/Plot/precision_gain_binary_base_primary.png", p_binary_base_primary, width = 12, height = 6, dpi = 1200)
+
+# VS1 methods - Primary outcomes
+df_binary_vs1_primary = df_long_outlier_removed_primary %>% 
+  filter(outcome_group == "binary", grepl("_VS1$", method))
+cap_binary_vs1_primary = build_caption("binary", vs_type = "VS1", data_type = "primary")
+
+p_binary_vs1_primary = make_plot(df_binary_vs1_primary, cap_binary_vs1_primary)
+ggsave("cleaned_data/Plot/precision_gain_binary_vs1_primary.png", p_binary_vs1_primary, width = 12, height = 6, dpi = 1200)
+
+# VS2 methods - Primary outcomes
+df_binary_vs2_primary = df_long_outlier_removed_primary %>% 
+  filter(outcome_group == "binary", grepl("_VS2$", method))
+cap_binary_vs2_primary = build_caption("binary", vs_type = "VS2", data_type = "primary")
+
+p_binary_vs2_primary = make_plot(df_binary_vs2_primary, cap_binary_vs2_primary)
+ggsave("cleaned_data/Plot/precision_gain_binary_vs2_primary.png", p_binary_vs2_primary, width = 12, height = 6, dpi = 1200)
+
+# Continuous plots - Primary outcomes
+df_continuous_base_primary = df_long_outlier_removed_primary %>% 
+  filter(outcome_group == "continuous", !grepl("_VS[12]$", method))
+cap_cont_base_primary = build_caption("continuous", vs_type = "none", data_type = "primary")
+
+p_cont_base_primary = make_plot(df_continuous_base_primary, cap_cont_base_primary)
+ggsave("cleaned_data/Plot/precision_gain_continuous_base_primary.png", p_cont_base_primary, width = 12, height = 6, dpi = 1200)
+
+df_continuous_vs1_primary = df_long_outlier_removed_primary %>% 
+  filter(outcome_group == "continuous", grepl("_VS1$", method))
+cap_cont_vs1_primary = build_caption("continuous", vs_type = "VS1", data_type = "primary")
+
+p_cont_vs1_primary = make_plot(df_continuous_vs1_primary, cap_cont_vs1_primary)
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs1_primary.png", p_cont_vs1_primary, width = 12, height = 6, dpi = 1200)
+
+df_continuous_vs2_primary = df_long_outlier_removed_primary %>% 
+  filter(outcome_group == "continuous", grepl("_VS2$", method))
+cap_cont_vs2_primary = build_caption("continuous", vs_type = "VS2", data_type = "primary")
+
+p_cont_vs2_primary = make_plot(df_continuous_vs2_primary, cap_cont_vs2_primary)
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs2_primary.png", p_cont_vs2_primary, width = 12, height = 6, dpi = 1200)
+
+# Display all 12 plots
+cat("All Outcomes Plots:\n")
+p_binary_base_all
+p_binary_vs1_all
+p_binary_vs2_all
+p_cont_base_all
+p_cont_vs1_all
+p_cont_vs2_all
+
+cat("Primary Outcomes Plots:\n")
+p_binary_base_primary
+p_binary_vs1_primary
+p_binary_vs2_primary
+p_cont_base_primary
+p_cont_vs1_primary
+p_cont_vs2_primary
 ```
 
 ## Variance Summary
@@ -4059,4 +4098,90 @@ cat("\n--- Continuous: Base Methods ---\n")
 df_continuous_base_simple = create_simple_table("continuous", "none")
 print(df_continuous_base_simple)
 ```
+# Sample Size Hist
+```{r}
+# Create a data frame
+df = data.frame(sample_size = df_comparison$Sample_Size)
+
+# Calculate summary statistics
+mean_size = mean(df$sample_size)
+median_size = median(df$sample_size)
+n_studies = length(df$sample_size)
+
+# Create the histogram with ggplot2
+p = ggplot(df, aes(x = sample_size)) +
+  geom_histogram(bins = 30, 
+                 fill = "#4CAF50", 
+                 color = "white", 
+                 alpha = 0.8,
+                 boundary = 0) +
+  geom_vline(aes(xintercept = mean_size), 
+             color = "#FF5722", 
+             linetype = "dashed", 
+             linewidth = 1.2,
+             alpha = 0.8) +
+  geom_vline(aes(xintercept = median_size), 
+             color = "#2196F3", 
+             linetype = "dotted", 
+             linewidth = 1.2,
+             alpha = 0.8) +
+  labs(title = "Distribution of Sample Sizes in Clinical Trials",
+       subtitle = paste0("Analysis of ", n_studies, " studies"),
+       x = "Sample Size",
+       y = "Frequency",
+       caption = paste0("Mean: ", round(mean_size, 0), 
+                       " | Median: ", round(median_size, 0))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray60"),
+    plot.caption = element_text(size = 10, color = "gray60"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5)
+  ) +
+  scale_x_continuous(labels = scales::comma_format()) +
+  scale_y_continuous(expand = c(0, 0, 0.05, 0))
+
+# Display the plot
+p
+
+# Additional analysis: categorize studies by size
+df = df %>%
+  mutate(size_category = case_when(
+    sample_size < 100 ~ "Small (< 100)",
+    sample_size >= 100 & sample_size < 500 ~ "Medium (100-499)",
+    sample_size >= 500 & sample_size < 1000 ~ "Large (500-999)",
+    sample_size >= 1000 ~ "Very Large (≥ 1000)"
+  ))
+
+# Create a second plot showing the log-transformed distribution
+p_log = ggplot(df, aes(x = log10(sample_size))) +
+  geom_histogram(bins = 25, 
+                 fill = "#9C27B0", 
+                 color = "white", 
+                 alpha = 0.8) +
+  labs(title = "Log-Transformed Distribution of Sample Sizes",
+       subtitle = "Log10 transformation to better visualize the distribution",
+       x = "Log10(Sample Size)",
+       y = "Frequency") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5, color = "gray60"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5)
+  ) +
+  scale_y_continuous(expand = c(0, 0, 0.05, 0))
+
+p_log
+```
+
+# Research Area Pie Chart
+# Rand Scheme Pie Chart 
 
