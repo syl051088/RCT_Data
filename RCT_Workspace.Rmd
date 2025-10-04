@@ -4100,6 +4100,259 @@ analyze_rct = function(df,
 ```
 
 ```{r}
-str(df_comparison)
+df_comparison %>%
+  group_by(Trial_No) %>% 
+  summarise(max(N_Covariates))
+```
+
+# plot sample
+```{r}
+# ── Packages ───────────────────────────────────────────────────────────────────
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+library(patchwork)
+
+# ── 1) CONFIG ──────────────────────────────────────────────────────────────────
+# Choose which set of columns to use: "base" (no VS suffix), "VS1", or "VS2"
+variant = "base"   # change to "VS1" or "VS2" if you want those columns
+
+# Optional: file output (set to NULL to skip saving)
+outfile = "figure_variance_efficiency_2x2.png"
+dpi     = 300
+width   = 9.5   # inches
+height  = 7.5   # inches
+
+# ── 2) VALIDATE REQUIRED OBJECT ────────────────────────────────────────────────
+stopifnot(exists("df_comparison"))
+
+# Sample size column (accept either name)
+sample_size_col = c("Sample_Size", "N")
+sample_size_col = sample_size_col[sample_size_col %in% names(df_comparison)]
+if (length(sample_size_col) == 0) stop("No sample size column found (tried Sample_Size or N).")
+sample_size_col = sample_size_col[1]
+
+# Primary flag from Outcome Type (robust to capitalization)
+primary_flag = function(x) grepl("\\bprimary\\b", x %||% "", ignore.case = TRUE)
+
+# ── 3) BUILD SE COLUMN MAP FOR THE CHOSEN VARIANT ─────────────────────────────
+# Helper: suffix based on variant
+suf = switch(variant,
+  "base" = "",
+  "VS1"  = "_VS1",
+  "VS2"  = "_VS2",
+  stop("variant must be 'base', 'VS1', or 'VS2'")
+)
+
+colname = function(stem) paste0(stem, if (stem == "Unadjust_se") "" else suf, "_se")
+# Note: Unadjust_se has NO VS-suffix in most of your sheets; adjust here if yours differs.
+
+candidate_stems = c(
+  "Unadjust",              # reference
+  "ANCOVA_robust",
+  "ANCOVA_model_based",
+  "ANHECOVA_robust",
+  "Binom_robust",
+  "SL1",                   # your ensemble column
+  "SL_rpart",
+  "SL_randomForest",
+  "SL_glmnet",
+  "SL_gam",
+  "SL_bartMachine"
+)
+
+# Map to actual column names to look for in df_comparison
+cand_cols = sapply(candidate_stems, function(st) {
+  if (st == "Unadjust") "Unadjust_se" else paste0(st, suf, "_se")
+}, USE.NAMES = TRUE)
+
+present_cols = intersect(unname(cand_cols), names(df_comparison))
+if (!"Unadjust_se" %in% present_cols)
+  stop("Required 'Unadjust_se' not found in df_comparison.")
+
+# Pretty labels for plotting
+pretty_name = c(
+  Unadjust_se                       = "Unadjusted",
+  ANCOVA_robust_se                  = "ANCOVA (robust)",
+  ANCOVA_model_based_se             = "ANCOVA (model-based)",
+  ANHECOVA_robust_se                = "ANHECOVA (robust)",
+  Binom_robust_se                   = "Binomial (robust)",
+  SL1_se                            = "SL (ensemble)",
+  SL_rpart_se                       = "SL: rpart",
+  SL_randomForest_se                = "SL: randomForest",
+  SL_glmnet_se                      = "SL: glmnet",
+  SL_gam_se                         = "SL: gam",
+  SL_bartMachine_se                 = "SL: bartMachine",
+  # VS1
+  ANCOVA_robust_VS1_se              = "ANCOVA (robust, VS1)",
+  ANCOVA_model_based_VS1_se         = "ANCOVA (model-based, VS1)",
+  ANHECOVA_robust_VS1_se            = "ANHECOVA (robust, VS1)",
+  Binom_robust_VS1_se               = "Binomial (robust, VS1)",
+  SL1_VS1_se                        = "SL (ensemble, VS1)",
+  SL_rpart_VS1_se                   = "SL: rpart (VS1)",
+  SL_randomForest_VS1_se            = "SL: randomForest (VS1)",
+  SL_glmnet_VS1_se                  = "SL: glmnet (VS1)",
+  SL_gam_VS1_se                     = "SL: gam (VS1)",
+  SL_bartMachine_VS1_se             = "SL: bartMachine (VS1)",
+  # VS2
+  ANCOVA_robust_VS2_se              = "ANCOVA (robust, VS2)",
+  ANCOVA_model_based_VS2_se         = "ANCOVA (model-based, VS2)",
+  ANHECOVA_robust_VS2_se            = "ANHECOVA (robust, VS2)",
+  Binom_robust_VS2_se               = "Binomial (robust, VS2)",
+  SL1_VS2_se                        = "SL (ensemble, VS2)",
+  SL_rpart_VS2_se                   = "SL: rpart (VS2)",
+  SL_randomForest_VS2_se            = "SL: randomForest (VS2)",
+  SL_glmnet_VS2_se                  = "SL: glmnet (VS2)",
+  SL_gam_VS2_se                     = "SL: gam (VS2)",
+  SL_bartMachine_VS2_se             = "SL: bartMachine (VS2)"
+)
+
+# Figure out the “method display order” based on what you actually have
+method_levels_all = c(
+  "Unadjusted",
+  "ANCOVA (robust)","ANCOVA (model-based)","ANHECOVA (robust)","Binomial (robust)",
+  "SL (ensemble)","SL: rpart","SL: randomForest","SL: glmnet","SL: gam","SL: bartMachine",
+  "ANCOVA (robust, VS1)","ANCOVA (model-based, VS1)","ANHECOVA (robust, VS1)","Binomial (robust, VS1)",
+  "SL (ensemble, VS1)","SL: rpart (VS1)","SL: randomForest (VS1)","SL: glmnet (VS1)","SL: gam (VS1)","SL: bartMachine (VS1)",
+  "ANCOVA (robust, VS2)","ANCOVA (model-based, VS2)","ANHECOVA (robust, VS2)","Binomial (robust, VS2)",
+  "SL (ensemble, VS2)","SL: rpart (VS2)","SL: randomForest (VS2)","SL: glmnet (VS2)","SL: gam (VS2)","SL: bartMachine (VS2)"
+)
+
+# ── 4) LONG DATA + VARIANCE RATIOS (uses your df_comparison) ──────────────────
+base_cols = c("Trial_No","Outcome","Outcome Type", sample_size_col)
+base_cols = intersect(base_cols, names(df_comparison))
+
+df_long = df_comparison %>%
+  select(all_of(base_cols), all_of(present_cols)) %>%
+  mutate(is_primary = primary_flag(`Outcome Type`)) %>%
+  pivot_longer(
+    cols = all_of(present_cols),
+    names_to = "se_col",
+    values_to = "SE"
+  ) %>%
+  mutate(Method = pretty_name[se_col]) %>%
+  group_by(Trial_No, Outcome) %>%
+  mutate(SE_unadj = SE[se_col == "Unadjust_se"]) %>%
+  ungroup() %>%
+  filter(is.finite(SE_unadj), SE_unadj > 0) %>%
+  mutate(
+    Var_Ratio = ifelse(se_col == "Unadjust_se", 1, (SE^2) / (SE_unadj^2)),
+    Method    = factor(Method, levels = method_levels_all[method_levels_all %in% unique(pretty_name[present_cols])])
+  ) %>%
+  rename(Sample_Size = !!sample_size_col)
+
+# ── 5) PALETTE & THEME ─────────────────────────────────────────────────────────
+method_palette = c(
+  "Unadjusted"                = "grey50",
+  "ANCOVA (robust)"           = "#1f77b4",
+  "ANCOVA (model-based)"      = "#6baed6",
+  "ANHECOVA (robust)"         = "#ff7f0e",
+  "Binomial (robust)"         = "#8c564b",
+  "SL (ensemble)"             = "#2ca02c",
+  "SL: rpart"                 = "#98df8a",
+  "SL: randomForest"          = "#17becf",
+  "SL: glmnet"                = "#9467bd",
+  "SL: gam"                   = "#bcbd22",
+  "SL: bartMachine"           = "#d62728",
+  # VS1 (same hues, lighter)
+  "ANCOVA (robust, VS1)"      = "#1f77b4AA",
+  "ANCOVA (model-based, VS1)" = "#6baed6AA",
+  "ANHECOVA (robust, VS1)"    = "#ff7f0eAA",
+  "Binomial (robust, VS1)"    = "#8c564bAA",
+  "SL (ensemble, VS1)"        = "#2ca02cAA",
+  "SL: rpart (VS1)"           = "#98df8aAA",
+  "SL: randomForest (VS1)"    = "#17becfAA",
+  "SL: glmnet (VS1)"          = "#9467bdAA",
+  "SL: gam (VS1)"             = "#bcbd22AA",
+  "SL: bartMachine (VS1)"     = "#d62728AA",
+  # VS2 (same hues, darker)
+  "ANCOVA (robust, VS2)"      = "#1f77b4DD",
+  "ANCOVA (model-based, VS2)" = "#6baed6DD",
+  "ANHECOVA (robust, VS2)"    = "#ff7f0eDD",
+  "Binomial (robust, VS2)"    = "#8c564bDD",
+  "SL (ensemble, VS2)"        = "#2ca02cDD",
+  "SL: rpart (VS2)"           = "#98df8aDD",
+  "SL: randomForest (VS2)"    = "#17becfDD",
+  "SL: glmnet (VS2)"          = "#9467bdDD",
+  "SL: gam (VS2)"             = "#bcbd22DD",
+  "SL: bartMachine (VS2)"     = "#d62728DD"
+)
+
+nice_theme = theme_minimal(base_size = 11) +
+  theme(
+    panel.grid.minor = element_blank(),
+    axis.title       = element_text(color = "black"),
+    axis.text        = element_text(color = "black"),
+    legend.position  = "bottom",
+    legend.title     = element_blank(),
+    plot.margin      = margin(5.5, 5.5, 5.5, 5.5),
+    strip.text       = element_text(face = "bold")
+  )
+
+# ── 6) PANELS ──────────────────────────────────────────────────────────────────
+# (a) Violin: all outcomes
+p_a = ggplot(df_long, aes(x = Method, y = Var_Ratio, fill = Method)) +
+  geom_violin(width = 0.85, trim = TRUE, alpha = 0.75, color = NA) +
+  geom_boxplot(width = 0.16, outlier.shape = 21, outlier.size = 1.4, fill = "white") +
+  geom_hline(yintercept = 1, linetype = 3) +
+  scale_y_log10() +
+  scale_fill_manual(values = method_palette, guide = "none") +
+  labs(title = "(a) Variance ratios across methods (all outcomes)",
+       x = NULL, y = "Variance Ratio vs. Unadjusted (log scale)") +
+  nice_theme +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1))
+
+# (b) Sample size vs var ratio: all outcomes
+p_b = ggplot(df_long, aes(x = Sample_Size, y = Var_Ratio, color = Method)) +
+  geom_point(alpha = 0.35, size = 1.3) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.9) +
+  geom_hline(yintercept = 1, linetype = 3) +
+  scale_y_log10() +
+  scale_color_manual(values = method_palette) +
+  labs(title = "(b) Sample size vs. variance ratio (all outcomes)",
+       x = "Sample size", y = "Variance Ratio vs. Unadjusted (log scale)") +
+  nice_theme
+
+# Primary slice
+df_primary = df_long %>% filter(is_primary)
+
+# (c) Violin: primary outcomes only
+p_c = ggplot(df_primary, aes(x = Method, y = Var_Ratio, fill = Method)) +
+  geom_violin(width = 0.85, trim = TRUE, alpha = 0.75, color = NA) +
+  geom_boxplot(width = 0.16, outlier.shape = 21, outlier.size = 1.4, fill = "white") +
+  geom_hline(yintercept = 1, linetype = 3) +
+  scale_y_log10() +
+  scale_fill_manual(values = method_palette, guide = "none") +
+  labs(title = "(c) Variance ratios across methods (primary outcomes)",
+       x = NULL, y = "Variance Ratio vs. Unadjusted (log scale)") +
+  nice_theme +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1))
+
+# (d) Sample size vs var ratio: primary outcomes only
+p_d = ggplot(df_primary, aes(x = Sample_Size, y = Var_Ratio, color = Method)) +
+  geom_point(alpha = 0.35, size = 1.3) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.9) +
+  geom_hline(yintercept = 1, linetype = 3) +
+  scale_y_log10() +
+  scale_color_manual(values = method_palette) +
+  labs(title = "(d) Sample size vs. variance ratio (primary outcomes)",
+       x = "Sample size", y = "Variance Ratio vs. Unadjusted (log scale)") +
+  nice_theme
+
+# ── 7) ASSEMBLE & SAVE ────────────────────────────────────────────────────────
+fig_2x2 = (p_a | p_b) / (p_c | p_d) +
+  plot_annotation(
+    title = "Variance Efficiency Across Estimation Methods in Real-World RCTs",
+    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+  )
+
+print(fig_2x2)
+
+if (!is.null(outfile)) {
+  ggsave(filename = outfile, plot = fig_2x2, width = width, height = height, dpi = dpi, bg = "white")
+  message("Saved: ", outfile)
+}
+
 ```
 

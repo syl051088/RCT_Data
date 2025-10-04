@@ -23,12 +23,14 @@ library(RobinCar)
 library(ggplot2)
 library(writexl)
 library(kableExtra)
+library(scales)
 ```
 
 # Load Data
 
 ```{r}
 df_comparison = read_xlsx("cleaned_data/meta_data_comparison.xlsx")
+df_meta = read_xlsx("cleaned_data/meta_data.xlsx")
 ```
 
 # Function
@@ -3262,7 +3264,7 @@ df50 = read_rds("cleaned_data/Non_Clustered_RCT/trial50.rds") %>%
 
 ```{r}
 type = c("time to event", "continuous")
-demo = c("X_sex_0w", "X_center_0w", "X_age_0w", "X_weight_0w")
+demo = c("X_sex_0w", "X_inherit_0w", "X_age_0w", "X_weight_0w")
 ```
 
 ```{r}
@@ -3689,7 +3691,7 @@ p_dml_vs2_individual
 p_tmle_vs2_individual  # ADDED THIS LINE
 ```
 
-## More Plots
+# Violin Plots
 ```{r}
 ###############################################################################
 ##  0.  Long data BEFORE trimming --------------------------------------------
@@ -3714,21 +3716,21 @@ prepare_long_data = function(data) {
       # Base methods (no VS) - excluding SL1 and individual SL methods
       "precision_gain_ANCOVA"                       ~ "ANCOVA",
       "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
-      "precision_gain_Logistic_G_Computation"       ~ "Logistic_G_Computation",
+      "precision_gain_Logistic_G_Computation"       ~ "Logistic G-computation",
       "precision_gain_DML"                          ~ "DML",
       "precision_gain_TMLE"                         ~ "TMLE",
       
       # VS1 methods - excluding SL1 and individual SL methods
       "precision_gain_ANCOVA_VS1"                   ~ "ANCOVA_VS1",
       "precision_gain_ANHECOVA_VS1"                 ~ "ANHECOVA_VS1",
-      "precision_gain_Logistic_G_Computation_VS1"   ~ "Logistic_G_Computation_VS1",
+      "precision_gain_Logistic_G_Computation_VS1"   ~ "Logistic G-computation_VS1",
       "precision_gain_DML_VS1"                      ~ "DML_VS1",
       "precision_gain_TMLE_VS1"                     ~ "TMLE_VS1",
       
       # VS2 methods - excluding SL1 and individual SL methods
       "precision_gain_ANCOVA_VS2"                   ~ "ANCOVA_VS2",
       "precision_gain_ANHECOVA_VS2"                 ~ "ANHECOVA_VS2",
-      "precision_gain_Logistic_G_Computation_VS2"   ~ "Logistic_G_Computation_VS2",
+      "precision_gain_Logistic_G_Computation_VS2"   ~ "Logistic G-computation_VS2",
       "precision_gain_DML_VS2"                      ~ "DML_VS2",
       "precision_gain_TMLE_VS2"                     ~ "TMLE_VS2"
     )) %>%
@@ -3740,9 +3742,9 @@ df_long_full_all = prepare_long_data(df_new_all_outcomes)
 df_long_full_primary = prepare_long_data(df_new_primary)
 
 ###############################################################################
-##  1.  Caption builder for ONE outcome type and method type -----------------
+##  1.  Table builder for ONE outcome type and method type ------------------
 ###############################################################################
-build_caption = function(outcome_type, vs_type = "none", data_type = "all") {
+build_and_print_table = function(outcome_type, vs_type = "none", data_type = "all") {
 
   # Select appropriate data source
   df_long_source = if (data_type == "primary") df_long_full_primary else df_long_full_all
@@ -3778,37 +3780,62 @@ build_caption = function(outcome_type, vs_type = "none", data_type = "all") {
   ## For *continuous* outcome, drop Logistic G-Computation methods from NA line
   if (outcome_type == "continuous") {
     logistic_methods = if (vs_type == "none") {
-      "Logistic_G_Computation"
+      "Logistic G-computation"
     } else if (vs_type == "VS1") {
-      "Logistic_G_Computation_VS1"
+      "Logistic G-computation_VS1"
     } else if (vs_type == "VS2") {
-      "Logistic_G_Computation_VS2"
+      "Logistic G-computation_VS2"
     }
     nas = nas %>% filter(!method %in% logistic_methods)
   }
 
-  fmt = function(df, val_col)
-    paste(df$method, df[[val_col]], sep = "=", collapse = ", ")
-
-  cap1 = paste0("• Outliers removed (≥2): ", fmt(outliers, "outliers_removed"))
-  cap2 = paste0("• NA removed: ",             fmt(nas,      "na_removed"))
-  paste(cap1, cap2, sep = "\n")
+  # Print table header
+  vs_label = case_when(
+    vs_type == "none" ~ "Base Methods",
+    vs_type == "VS1" ~ "VS1 Methods", 
+    vs_type == "VS2" ~ "VS2 Methods"
+  )
+  
+  cat("\n========================================\n")
+  cat(paste0(stringr::str_to_title(outcome_type), " Outcomes - ", vs_label, 
+             " (", stringr::str_to_title(data_type), " Outcomes)\n"))
+  cat("========================================\n\n")
+  
+  cat("Outliers Removed (≥2):\n")
+  print(outliers)
+  
+  cat("\nNA Removed:\n")
+  print(nas)
+  cat("\n")
 }
 
 ###############################################################################
 ##  2.  Style constants -------------------------------------------------------
 ###############################################################################
-make_plot = function(data, caption_txt) {
+make_plot = function(data, outcome_type) {
+  
+  # Set factor levels for binary outcomes to control order
+  if (outcome_type == "binary") {
+    # Define custom order: Logistic G-computation before DML
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    
+    data = data %>%
+      mutate(method = factor(method, levels = method_levels))
+  }
+  
   ggplot(data, aes(method, precision_gain)) +
     geom_violin(fill = "grey75", colour = "grey25", alpha = .30, width = 1) +
     geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
-    labs(caption  = caption_txt,
-         x = NULL, y = "Variance Ratio") +
+    labs(x = NULL, y = "Variance Ratio") +
+    coord_cartesian(ylim = c(0, 2)) +
     theme_minimal(base_size = 14) +
     theme(
-      plot.caption  = element_text(hjust = 0,  colour = "grey50", size = 7), # left-aligned
       axis.text.x   = element_text(angle = 45, hjust = 1, size = 8),
-      panel.grid.minor = element_blank()
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "white", colour = NA),
+      plot.background = element_rect(fill = "white", colour = NA)
     )
 }
 
@@ -3828,54 +3855,67 @@ df_long_outlier_removed_all = remove_outliers(df_long_full_all)
 df_long_outlier_removed_primary = remove_outliers(df_long_full_primary)
 
 ###############################################################################
+##  Publication quality settings ---------------------------------------------
+###############################################################################
+pub_width = 8
+pub_height = 6
+pub_dpi = 600  # 600 dpi for publication quality
+
+###############################################################################
 ##  4.  Generate all plots (All outcomes) ------------------------------------
 ###############################################################################
 
 # Base methods (no VS) - All outcomes
 df_binary_base_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "binary", !grepl("_VS[12]$", method))
-cap_binary_base_all = build_caption("binary", vs_type = "none", data_type = "all")
+build_and_print_table("binary", vs_type = "none", data_type = "all")
 
-p_binary_base_all = make_plot(df_binary_base_all, cap_binary_base_all)
-ggsave("cleaned_data/Plot/precision_gain_binary_base_all.png", p_binary_base_all, width = 12, height = 6, dpi = 1200)
+p_binary_base_all = make_plot(df_binary_base_all, "binary")
+ggsave("cleaned_data/Plot/precision_gain_binary_base_all.png", 
+       p_binary_base_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 # VS1 methods - All outcomes
 df_binary_vs1_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "binary", grepl("_VS1$", method))
-cap_binary_vs1_all = build_caption("binary", vs_type = "VS1", data_type = "all")
+build_and_print_table("binary", vs_type = "VS1", data_type = "all")
 
-p_binary_vs1_all = make_plot(df_binary_vs1_all, cap_binary_vs1_all)
-ggsave("cleaned_data/Plot/precision_gain_binary_vs1_all.png", p_binary_vs1_all, width = 12, height = 6, dpi = 1200)
+p_binary_vs1_all = make_plot(df_binary_vs1_all, "binary")
+ggsave("cleaned_data/Plot/precision_gain_binary_vs1_all.png", 
+       p_binary_vs1_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 # VS2 methods - All outcomes
 df_binary_vs2_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "binary", grepl("_VS2$", method))
-cap_binary_vs2_all = build_caption("binary", vs_type = "VS2", data_type = "all")
+build_and_print_table("binary", vs_type = "VS2", data_type = "all")
 
-p_binary_vs2_all = make_plot(df_binary_vs2_all, cap_binary_vs2_all)
-ggsave("cleaned_data/Plot/precision_gain_binary_vs2_all.png", p_binary_vs2_all, width = 12, height = 6, dpi = 1200)
+p_binary_vs2_all = make_plot(df_binary_vs2_all, "binary")
+ggsave("cleaned_data/Plot/precision_gain_binary_vs2_all.png", 
+       p_binary_vs2_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 # Continuous plots - All outcomes
 df_continuous_base_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "continuous", !grepl("_VS[12]$", method))
-cap_cont_base_all = build_caption("continuous", vs_type = "none", data_type = "all")
+build_and_print_table("continuous", vs_type = "none", data_type = "all")
 
-p_cont_base_all = make_plot(df_continuous_base_all, cap_cont_base_all)
-ggsave("cleaned_data/Plot/precision_gain_continuous_base_all.png", p_cont_base_all, width = 12, height = 6, dpi = 1200)
+p_cont_base_all = make_plot(df_continuous_base_all, "continuous")
+ggsave("cleaned_data/Plot/precision_gain_continuous_base_all.png", 
+       p_cont_base_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_vs1_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "continuous", grepl("_VS1$", method))
-cap_cont_vs1_all = build_caption("continuous", vs_type = "VS1", data_type = "all")
+build_and_print_table("continuous", vs_type = "VS1", data_type = "all")
 
-p_cont_vs1_all = make_plot(df_continuous_vs1_all, cap_cont_vs1_all)
-ggsave("cleaned_data/Plot/precision_gain_continuous_vs1_all.png", p_cont_vs1_all, width = 12, height = 6, dpi = 1200)
+p_cont_vs1_all = make_plot(df_continuous_vs1_all, "continuous")
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs1_all.png", 
+       p_cont_vs1_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_vs2_all = df_long_outlier_removed_all %>% 
   filter(outcome_group == "continuous", grepl("_VS2$", method))
-cap_cont_vs2_all = build_caption("continuous", vs_type = "VS2", data_type = "all")
+build_and_print_table("continuous", vs_type = "VS2", data_type = "all")
 
-p_cont_vs2_all = make_plot(df_continuous_vs2_all, cap_cont_vs2_all)
-ggsave("cleaned_data/Plot/precision_gain_continuous_vs2_all.png", p_cont_vs2_all, width = 12, height = 6, dpi = 1200)
+p_cont_vs2_all = make_plot(df_continuous_vs2_all, "continuous")
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs2_all.png", 
+       p_cont_vs2_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 ###############################################################################
 ##  5.  Generate all plots (Primary outcomes only) --------------------------
@@ -3884,68 +3924,796 @@ ggsave("cleaned_data/Plot/precision_gain_continuous_vs2_all.png", p_cont_vs2_all
 # Base methods (no VS) - Primary outcomes
 df_binary_base_primary = df_long_outlier_removed_primary %>% 
   filter(outcome_group == "binary", !grepl("_VS[12]$", method))
-cap_binary_base_primary = build_caption("binary", vs_type = "none", data_type = "primary")
+build_and_print_table("binary", vs_type = "none", data_type = "primary")
 
-p_binary_base_primary = make_plot(df_binary_base_primary, cap_binary_base_primary)
-ggsave("cleaned_data/Plot/precision_gain_binary_base_primary.png", p_binary_base_primary, width = 12, height = 6, dpi = 1200)
+p_binary_base_primary = make_plot(df_binary_base_primary, "binary")
+ggsave("cleaned_data/Plot/precision_gain_binary_base_primary.png", 
+       p_binary_base_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 # VS1 methods - Primary outcomes
 df_binary_vs1_primary = df_long_outlier_removed_primary %>% 
   filter(outcome_group == "binary", grepl("_VS1$", method))
-cap_binary_vs1_primary = build_caption("binary", vs_type = "VS1", data_type = "primary")
+build_and_print_table("binary", vs_type = "VS1", data_type = "primary")
 
-p_binary_vs1_primary = make_plot(df_binary_vs1_primary, cap_binary_vs1_primary)
-ggsave("cleaned_data/Plot/precision_gain_binary_vs1_primary.png", p_binary_vs1_primary, width = 12, height = 6, dpi = 1200)
+p_binary_vs1_primary = make_plot(df_binary_vs1_primary, "binary")
+ggsave("cleaned_data/Plot/precision_gain_binary_vs1_primary.png", 
+       p_binary_vs1_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 # VS2 methods - Primary outcomes
 df_binary_vs2_primary = df_long_outlier_removed_primary %>% 
   filter(outcome_group == "binary", grepl("_VS2$", method))
-cap_binary_vs2_primary = build_caption("binary", vs_type = "VS2", data_type = "primary")
+build_and_print_table("binary", vs_type = "VS2", data_type = "primary")
 
-p_binary_vs2_primary = make_plot(df_binary_vs2_primary, cap_binary_vs2_primary)
-ggsave("cleaned_data/Plot/precision_gain_binary_vs2_primary.png", p_binary_vs2_primary, width = 12, height = 6, dpi = 1200)
+p_binary_vs2_primary = make_plot(df_binary_vs2_primary, "binary")
+ggsave("cleaned_data/Plot/precision_gain_binary_vs2_primary.png", 
+       p_binary_vs2_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 # Continuous plots - Primary outcomes
 df_continuous_base_primary = df_long_outlier_removed_primary %>% 
   filter(outcome_group == "continuous", !grepl("_VS[12]$", method))
-cap_cont_base_primary = build_caption("continuous", vs_type = "none", data_type = "primary")
+build_and_print_table("continuous", vs_type = "none", data_type = "primary")
 
-p_cont_base_primary = make_plot(df_continuous_base_primary, cap_cont_base_primary)
-ggsave("cleaned_data/Plot/precision_gain_continuous_base_primary.png", p_cont_base_primary, width = 12, height = 6, dpi = 1200)
+p_cont_base_primary = make_plot(df_continuous_base_primary, "continuous")
+ggsave("cleaned_data/Plot/precision_gain_continuous_base_primary.png", 
+       p_cont_base_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_vs1_primary = df_long_outlier_removed_primary %>% 
   filter(outcome_group == "continuous", grepl("_VS1$", method))
-cap_cont_vs1_primary = build_caption("continuous", vs_type = "VS1", data_type = "primary")
+build_and_print_table("continuous", vs_type = "VS1", data_type = "primary")
 
-p_cont_vs1_primary = make_plot(df_continuous_vs1_primary, cap_cont_vs1_primary)
-ggsave("cleaned_data/Plot/precision_gain_continuous_vs1_primary.png", p_cont_vs1_primary, width = 12, height = 6, dpi = 1200)
+p_cont_vs1_primary = make_plot(df_continuous_vs1_primary, "continuous")
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs1_primary.png", 
+       p_cont_vs1_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_vs2_primary = df_long_outlier_removed_primary %>% 
   filter(outcome_group == "continuous", grepl("_VS2$", method))
-cap_cont_vs2_primary = build_caption("continuous", vs_type = "VS2", data_type = "primary")
+build_and_print_table("continuous", vs_type = "VS2", data_type = "primary")
 
-p_cont_vs2_primary = make_plot(df_continuous_vs2_primary, cap_cont_vs2_primary)
-ggsave("cleaned_data/Plot/precision_gain_continuous_vs2_primary.png", p_cont_vs2_primary, width = 12, height = 6, dpi = 1200)
+p_cont_vs2_primary = make_plot(df_continuous_vs2_primary, "continuous")
+ggsave("cleaned_data/Plot/precision_gain_continuous_vs2_primary.png", 
+       p_cont_vs2_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 # Display all 12 plots
-cat("All Outcomes Plots:\n")
-p_binary_base_all
-p_binary_vs1_all
-p_binary_vs2_all
-p_cont_base_all
-p_cont_vs1_all
-p_cont_vs2_all
+cat("\n========================================\n")
+cat("All plots saved at publication quality (600 dpi, white background)\n")
+cat("========================================\n\n")
 
-cat("Primary Outcomes Plots:\n")
-p_binary_base_primary
-p_binary_vs1_primary
-p_binary_vs2_primary
-p_cont_base_primary
-p_cont_vs1_primary
-p_cont_vs2_primary
+cat("All Outcomes Plots:\n")
+print(p_binary_base_all)
+print(p_binary_vs1_all)
+print(p_binary_vs2_all)
+print(p_cont_base_all)
+print(p_cont_vs1_all)
+print(p_cont_vs2_all)
+
+cat("\nPrimary Outcomes Plots:\n")
+print(p_binary_base_primary)
+print(p_binary_vs1_primary)
+print(p_binary_vs2_primary)
+print(p_cont_base_primary)
+print(p_cont_vs1_primary)
+print(p_cont_vs2_primary)
+```
+# N vs Var Ratio Plot
+```{r}
+###############################################################################
+##  6.  Sample Size vs Variance Ratio Plots ----------------------------------
+###############################################################################
+
+# Function to create sample size vs variance ratio plot with smoothed curves
+make_sample_size_plot = function(data, outcome_type) {
+  
+  # Set factor levels for binary outcomes to control order (same as violin plots)
+  if (outcome_type == "binary") {
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    
+    data = data %>%
+      mutate(method = factor(method, levels = method_levels))
+  }
+  
+  ggplot(data, aes(x = Sample_Size, y = precision_gain, color = method)) +
+    geom_smooth(method = "loess", se = FALSE, linewidth = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    labs(x = "Sample Size", y = "Variance Ratio", color = "Method") +
+    coord_cartesian(ylim = c(0, 2)) +
+    theme_minimal(base_size = 14) +
+    theme(
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "white", colour = NA),
+      plot.background = element_rect(fill = "white", colour = NA),
+      legend.position = "right"
+    )
+}
+
+# First, add Sample_Size to the long data
+# Merge Sample_Size from df_new to long datasets
+df_long_with_size_all = df_long_full_all %>%
+  left_join(df_new %>% select(outcome_group, Sample_Size), 
+            by = "outcome_group", relationship = "many-to-many")
+
+df_long_with_size_primary = df_long_full_primary %>%
+  left_join(df_new_primary %>% select(outcome_group, Sample_Size), 
+            by = "outcome_group", relationship = "many-to-many")
+
+# Remove outliers (same as before)
+df_long_size_cleaned_all = df_long_with_size_all %>%
+  mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
+  filter(!is.na(precision_gain))
+
+df_long_size_cleaned_primary = df_long_with_size_primary %>%
+  mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
+  filter(!is.na(precision_gain))
+
+###############################################################################
+##  7.  Generate all sample size plots (All outcomes) ------------------------
+###############################################################################
+
+# Base methods (no VS) - All outcomes - Binary
+df_binary_base_all_size = df_long_size_cleaned_all %>% 
+  filter(outcome_group == "binary", !grepl("_VS[12]$", method))
+
+p_binary_base_all_size = make_sample_size_plot(df_binary_base_all_size, "binary")
+ggsave("cleaned_data/Plot/samplesize_binary_base_all.png", 
+       p_binary_base_all_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS1 methods - All outcomes - Binary
+df_binary_vs1_all_size = df_long_size_cleaned_all %>% 
+  filter(outcome_group == "binary", grepl("_VS1$", method))
+
+p_binary_vs1_all_size = make_sample_size_plot(df_binary_vs1_all_size, "binary")
+ggsave("cleaned_data/Plot/samplesize_binary_vs1_all.png", 
+       p_binary_vs1_all_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS2 methods - All outcomes - Binary
+df_binary_vs2_all_size = df_long_size_cleaned_all %>% 
+  filter(outcome_group == "binary", grepl("_VS2$", method))
+
+p_binary_vs2_all_size = make_sample_size_plot(df_binary_vs2_all_size, "binary")
+ggsave("cleaned_data/Plot/samplesize_binary_vs2_all.png", 
+       p_binary_vs2_all_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# Base methods - All outcomes - Continuous
+df_continuous_base_all_size = df_long_size_cleaned_all %>% 
+  filter(outcome_group == "continuous", !grepl("_VS[12]$", method))
+
+p_cont_base_all_size = make_sample_size_plot(df_continuous_base_all_size, "continuous")
+ggsave("cleaned_data/Plot/samplesize_continuous_base_all.png", 
+       p_cont_base_all_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS1 methods - All outcomes - Continuous
+df_continuous_vs1_all_size = df_long_size_cleaned_all %>% 
+  filter(outcome_group == "continuous", grepl("_VS1$", method))
+
+p_cont_vs1_all_size = make_sample_size_plot(df_continuous_vs1_all_size, "continuous")
+ggsave("cleaned_data/Plot/samplesize_continuous_vs1_all.png", 
+       p_cont_vs1_all_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS2 methods - All outcomes - Continuous
+df_continuous_vs2_all_size = df_long_size_cleaned_all %>% 
+  filter(outcome_group == "continuous", grepl("_VS2$", method))
+
+p_cont_vs2_all_size = make_sample_size_plot(df_continuous_vs2_all_size, "continuous")
+ggsave("cleaned_data/Plot/samplesize_continuous_vs2_all.png", 
+       p_cont_vs2_all_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+###############################################################################
+##  8.  Generate all sample size plots (Primary outcomes) --------------------
+###############################################################################
+
+# Base methods (no VS) - Primary outcomes - Binary
+df_binary_base_primary_size = df_long_size_cleaned_primary %>% 
+  filter(outcome_group == "binary", !grepl("_VS[12]$", method))
+
+p_binary_base_primary_size = make_sample_size_plot(df_binary_base_primary_size, "binary")
+ggsave("cleaned_data/Plot/samplesize_binary_base_primary.png", 
+       p_binary_base_primary_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS1 methods - Primary outcomes - Binary
+df_binary_vs1_primary_size = df_long_size_cleaned_primary %>% 
+  filter(outcome_group == "binary", grepl("_VS1$", method))
+
+p_binary_vs1_primary_size = make_sample_size_plot(df_binary_vs1_primary_size, "binary")
+ggsave("cleaned_data/Plot/samplesize_binary_vs1_primary.png", 
+       p_binary_vs1_primary_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS2 methods - Primary outcomes - Binary
+df_binary_vs2_primary_size = df_long_size_cleaned_primary %>% 
+  filter(outcome_group == "binary", grepl("_VS2$", method))
+
+p_binary_vs2_primary_size = make_sample_size_plot(df_binary_vs2_primary_size, "binary")
+ggsave("cleaned_data/Plot/samplesize_binary_vs2_primary.png", 
+       p_binary_vs2_primary_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# Base methods - Primary outcomes - Continuous
+df_continuous_base_primary_size = df_long_size_cleaned_primary %>% 
+  filter(outcome_group == "continuous", !grepl("_VS[12]$", method))
+
+p_cont_base_primary_size = make_sample_size_plot(df_continuous_base_primary_size, "continuous")
+ggsave("cleaned_data/Plot/samplesize_continuous_base_primary.png", 
+       p_cont_base_primary_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS1 methods - Primary outcomes - Continuous
+df_continuous_vs1_primary_size = df_long_size_cleaned_primary %>% 
+  filter(outcome_group == "continuous", grepl("_VS1$", method))
+
+p_cont_vs1_primary_size = make_sample_size_plot(df_continuous_vs1_primary_size, "continuous")
+ggsave("cleaned_data/Plot/samplesize_continuous_vs1_primary.png", 
+       p_cont_vs1_primary_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# VS2 methods - Primary outcomes - Continuous
+df_continuous_vs2_primary_size = df_long_size_cleaned_primary %>% 
+  filter(outcome_group == "continuous", grepl("_VS2$", method))
+
+p_cont_vs2_primary_size = make_sample_size_plot(df_continuous_vs2_primary_size, "continuous")
+ggsave("cleaned_data/Plot/samplesize_continuous_vs2_primary.png", 
+       p_cont_vs2_primary_size, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+
+# Display all 12 sample size plots
+cat("\n========================================\n")
+cat("All sample size plots saved at publication quality (600 dpi, white background)\n")
+cat("========================================\n\n")
+
+cat("All Outcomes - Sample Size Plots:\n")
+print(p_binary_base_all_size)
+print(p_binary_vs1_all_size)
+print(p_binary_vs2_all_size)
+print(p_cont_base_all_size)
+print(p_cont_vs1_all_size)
+print(p_cont_vs2_all_size)
+
+cat("\nPrimary Outcomes - Sample Size Plots:\n")
+print(p_binary_base_primary_size)
+print(p_binary_vs1_primary_size)
+print(p_binary_vs2_primary_size)
+print(p_cont_base_primary_size)
+print(p_cont_vs1_primary_size)
+print(p_cont_vs2_primary_size)
 ```
 
-## Variance Summary
+```{r}
+###############################################################################
+##  6.  Sample Size vs Variance Ratio Plots (GAM + Progress) ----------------
+###############################################################################
+
+# Load parallel processing packages
+library(future)
+library(furrr)
+library(mgcv)  # For GAM smoothing
+
+# Set up parallel processing
+plan(multisession, workers = parallel::detectCores() - 1)
+
+# Function with GAM smoothing (much faster than loess)
+make_sample_size_plot = function(data, outcome_type) {
+  
+  # Set factor levels for binary outcomes to control order (same as violin plots)
+  if (outcome_type == "binary") {
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    
+    data = data %>%
+      mutate(method = factor(method, levels = method_levels))
+  }
+  
+  ggplot(data, aes(x = Sample_Size, y = precision_gain, color = method)) +
+    geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), se = FALSE, linewidth = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    labs(x = "Sample Size", y = "Variance Ratio", color = "Method") +
+    coord_cartesian(ylim = c(0, 2)) +
+    theme_minimal(base_size = 14) +
+    theme(
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "white", colour = NA),
+      plot.background = element_rect(fill = "white", colour = NA),
+      legend.position = "right"
+    )
+}
+
+# First, add Sample_Size to the long data
+cat("Preparing data...\n")
+df_long_with_size_all = df_long_full_all %>%
+  left_join(df_new %>% select(outcome_group, Sample_Size), 
+            by = "outcome_group", relationship = "many-to-many")
+
+df_long_with_size_primary = df_long_full_primary %>%
+  left_join(df_new_primary %>% select(outcome_group, Sample_Size), 
+            by = "outcome_group", relationship = "many-to-many")
+
+# Remove outliers (same as before)
+df_long_size_cleaned_all = df_long_with_size_all %>%
+  mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
+  filter(!is.na(precision_gain))
+
+df_long_size_cleaned_primary = df_long_with_size_primary %>%
+  mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
+  filter(!is.na(precision_gain))
+
+# Create a data frame with all plot configurations
+plot_configs = tibble::tribble(
+  ~plot_name,                              ~data_source,    ~outcome_type,  ~vs_type,
+  "samplesize_binary_base_all",            "all",           "binary",       "base",
+  "samplesize_binary_vs1_all",             "all",           "binary",       "vs1",
+  "samplesize_binary_vs2_all",             "all",           "binary",       "vs2",
+  "samplesize_continuous_base_all",        "all",           "continuous",   "base",
+  "samplesize_continuous_vs1_all",         "all",           "continuous",   "vs1",
+  "samplesize_continuous_vs2_all",         "all",           "continuous",   "vs2",
+  "samplesize_binary_base_primary",        "primary",       "binary",       "base",
+  "samplesize_binary_vs1_primary",         "primary",       "binary",       "vs1",
+  "samplesize_binary_vs2_primary",         "primary",       "binary",       "vs2",
+  "samplesize_continuous_base_primary",    "primary",       "continuous",   "base",
+  "samplesize_continuous_vs1_primary",     "primary",       "continuous",   "vs1",
+  "samplesize_continuous_vs2_primary",     "primary",       "continuous",   "vs2"
+)
+
+# Function to generate and save a single plot
+generate_plot = function(plot_name, data_source, outcome_type, vs_type) {
+  
+  # Select appropriate dataset
+  df_long_cleaned = if (data_source == "all") df_long_size_cleaned_all else df_long_size_cleaned_primary
+  
+  # Filter based on outcome type and VS type
+  if (vs_type == "base") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome_type, !grepl("_VS[12]$", method))
+  } else if (vs_type == "vs1") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome_type, grepl("_VS1$", method))
+  } else if (vs_type == "vs2") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome_type, grepl("_VS2$", method))
+  }
+  
+  # Create plot
+  p = make_sample_size_plot(df_filtered, outcome_type)
+  
+  # Save plot
+  ggsave(paste0("cleaned_data/Plot/", plot_name, ".png"), 
+         p, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+  
+  return(list(plot_name = plot_name, plot = p))
+}
+
+# Generate all plots in parallel with progress bar
+cat("\n========================================\n")
+cat("Generating 12 sample size plots in parallel using GAM smoothing...\n")
+cat(sprintf("Using %d cores\n", parallel::detectCores() - 1))
+cat("========================================\n\n")
+
+start_time = Sys.time()
+
+results = future_pmap(
+  plot_configs,
+  generate_plot,
+  .options = furrr_options(seed = TRUE),
+  .progress = TRUE  # Show progress bar
+)
+
+end_time = Sys.time()
+
+cat("\n========================================\n")
+cat("All sample size plots saved at publication quality (600 dpi, white background)\n")
+cat(sprintf("Time elapsed: %.2f seconds\n", as.numeric(end_time - start_time, units = "secs")))
+cat("========================================\n\n")
+
+# Extract plots from results for display
+plots_list = setNames(lapply(results, function(x) x$plot), 
+                      sapply(results, function(x) x$plot_name))
+
+cat("All Outcomes - Sample Size Plots:\n")
+print(plots_list$samplesize_binary_base_all)
+print(plots_list$samplesize_binary_vs1_all)
+print(plots_list$samplesize_binary_vs2_all)
+print(plots_list$samplesize_continuous_base_all)
+print(plots_list$samplesize_continuous_vs1_all)
+print(plots_list$samplesize_continuous_vs2_all)
+
+cat("\nPrimary Outcomes - Sample Size Plots:\n")
+print(plots_list$samplesize_binary_base_primary)
+print(plots_list$samplesize_binary_vs1_primary)
+print(plots_list$samplesize_binary_vs2_primary)
+print(plots_list$samplesize_continuous_base_primary)
+print(plots_list$samplesize_continuous_vs1_primary)
+print(plots_list$samplesize_continuous_vs2_primary)
+
+# Reset to sequential processing
+plan(sequential)
+```
+
+##latest version
+```{r}
+###############################################################################
+##  6.  Sample Size vs Variance Ratio Plots (3 versions) - LOESS + ALL PLOTS
+###############################################################################
+
+library(future)
+library(furrr)
+
+plan(multisession, workers = parallel::detectCores() - 1)
+
+# CORRECT APPROACH: Add Sample_Size directly when creating long data
+prepare_long_data_with_size = function(data) {
+  data %>%
+    select(outcome_group, Sample_Size, starts_with("precision_gain_")) %>%
+    pivot_longer(cols = starts_with("precision_gain_"),
+                 names_to = "method_raw",
+                 values_to = "pg") %>%
+    mutate(method = dplyr::case_match(
+      method_raw,
+      # Base methods (no VS)
+      "precision_gain_ANCOVA"                       ~ "ANCOVA",
+      "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
+      "precision_gain_Logistic_G_Computation"       ~ "Logistic G-computation",
+      "precision_gain_DML"                          ~ "DML",
+      "precision_gain_TMLE"                         ~ "TMLE",
+      
+      # VS1 methods
+      "precision_gain_ANCOVA_VS1"                   ~ "ANCOVA_VS1",
+      "precision_gain_ANHECOVA_VS1"                 ~ "ANHECOVA_VS1",
+      "precision_gain_Logistic_G_Computation_VS1"   ~ "Logistic G-computation_VS1",
+      "precision_gain_DML_VS1"                      ~ "DML_VS1",
+      "precision_gain_TMLE_VS1"                     ~ "TMLE_VS1",
+      
+      # VS2 methods
+      "precision_gain_ANCOVA_VS2"                   ~ "ANCOVA_VS2",
+      "precision_gain_ANHECOVA_VS2"                 ~ "ANHECOVA_VS2",
+      "precision_gain_Logistic_G_Computation_VS2"   ~ "Logistic G-computation_VS2",
+      "precision_gain_DML_VS2"                      ~ "DML_VS2",
+      "precision_gain_TMLE_VS2"                     ~ "TMLE_VS2"
+    )) %>%
+    filter(!is.na(method))
+}
+
+# Create long data WITH Sample_Size
+df_long_with_size_all = prepare_long_data_with_size(df_new_all_outcomes)
+df_long_with_size_primary = prepare_long_data_with_size(df_new_primary)
+
+cat("Sample size data prepared:\n")
+cat("All outcomes:", nrow(df_long_with_size_all), "rows\n")
+cat("Primary outcomes:", nrow(df_long_with_size_primary), "rows\n")
+
+# Remove outliers (same as violin plots)
+df_long_size_cleaned_all = df_long_with_size_all %>%
+  mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
+  filter(!is.na(precision_gain), !is.na(Sample_Size))
+
+df_long_size_cleaned_primary = df_long_with_size_primary %>%
+  mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
+  filter(!is.na(precision_gain), !is.na(Sample_Size))
+
+cat("After outlier removal:\n")
+cat("All outcomes:", nrow(df_long_size_cleaned_all), "rows\n")
+cat("Primary outcomes:", nrow(df_long_size_cleaned_primary), "rows\n")
+cat("Sample size range:", min(df_long_size_cleaned_all$Sample_Size), 
+    "to", max(df_long_size_cleaned_all$Sample_Size), "\n\n")
+
+# Function for smoothed plot (log10 sample size) - USING LOESS
+make_plot_smooth_log = function(data, outcome_type) {
+  if (outcome_type == "binary") {
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    data = data %>% mutate(method = factor(method, levels = method_levels))
+  }
+  
+  ggplot(data, aes(x = log10(Sample_Size), y = precision_gain, color = method)) +
+    geom_smooth(method = "loess", span = 0.75, se = FALSE, linewidth = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    labs(x = "Log10(Sample Size)", y = "Variance Ratio", color = "Method") +
+    coord_cartesian(ylim = c(0, 2)) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white", colour = NA),
+          plot.background = element_rect(fill = "white", colour = NA),
+          legend.position = "right")
+}
+
+# Function for scatter plot (original sample size)
+make_plot_scatter = function(data, outcome_type) {
+  if (outcome_type == "binary") {
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    data = data %>% mutate(method = factor(method, levels = method_levels))
+  }
+  
+  ggplot(data, aes(x = Sample_Size, y = precision_gain, color = method)) +
+    geom_point(alpha = 0.5, size = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    labs(x = "Sample Size", y = "Variance Ratio", color = "Method") +
+    coord_cartesian(ylim = c(0, 2)) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white", colour = NA),
+          plot.background = element_rect(fill = "white", colour = NA),
+          legend.position = "right")
+}
+
+# Function for scatter plot (log10 sample size)
+make_plot_scatter_log = function(data, outcome_type) {
+  if (outcome_type == "binary") {
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    data = data %>% mutate(method = factor(method, levels = method_levels))
+  }
+  
+  ggplot(data, aes(x = log10(Sample_Size), y = precision_gain, color = method)) +
+    geom_point(alpha = 0.5, size = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    labs(x = "Log10(Sample Size)", y = "Variance Ratio", color = "Method") +
+    coord_cartesian(ylim = c(0, 2)) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white", colour = NA),
+          plot.background = element_rect(fill = "white", colour = NA),
+          legend.position = "right")
+}
+
+# Create plot configs - only the necessary columns
+plot_configs = tibble::tibble(
+  data_source = rep(c(rep("all", 6), rep("primary", 6)), 3),
+  outcome_type = rep(rep(c("binary", "binary", "binary", "continuous", "continuous", "continuous"), 2), 3),
+  vs_type = rep(rep(c("base", "vs1", "vs2", "base", "vs1", "vs2"), 2), 3),
+  version = c(rep("smooth_log", 12), rep("scatter", 12), rep("scatter_log", 12))
+) %>%
+  mutate(
+    plot_name = paste0("samplesize_", outcome_type, "_", vs_type, "_", data_source, "_", version)
+  )
+
+# Function to generate single plot - matches the column names exactly
+generate_single_plot = function(data_source, outcome_type, vs_type, version, plot_name) {
+  
+  # Select appropriate dataset
+  df_long_cleaned = if (data_source == "all") df_long_size_cleaned_all else df_long_size_cleaned_primary
+  
+  # Filter based on outcome type and VS type
+  if (vs_type == "base") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome_type, !grepl("_VS[12]$", method))
+  } else if (vs_type == "vs1") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome_type, grepl("_VS1$", method))
+  } else if (vs_type == "vs2") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome_type, grepl("_VS2$", method))
+  }
+  
+  # Check if we have data
+  if (nrow(df_filtered) == 0) {
+    warning(paste("No data for", plot_name))
+    return(NULL)
+  }
+  
+  # Create appropriate plot based on version
+  p = if (version == "smooth_log") {
+    make_plot_smooth_log(df_filtered, outcome_type)
+  } else if (version == "scatter") {
+    make_plot_scatter(df_filtered, outcome_type)
+  } else if (version == "scatter_log") {
+    make_plot_scatter_log(df_filtered, outcome_type)
+  }
+  
+  return(list(plot_name = plot_name, plot = p))
+}
+
+cat("\n========================================\n")
+cat("Generating 36 sample size plots (12 configs × 3 versions)...\n")
+cat(sprintf("Using %d cores\n", parallel::detectCores() - 1))
+cat("========================================\n\n")
+
+start_time = Sys.time()
+
+results = future_pmap(
+  plot_configs,
+  generate_single_plot,
+  .options = furrr_options(seed = TRUE),
+  .progress = TRUE
+)
+
+end_time = Sys.time()
+
+cat("\n========================================\n")
+cat("36 plots generated (not saved)\n")
+cat(sprintf("Time elapsed: %.2f seconds\n", as.numeric(end_time - start_time, units = "secs")))
+cat("========================================\n\n")
+
+# Display ALL 36 plots organized by type
+cat(strrep("=", 70), "\n")
+cat("DISPLAYING ALL 36 PLOTS\n")
+cat(strrep("=", 70), "\n\n")
+
+# Group plots by version for better organization
+for (v in c("smooth_log", "scatter", "scatter_log")) {
+  version_name = case_when(
+    v == "smooth_log" ~ "SMOOTHED (Log10 Scale)",
+    v == "scatter" ~ "SCATTER (Original Scale)",
+    v == "scatter_log" ~ "SCATTER (Log10 Scale)"
+  )
+  
+  cat("\n", strrep("=", 70), "\n")
+  cat(version_name, "\n")
+  cat(strrep("=", 70), "\n\n")
+  
+  # Get indices for this version
+  version_indices = which(plot_configs$version == v)
+  
+  for (idx in version_indices) {
+    cat("\n--- Plot", idx, ":", plot_configs$plot_name[idx], "---\n")
+    print(results[[idx]]$plot)
+  }
+}
+
+cat("\n", strrep("=", 70), "\n")
+cat("ALL 36 PLOTS DISPLAYED\n")
+cat(strrep("=", 70), "\n")
+
+plan(sequential)
+
+cat("\n========================================\n")
+cat("To save a specific plot, use:\n")
+cat("ggsave('filename.png', results[[INDEX]]$plot, width=8, height=6, dpi=600, bg='white')\n")
+cat("========================================\n")
+```
+
+### smoothed log
+```{r}
+# Save all Version 1 plots (Smoothed Log10 Scale) with clear labels
+cat("\n", strrep("=", 70), "\n")
+cat("SAVING VERSION 1: SMOOTHED (Log10 Scale) - ALL 12 PLOTS\n")
+cat(strrep("=", 70), "\n\n")
+
+# Get indices for smooth_log version
+version1_indices = which(plot_configs$version == "smooth_log")
+
+for (idx in version1_indices) {
+  # Get plot details
+  outcome = plot_configs$outcome_type[idx]
+  vs = plot_configs$vs_type[idx]
+  data_src = plot_configs$data_source[idx]
+  
+  # Create descriptive label for console output
+  outcome_label = ifelse(outcome == "binary", "Binary", "Continuous")
+  vs_label = case_when(
+    vs == "base" ~ "Base Methods",
+    vs == "vs1" ~ "VS1 Methods",
+    vs == "vs2" ~ "VS2 Methods"
+  )
+  data_label = ifelse(data_src == "all", "ALL OUTCOMES", "PRIMARY OUTCOMES ONLY")
+  
+  # Create filename
+  filename = paste0("cleaned_data/Plot/", plot_configs$plot_name[idx], ".png")
+  
+  # Save the plot
+  ggsave(filename, results[[idx]]$plot, 
+         width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+  
+  cat(sprintf("✓ Saved: %s - %s [%s]\n", outcome_label, vs_label, data_label))
+  cat(sprintf("  File: %s\n", filename))
+}
+
+cat("\n", strrep("=", 70), "\n")
+cat("ALL 12 VERSION 1 PLOTS SAVED\n")
+cat(strrep("=", 70), "\n")
+```
+### smoothed original
+```{r}
+# First, we need to create a new plotting function for smoothed original scale
+make_plot_smooth_original = function(data, outcome_type) {
+  if (outcome_type == "binary") {
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    data = data %>% mutate(method = factor(method, levels = method_levels))
+  }
+  
+  ggplot(data, aes(x = Sample_Size, y = precision_gain, color = method)) +
+    geom_smooth(method = "loess", span = 0.75, se = FALSE, linewidth = 1) +
+    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    labs(x = "Sample Size", y = "Variance Ratio", color = "Method") +
+    coord_cartesian(ylim = c(0, 2)) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white", colour = NA),
+          plot.background = element_rect(fill = "white", colour = NA),
+          legend.position = "right")
+}
+
+# Generate the plots for smoothed original scale
+cat("\n", strrep("=", 70), "\n")
+cat("SMOOTHED (Original Sample Size Scale) - ALL 12 PLOTS\n")
+cat(strrep("=", 70), "\n\n")
+
+# Create list to store these plots
+smooth_original_plots = list()
+
+for (i in 1:12) {
+  # Get configuration for this plot
+  data_src = plot_configs$data_source[i]
+  outcome = plot_configs$outcome_type[i]
+  vs = plot_configs$vs_type[i]
+  
+  # Select appropriate dataset
+  df_long_cleaned = if (data_src == "all") df_long_size_cleaned_all else df_long_size_cleaned_primary
+  
+  # Filter based on outcome type and VS type
+  if (vs == "base") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome, !grepl("_VS[12]$", method))
+  } else if (vs == "vs1") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome, grepl("_VS1$", method))
+  } else if (vs == "vs2") {
+    df_filtered = df_long_cleaned %>% 
+      filter(outcome_group == outcome, grepl("_VS2$", method))
+  }
+  
+  # Create plot
+  p = make_plot_smooth_original(df_filtered, outcome)
+  smooth_original_plots[[i]] = p
+  
+  # Create descriptive label
+  outcome_label = ifelse(outcome == "binary", "Binary", "Continuous")
+  vs_label = case_when(
+    vs == "base" ~ "Base Methods",
+    vs == "vs1" ~ "VS1 Methods",
+    vs == "vs2" ~ "VS2 Methods"
+  )
+  data_label = ifelse(data_src == "all", "ALL OUTCOMES", "PRIMARY OUTCOMES ONLY")
+  
+  cat("\n", strrep("-", 70), "\n")
+  cat(sprintf("PLOT %d: %s - %s [%s]\n", i, outcome_label, vs_label, data_label))
+  cat(strrep("-", 70), "\n")
+  
+  print(p)
+  cat("\n")
+}
+
+cat(strrep("=", 70), "\n")
+cat("ALL 12 SMOOTHED (ORIGINAL SCALE) PLOTS DISPLAYED\n")
+cat(strrep("=", 70), "\n")
+
+# Save all smoothed original scale plots
+cat("\n", strrep("=", 70), "\n")
+cat("SAVING SMOOTHED (Original Sample Size Scale) - ALL 12 PLOTS\n")
+cat(strrep("=", 70), "\n\n")
+
+for (i in 1:12) {
+  # Get configuration for this plot
+  data_src = plot_configs$data_source[i]
+  outcome = plot_configs$outcome_type[i]
+  vs = plot_configs$vs_type[i]
+  
+  # Create descriptive label
+  outcome_label = ifelse(outcome == "binary", "Binary", "Continuous")
+  vs_label = case_when(
+    vs == "base" ~ "Base Methods",
+    vs == "vs1" ~ "VS1 Methods",
+    vs == "vs2" ~ "VS2 Methods"
+  )
+  data_label = ifelse(data_src == "all", "ALL OUTCOMES", "PRIMARY OUTCOMES ONLY")
+  
+  # Create filename
+  filename = paste0("cleaned_data/Plot/samplesize_", outcome, "_", vs, "_", data_src, "_smooth_original.png")
+  
+  # Save the plot
+  ggsave(filename, smooth_original_plots[[i]], 
+         width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
+  
+  cat(sprintf("✓ Saved: %s - %s [%s]\n", outcome_label, vs_label, data_label))
+  cat(sprintf("  File: %s\n", filename))
+}
+
+cat("\n", strrep("=", 70), "\n")
+cat("ALL 12 SMOOTHED (ORIGINAL SCALE) PLOTS SAVED\n")
+cat(strrep("=", 70), "\n")
+```
+
+
+
+# Variance Summary
 ```{r}
 ###############################################################################
 ##  Summary Tables: Mean and Variance for Each Method by Outcome Type -------
@@ -4098,17 +4866,24 @@ cat("\n--- Continuous: Base Methods ---\n")
 df_continuous_base_simple = create_simple_table("continuous", "none")
 print(df_continuous_base_simple)
 ```
+
 # Sample Size Hist
 ```{r}
+# Create output directory if it doesn't exist
+dir.create("cleaned_data/Plot", recursive = TRUE, showWarnings = FALSE)
+
 # Create a data frame
-df = data.frame(sample_size = df_comparison$Sample_Size)
+df = data.frame(sample_size = df_meta$'Sample Size')
 
 # Calculate summary statistics
 mean_size = mean(df$sample_size)
 median_size = median(df$sample_size)
 n_studies = length(df$sample_size)
 
-# Create the histogram with ggplot2
+###############################################################################
+## Plot 1: Original Linear Scale Histogram
+###############################################################################
+
 p = ggplot(df, aes(x = sample_size)) +
   geom_histogram(bins = 30, 
                  fill = "#4CAF50", 
@@ -4140,24 +4915,105 @@ p = ggplot(df, aes(x = sample_size)) +
     axis.text = element_text(size = 10),
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank(),
-    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5)
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5),
+    panel.background = element_rect(fill = "white", colour = NA),
+    plot.background = element_rect(fill = "white", colour = NA)
   ) +
   scale_x_continuous(labels = scales::comma_format()) +
   scale_y_continuous(expand = c(0, 0, 0.05, 0))
 
-# Display the plot
-p
+print(p)
+ggsave("cleaned_data/Plot/sample_size_linear.png", p, width = 10, height = 6, dpi = 300)
 
-# Additional analysis: categorize studies by size
-df = df %>%
-  mutate(size_category = case_when(
-    sample_size < 100 ~ "Small (< 100)",
-    sample_size >= 100 & sample_size < 500 ~ "Medium (100-499)",
-    sample_size >= 500 & sample_size < 1000 ~ "Large (500-999)",
-    sample_size >= 1000 ~ "Very Large (≥ 1000)"
-  ))
+###############################################################################
+## Plot 2: Custom Bins (RECOMMENDED for skewed data)
+###############################################################################
 
-# Create a second plot showing the log-transformed distribution
+# Create custom bins with wider intervals for larger values
+df_binned = df %>%
+  mutate(
+    size_category = cut(sample_size, 
+                       breaks = c(0, 100, 250, 500, 1000, 2000, Inf),
+                       labels = c("0-100", "100-250", "250-500", 
+                                 "500-1000", "1000-2000", "2000+"),
+                       include.lowest = TRUE)
+  )
+
+# Count by category
+bin_summary = df_binned %>%
+  count(size_category) %>%
+  mutate(percentage = round(n/sum(n)*100, 1))
+
+p_custom = ggplot(df_binned, aes(x = size_category)) +
+  geom_bar(fill = "#4CAF50", alpha = 0.8, color = "white") +
+  geom_text(stat = "count", aes(label = after_stat(count)), 
+            vjust = -0.5, size = 4, fontface = "bold") +
+  labs(title = "Distribution of Sample Sizes (Custom Bins)",
+       subtitle = paste0("Analysis of ", n_studies, " studies - grouped by size range"),
+       x = "Sample Size Range",
+       y = "Number of Studies",
+       caption = paste0("Mean: ", round(mean_size, 0), 
+                       " | Median: ", round(median_size, 0))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray60"),
+    plot.caption = element_text(size = 10, color = "gray60"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5),
+    panel.background = element_rect(fill = "white", colour = NA),
+    plot.background = element_rect(fill = "white", colour = NA)
+  ) +
+  scale_y_continuous(expand = c(0, 0, 0.1, 0))
+
+print(p_custom)
+ggsave("cleaned_data/Plot/sample_size_custom_bins.png", p_custom, width = 10, height = 6, dpi = 300)
+
+###############################################################################
+## Plot 3: Square Root Transformation
+###############################################################################
+
+p_sqrt = ggplot(df, aes(x = sqrt(sample_size))) +
+  geom_histogram(bins = 20, 
+                 fill = "#FF9800", 
+                 color = "white", 
+                 alpha = 0.8) +
+  scale_x_continuous(
+    breaks = sqrt(c(0, 100, 500, 1000, 2000, 4000, 6000)),
+    labels = scales::comma_format()(c(0, 100, 500, 1000, 2000, 4000, 6000))
+  ) +
+  labs(title = "Distribution of Sample Sizes (Square Root Scale)",
+       subtitle = "Square root transformation to better visualize skewed distribution",
+       x = "Sample Size (√ scale)",
+       y = "Frequency",
+       caption = paste0("Mean: ", round(mean_size, 0), 
+                       " | Median: ", round(median_size, 0))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "gray60"),
+    plot.caption = element_text(size = 10, color = "gray60"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5),
+    panel.background = element_rect(fill = "white", colour = NA),
+    plot.background = element_rect(fill = "white", colour = NA)
+  ) +
+  scale_y_continuous(expand = c(0, 0, 0.05, 0))
+
+print(p_sqrt)
+ggsave("cleaned_data/Plot/sample_size_sqrt.png", p_sqrt, width = 10, height = 6, dpi = 300)
+
+###############################################################################
+## Plot 4: Log-Transformed Distribution
+###############################################################################
+
 p_log = ggplot(df, aes(x = log10(sample_size))) +
   geom_histogram(bins = 25, 
                  fill = "#9C27B0", 
@@ -4166,22 +5022,163 @@ p_log = ggplot(df, aes(x = log10(sample_size))) +
   labs(title = "Log-Transformed Distribution of Sample Sizes",
        subtitle = "Log10 transformation to better visualize the distribution",
        x = "Log10(Sample Size)",
-       y = "Frequency") +
+       y = "Frequency",
+       caption = paste0("Mean: ", round(mean_size, 0), 
+                       " | Median: ", round(median_size, 0))) +
   theme_minimal() +
   theme(
     plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
     plot.subtitle = element_text(size = 11, hjust = 0.5, color = "gray60"),
+    plot.caption = element_text(size = 10, color = "gray60"),
     axis.title = element_text(size = 12, face = "bold"),
     axis.text = element_text(size = 10),
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank(),
-    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5)
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.5),
+    panel.background = element_rect(fill = "white", colour = NA),
+    plot.background = element_rect(fill = "white", colour = NA)
   ) +
   scale_y_continuous(expand = c(0, 0, 0.05, 0))
 
-p_log
+print(p_log)
+ggsave("cleaned_data/Plot/sample_size_log.png", p_log, width = 10, height = 6, dpi = 300)
+
+###############################################################################
+## Additional Analysis: Categorize Studies by Size
+###############################################################################
+
+df = df %>%
+  mutate(size_category_detailed = case_when(
+    sample_size < 100 ~ "Small (< 100)",
+    sample_size >= 100 & sample_size < 500 ~ "Medium (100-499)",
+    sample_size >= 500 & sample_size < 1000 ~ "Large (500-999)",
+    sample_size >= 1000 ~ "Very Large (≥ 1000)"
+  ))
+
+# Print summary
+cat("\n========================================\n")
+cat("Sample Size Summary Statistics\n")
+cat("========================================\n")
+print(summary(df$sample_size))
+
+cat("\n\nDistribution by Size Category:\n")
+category_summary = df %>%
+  count(size_category_detailed) %>%
+  mutate(percentage = round(n/sum(n)*100, 1))
+print(category_summary)
+
+cat("\n\nDistribution by Custom Bins:\n")
+print(bin_summary)
+
+cat("\n========================================\n")
+cat("All plots saved to cleaned_data/Plot/\n")
+cat("========================================\n")
 ```
 
 # Research Area Pie Chart
+```{r}
+# Consolidate similar research areas
+df_meta_consolidated <- df_meta %>%
+  mutate(Research_Area_Consolidated = case_when(
+    `Research Area` %in% c("Anesthesiology") ~ "Anesthesiology",
+    `Research Area` %in% c("HIV") ~ "HIV/AIDS",
+    `Research Area` %in% c("Maternal and Child Health", "Obstetrics", "Neonatology") ~ "Maternal & Child Health",
+    `Research Area` %in% c("Neurology", "Neuropsychology") ~ "Neurology",
+    `Research Area` %in% c("COVID-19", "Tuberculosis", "Vaccinology") ~ "Infectious Disease",
+    `Research Area` %in% c("Mental Health", "Addiction Medicine") ~ "Mental Health",
+    `Research Area` %in% c("Cardiovascular Disease", "Hypertension") ~ "Cardiovascular",
+    TRUE ~ `Research Area`
+  ))
+
+# Count and prepare data
+area_counts <- df_meta_consolidated %>%
+  count(Research_Area_Consolidated) %>%
+  arrange(desc(n)) %>%
+  mutate(
+    percentage = n / sum(n) * 100,
+    label = ifelse(percentage > 3, 
+                   paste0(Research_Area_Consolidated, "\n(", n, ")"),
+                   "")
+  )
+
+# Plot research area pie chart
+p2 <- ggplot(area_counts, 
+             aes(x = "", y = n, fill = Research_Area_Consolidated)) +
+  geom_bar(stat = "identity", width = 1, color = "white", size = 0.5) +
+  coord_polar("y", start = 0) +
+  scale_fill_viridis_d(option = "turbo") +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 9),
+    legend.position = "right"
+  ) +
+  labs(
+    title = "Distribution of Research Areas (N=50)",
+    fill = "Research Area"
+  ) +
+  geom_text(aes(label = ifelse(n >= 3, n, "")), 
+            position = position_stack(vjust = 0.5),
+            color = "white", size = 3.5, fontface = "bold")
+
+# Display and save
+print(p2)
+ggsave("cleaned_data/Plot/research_area_pie.png", p2, width = 12, height = 7, dpi = 300)
+
+# Print summary
+cat("\n=== Research Area Summary ===\n")
+print(area_counts %>% select(-label))
+```
+
 # Rand Scheme Pie Chart 
+```{r}
+# Count and prepare data for Randomization Scheme
+randomization_counts <- df_meta %>%
+  count(`Randomization Scheme(High Level)`) %>%
+  arrange(desc(n)) %>%
+  mutate(
+    percentage = n / sum(n) * 100,
+    label = paste0(`Randomization Scheme(High Level)`, "\n(", n, ", ", round(percentage, 1), "%)")
+  )
+
+# Create color palette
+rand_colors <- c(
+  "Stratified Block" = "#E41A1C",
+  "Simple" = "#377EB8", 
+  "Block" = "#4DAF4A",
+  "Stratified" = "#984EA3",
+  "Cluster" = "#FF7F00",
+  "Covariate Adaptive" = "#FFFF33"
+)
+
+# Plot randomization scheme pie chart
+p1 <- ggplot(randomization_counts, 
+             aes(x = "", y = n, fill = `Randomization Scheme(High Level)`)) +
+  geom_bar(stat = "identity", width = 1, color = "white", size = 0.5) +
+  coord_polar("y", start = 0) +
+  scale_fill_manual(values = rand_colors) +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10),
+    legend.position = "right"
+  ) +
+  labs(
+    title = "Distribution of Randomization Schemes (N=50)",
+    fill = "Randomization Scheme"
+  ) +
+  geom_text(aes(label = n), 
+            position = position_stack(vjust = 0.5),
+            color = "white", size = 4, fontface = "bold")
+
+# Display and save
+print(p1)
+ggsave("cleaned_data/Plot/randomization_scheme_pie.png", p1, width = 10, height = 6, dpi = 300)
+
+# Print summary
+cat("\n=== Randomization Scheme Summary ===\n")
+print(randomization_counts %>% select(-label))
+```
 
