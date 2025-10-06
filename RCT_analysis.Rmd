@@ -4038,11 +4038,11 @@ method_colors = c(
   "G-Logistic Top-3" = "#00BF7D",
   "DML Top-3" = "#00B0F6",
   "TMLE Top-3" = "#E76BF3",
-  "ANCOVA\nBaseline+" = "#F8766D",
-  "ANHECOVA\nBaseline+" = "#A3A500",
-  "G-Logistic\nBaseline+" = "#00BF7D",
-  "DML\nBaseline+" = "#00B0F6",
-  "TMLE\nBaseline+" = "#E76BF3"
+  "ANCOVA Baseline+" = "#F8766D",
+  "ANHECOVA Baseline+" = "#A3A500",
+  "G-Logistic Baseline+" = "#00BF7D",
+  "DML Baseline+" = "#00B0F6",
+  "TMLE Baseline+" = "#E76BF3"
 )
 
 # CORRECT APPROACH: Add Sample_Size directly when creating long data
@@ -4068,12 +4068,12 @@ prepare_long_data_with_size = function(data) {
       "precision_gain_DML_Top-3"                    ~ "DML Top-3",
       "precision_gain_TMLE_Top-3"                   ~ "TMLE Top-3",
       
-      # Baseline+ methods
-      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA\nBaseline+",
-      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA\nBaseline+",
-      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic\nBaseline+",
-      "precision_gain_DML_Baseline+"                ~ "DML\nBaseline+",
-      "precision_gain_TMLE_Baseline+"               ~ "TMLE\nBaseline+"
+      # Baseline+ methods (no line break - used in legend)
+      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA Baseline+",
+      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA Baseline+",
+      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic Baseline+",
+      "precision_gain_DML_Baseline+"                ~ "DML Baseline+",
+      "precision_gain_TMLE_Baseline+"               ~ "TMLE Baseline+"
     )) %>%
     filter(!is.na(method))
 }
@@ -4106,13 +4106,13 @@ make_plot_smooth_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
     method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
     method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -4138,13 +4138,13 @@ make_plot_scatter = function(data, outcome_type) {
   if (outcome_type == "binary") {
     method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
     method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -4170,13 +4170,13 @@ make_plot_scatter_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
     method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
     method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -4466,7 +4466,6 @@ library(patchwork)
 ###############################################################################
 ##  Create 4-panel combined figures
 ###############################################################################
-
 # Function to create a 4-panel figure
 create_4panel_figure = function(outcome_type, vs_type) {
   
@@ -4518,7 +4517,6 @@ create_4panel_figure = function(outcome_type, vs_type) {
 ###############################################################################
 ##  Generate and save all 6 four-panel figures
 ###############################################################################
-
 cat("\n", strrep("=", 70), "\n")
 cat("Creating 6 four-panel combined figures...\n")
 cat(strrep("=", 70), "\n\n")
@@ -4534,13 +4532,25 @@ fig_configs = tibble::tribble(
   "continuous",  "baseline",   "combined_continuous_baseline"
 )
 
+# Adjusted width since Baseline+ labels now fit better with line breaks
+combined_width = 24  # Reduced from 30 since text overlapping is solved
+combined_height = 12
+
 # Create and save each figure
 for (i in 1:nrow(fig_configs)) {
   outcome = fig_configs$outcome_type[i]
   vs = fig_configs$vs_type[i]
   fig_name = fig_configs$fig_name[i]
   
-  cat(sprintf("Creating figure %d/6: %s...\n", i, fig_name))
+  # Create descriptive label for console output
+  outcome_label = ifelse(outcome == "binary", "Binary", "Continuous")
+  vs_label = case_when(
+    vs == "all" ~ "All Methods",
+    vs == "top3" ~ "Top-3 Methods",
+    vs == "baseline" ~ "Baseline+ Methods"
+  )
+  
+  cat(sprintf("Creating figure %d/6: %s - %s...\n", i, outcome_label, vs_label))
   
   # Create the 4-panel figure
   combined_fig = create_4panel_figure(outcome, vs)
@@ -4548,9 +4558,11 @@ for (i in 1:nrow(fig_configs)) {
   # Save the figure
   filename = paste0("cleaned_data/Plot/", fig_name, ".png")
   ggsave(filename, combined_fig, 
-         width = 30, height = 12, dpi = pub_dpi, bg = "white")
+         width = combined_width, height = combined_height, dpi = pub_dpi, bg = "white")
   
-  cat(sprintf("✓ Saved: %s\n\n", filename))
+  cat(sprintf("✓ Saved: %s\n", filename))
+  cat(sprintf("  Dimensions: %d × %d inches @ %d dpi\n\n", 
+              combined_width, combined_height, pub_dpi))
   
   # Display the figure
   print(combined_fig)
@@ -4559,6 +4571,11 @@ for (i in 1:nrow(fig_configs)) {
 cat(strrep("=", 70), "\n")
 cat("ALL 6 FOUR-PANEL FIGURES CREATED AND SAVED\n")
 cat(strrep("=", 70), "\n")
+cat(sprintf("• Each figure: %d × %d inches @ %d dpi\n", 
+            combined_width, combined_height, pub_dpi))
+cat("• Layout: Violin plots (left) | Smoothed plots (right)\n")
+cat("          All outcomes (top) | Primary outcomes (bottom)\n")
+cat(strrep("=", 70), "\n\n")
 ```
 
 
@@ -4897,30 +4914,89 @@ cat("All plots saved to cleaned_data/Plot/\n")
 cat("========================================\n")
 ```
 
+# Pub Hist
+```{r}
+###############################################################################
+##  Publication Year Histogram
+###############################################################################
+
+# Prepare data
+df_pub_year = data.frame(
+  pub_year = df_meta$PublicationYear
+) %>%
+  filter(!is.na(pub_year))
+
+# Create histogram
+p_pub_year = ggplot(df_pub_year, aes(x = pub_year)) +
+  geom_histogram(binwidth = 1, fill = "#2196F3", color = "white", alpha = 0.8) +
+  labs(x = "Publication Year",
+       y = "Number of Trials") +
+  theme_minimal(base_size = 15) +
+  theme(
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 13),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = "white", colour = NA),
+    plot.background = element_rect(fill = "white", colour = NA)
+  ) +
+  scale_x_continuous(breaks = seq(1940, 2030, by = 5))
+
+# Display and save
+print(p_pub_year)
+ggsave("cleaned_data/Plot/publication_year_histogram.png", p_pub_year, 
+       width = 10, height = 6, dpi = 600, bg = "white")
+
+###############################################################################
+## Summary Statistics
+###############################################################################
+cat("\n=== Publication Year Summary ===\n")
+cat("Number of trials:", nrow(df_pub_year), "\n")
+cat("Year range:", min(df_pub_year$pub_year), "-", max(df_pub_year$pub_year), "\n")
+cat("\nYear Distribution:\n")
+print(summary(df_pub_year$pub_year))
+cat("\nTrials per decade:\n")
+df_pub_year %>%
+  mutate(decade = floor(pub_year / 10) * 10) %>%
+  count(decade) %>%
+  arrange(decade) %>%
+  print()
+cat("\nPlot saved to cleaned_data/Plot/publication_year_histogram.png\n")
+```
+
+
 # N. Cova vs N Plot
 ```{r}
-# Create data frame with sample size and number of covariates
-df_cov_size = data.frame(
-  sample_size = df_meta$`Sample Size`,
-  n_covariates = df_meta$No_Covariates
-) %>%
-  filter(!is.na(sample_size), !is.na(n_covariates))
+###############################################################################
+##  Covariates vs Sample Size - Scatter Plots Only
+###############################################################################
+
+# Prepare data: get mean covariates per trial and merge with sample size
+df_cov_summary = df_comparison %>% 
+  group_by(Trial_No) %>% 
+  summarise(mean_covariates = round(mean(N_Covariates, na.rm = TRUE)), 
+            .groups = 'drop')
+
+# Merge with sample size data from df_meta (using Trial_ID)
+df_cov_size = df_meta %>%
+  select(Trial_ID, Sample_Size = `Sample Size`) %>%
+  inner_join(df_cov_summary, by = c("Trial_ID" = "Trial_No")) %>%
+  filter(!is.na(Sample_Size), !is.na(mean_covariates))
 
 # Calculate correlation
-correlation = cor(df_cov_size$sample_size, df_cov_size$n_covariates, 
+correlation = cor(df_cov_size$Sample_Size, df_cov_size$mean_covariates, 
                   use = "complete.obs")
 
-# Create scatter plot with smoothed curve
-p_cov_size = ggplot(df_cov_size, aes(x = sample_size, y = n_covariates)) +
+###############################################################################
+## Original Scale Version (Scatter Only)
+###############################################################################
+p_cov_size = ggplot(df_cov_size, aes(x = Sample_Size, y = mean_covariates)) +
   geom_point(alpha = 0.6, size = 3, color = "#2196F3") +
-  geom_smooth(method = "loess", se = TRUE, color = "#FF5722", 
-              fill = "#FF5722", alpha = 0.2, linewidth = 1.2) +
   labs(x = "Sample Size",
-       y = "Number of Covariates") +
-  theme_minimal(base_size = 16) +
+       y = "Average Number of Covariates") +
+  theme_minimal(base_size = 15) +
   theme(
-    axis.title = element_text(size = 18, face = "bold"),
-    axis.text = element_text(size = 16),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 13),
     panel.grid.minor = element_blank(),
     panel.background = element_rect(fill = "white", colour = NA),
     plot.background = element_rect(fill = "white", colour = NA)
@@ -4933,20 +5009,16 @@ ggsave("cleaned_data/Plot/covariates_vs_sample_size.png", p_cov_size,
        width = 10, height = 6, dpi = 600, bg = "white")
 
 ###############################################################################
-## Log10 Version
+## Log10 Version (Scatter Only)
 ###############################################################################
-
-# Create scatter plot with smoothed curve (log10 scale)
-p_cov_size_log = ggplot(df_cov_size, aes(x = log10(sample_size), y = n_covariates)) +
+p_cov_size_log = ggplot(df_cov_size, aes(x = log10(Sample_Size), y = mean_covariates)) +
   geom_point(alpha = 0.6, size = 3, color = "#2196F3") +
-  geom_smooth(method = "loess", se = TRUE, color = "#FF5722", 
-              fill = "#FF5722", alpha = 0.2, linewidth = 1.2) +
   labs(x = "Log10(Sample Size)",
-       y = "Number of Covariates") +
-  theme_minimal(base_size = 16) +
+       y = "Average Number of Covariates") +
+  theme_minimal(base_size = 15) +
   theme(
-    axis.title = element_text(size = 18, face = "bold"),
-    axis.text = element_text(size = 16),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 13),
     panel.grid.minor = element_blank(),
     panel.background = element_rect(fill = "white", colour = NA),
     plot.background = element_rect(fill = "white", colour = NA)
@@ -4957,15 +5029,19 @@ print(p_cov_size_log)
 ggsave("cleaned_data/Plot/covariates_vs_sample_size_log.png", p_cov_size_log, 
        width = 10, height = 6, dpi = 600, bg = "white")
 
-# Print summary statistics
+###############################################################################
+## Summary Statistics
+###############################################################################
 cat("\n=== Covariates vs Sample Size Summary ===\n")
-cat("Number of studies:", nrow(df_cov_size), "\n")
+cat("Number of trials:", nrow(df_cov_size), "\n")
 cat("Correlation coefficient:", round(correlation, 3), "\n")
 cat("\nSample Size Summary:\n")
-print(summary(df_cov_size$sample_size))
+print(summary(df_cov_size$Sample_Size))
 cat("\nNumber of Covariates Summary:\n")
-print(summary(df_cov_size$n_covariates))
+print(summary(df_cov_size$mean_covariates))
 cat("\nBoth plots saved to cleaned_data/Plot/\n")
+cat("  - covariates_vs_sample_size.png (original scale)\n")
+cat("  - covariates_vs_sample_size_log.png (log10 scale)\n")
 ```
 
 
