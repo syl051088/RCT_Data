@@ -3727,11 +3727,11 @@ prepare_long_data = function(data) {
       "precision_gain_TMLE_Top-3"                   ~ "TMLE Top-3",
       
       # Baseline+ methods
-      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA Baseline+",
-      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA Baseline+",
-      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic Baseline+",
-      "precision_gain_DML_Baseline+"                ~ "DML Baseline+",
-      "precision_gain_TMLE_Baseline+"               ~ "TMLE Baseline+"
+      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA\nBaseline+",
+      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA\nBaseline+",
+      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic\nBaseline+",
+      "precision_gain_DML_Baseline+"                ~ "DML\nBaseline+",
+      "precision_gain_TMLE_Baseline+"               ~ "TMLE\nBaseline+"
     )) %>%
     filter(!is.na(method))  # Remove rows where method couldn't be matched
 }
@@ -3783,7 +3783,7 @@ build_and_print_table = function(outcome_type, vs_type = "All", data_type = "all
     } else if (vs_type == "Top-3") {
       "G-Logistic Top-3"
     } else if (vs_type == "Baseline+") {
-      "G-Logistic Baseline+"
+      "G-Logistic\nBaseline+"
     }
     nas = nas %>% filter(!method %in% logistic_methods)
   }
@@ -3817,11 +3817,11 @@ method_colors = c(
   "G-Logistic Top-3" = "#00BA38",
   "DML Top-3" = "#00BFC4",
   "TMLE Top-3" = "#619CFF",
-  "ANCOVA Baseline+" = "#F8766D",
-  "ANHECOVA Baseline+" = "#B79F00",
-  "G-Logistic Baseline+" = "#00BA38",
-  "DML Baseline+" = "#00BFC4",
-  "TMLE Baseline+" = "#619CFF"
+  "ANCOVA\nBaseline+" = "#F8766D",
+  "ANHECOVA\nBaseline+" = "#B79F00",
+  "G-Logistic\nBaseline+" = "#00BA38",
+  "DML\nBaseline+" = "#00BFC4",
+  "TMLE\nBaseline+" = "#619CFF"
 )
 
 ###############################################################################
@@ -3834,7 +3834,7 @@ make_plot = function(data, outcome_type) {
     # Define custom order: G-Logistic before DML
     method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
     
     data = data %>%
       mutate(method = factor(method, levels = method_levels))
@@ -3848,7 +3848,7 @@ make_plot = function(data, outcome_type) {
     coord_cartesian(ylim = c(0, 2)) +
     theme_minimal(base_size = 15) +
     theme(
-      axis.text.x   = element_text(angle = 0, hjust = 0.5, size = 15),
+      axis.text.x   = element_text(angle = 0, hjust = 0.5, size = 13),
       axis.text.y   = element_text(size = 13),
       axis.title.y  = element_text(size = 15),
       panel.grid.minor = element_blank(),
@@ -3876,7 +3876,7 @@ df_long_outlier_removed_primary = remove_outliers(df_long_full_primary)
 ###############################################################################
 ##  Publication quality settings ---------------------------------------------
 ###############################################################################
-pub_width = 12
+pub_width = 10
 pub_height = 6
 pub_dpi = 600  # 600 dpi for publication quality
 
@@ -4038,11 +4038,11 @@ method_colors = c(
   "G-Logistic Top-3" = "#00BF7D",
   "DML Top-3" = "#00B0F6",
   "TMLE Top-3" = "#E76BF3",
-  "ANCOVA Baseline+" = "#F8766D",
-  "ANHECOVA Baseline+" = "#A3A500",
-  "G-Logistic Baseline+" = "#00BF7D",
-  "DML Baseline+" = "#00B0F6",
-  "TMLE Baseline+" = "#E76BF3"
+  "ANCOVA\nBaseline+" = "#F8766D",
+  "ANHECOVA\nBaseline+" = "#A3A500",
+  "G-Logistic\nBaseline+" = "#00BF7D",
+  "DML\nBaseline+" = "#00B0F6",
+  "TMLE\nBaseline+" = "#E76BF3"
 )
 
 # CORRECT APPROACH: Add Sample_Size directly when creating long data
@@ -4069,11 +4069,11 @@ prepare_long_data_with_size = function(data) {
       "precision_gain_TMLE_Top-3"                   ~ "TMLE Top-3",
       
       # Baseline+ methods
-      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA Baseline+",
-      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA Baseline+",
-      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic Baseline+",
-      "precision_gain_DML_Baseline+"                ~ "DML Baseline+",
-      "precision_gain_TMLE_Baseline+"               ~ "TMLE Baseline+"
+      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA\nBaseline+",
+      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA\nBaseline+",
+      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic\nBaseline+",
+      "precision_gain_DML_Baseline+"                ~ "DML\nBaseline+",
+      "precision_gain_TMLE_Baseline+"               ~ "TMLE\nBaseline+"
     )) %>%
     filter(!is.na(method))
 }
@@ -4106,13 +4106,13 @@ make_plot_smooth_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
     method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
     method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -4122,15 +4122,15 @@ make_plot_smooth_log = function(data, outcome_type) {
     scale_color_manual(values = method_colors) +
     labs(x = "Log10(Sample Size)", y = "Variance Ratio", color = "Method") +
     coord_cartesian(ylim = c(0, 2)) +
-    theme_minimal(base_size = 18) +
+    theme_minimal(base_size = 15) +
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
           legend.position = "right",
-          legend.text = element_text(size = 16),
-          legend.title = element_text(size = 18),
-          axis.text = element_text(size = 16),
-          axis.title = element_text(size = 18))
+          legend.text = element_text(size = 13),
+          legend.title = element_text(size = 15),
+          axis.text = element_text(size = 13),
+          axis.title = element_text(size = 15))
 }
 
 # Function for scatter plot (original sample size)
@@ -4138,13 +4138,13 @@ make_plot_scatter = function(data, outcome_type) {
   if (outcome_type == "binary") {
     method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
     method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -4154,15 +4154,15 @@ make_plot_scatter = function(data, outcome_type) {
     scale_color_manual(values = method_colors) +
     labs(x = "Sample Size", y = "Variance Ratio", color = "Method") +
     coord_cartesian(ylim = c(0, 2)) +
-    theme_minimal(base_size = 18) +
+    theme_minimal(base_size = 15) +
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
           legend.position = "right",
-          legend.text = element_text(size = 16),
-          legend.title = element_text(size = 18),
-          axis.text = element_text(size = 16),
-          axis.title = element_text(size = 18))
+          legend.text = element_text(size = 13),
+          legend.title = element_text(size = 15),
+          axis.text = element_text(size = 13),
+          axis.title = element_text(size = 15))
 }
 
 # Function for scatter plot (log10 sample size)
@@ -4170,13 +4170,13 @@ make_plot_scatter_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
     method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
     method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
                      "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -4186,15 +4186,15 @@ make_plot_scatter_log = function(data, outcome_type) {
     scale_color_manual(values = method_colors) +
     labs(x = "Log10(Sample Size)", y = "Variance Ratio", color = "Method") +
     coord_cartesian(ylim = c(0, 2)) +
-    theme_minimal(base_size = 16) +
+    theme_minimal(base_size = 15) +
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
           legend.position = "right",
-          legend.text = element_text(size = 14),
-          legend.title = element_text(size = 16),
-          axis.text = element_text(size = 14),
-          axis.title = element_text(size = 16))
+          legend.text = element_text(size = 13),
+          legend.title = element_text(size = 15),
+          axis.text = element_text(size = 13),
+          axis.title = element_text(size = 15))
 }
 
 # Create plot configs - only the necessary columns
@@ -4306,6 +4306,7 @@ pub_dpi = 600
 ```
 ## smoothed log
 ```{r}
+
 ###############################################################################
 ##  Save all Version 1 plots (Smoothed Log10 Scale) with clear labels
 ###############################################################################
