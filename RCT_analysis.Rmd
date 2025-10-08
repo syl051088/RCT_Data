@@ -2406,8 +2406,8 @@ df32 = read_rds("cleaned_data/Non_Clustered_RCT/trial32.rds")
 ## Process
 
 ```{r}
-type = c("categorical", "binary", "binary", "binary")
-demo = c("X_gender_0w")
+type = c(rep("continuous", 4), "binary", "continuous", rep("binary", 3))
+demo = c("X_sex_0m", "X_age_0m")
 ```
 
 ```{r}

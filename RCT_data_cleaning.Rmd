@@ -2735,47 +2735,70 @@ write_rds(df31_final, "cleaned_data/Non_Clustered_RCT/trial31.rds")
 # Trial 32
 ## Load Data
 ```{r}
-df32 = medicaldata::strep_tb
+df32 = read_csv("raw_data/Non_Clustered_RCT/32/32.csv") %>% 
+  filter(!is.na(expgp))
 ```
 
 
 ## Cleaning
 ```{r}
-# Replace missing values with NA
-df32_final = df32 %>%
-  # Rename treatment variable and factor with Control as reference
-  rename(Treatment = arm) %>%
-  mutate(Treatment = factor(Treatment, levels = c("Control", "Streptomycin"))) %>%
-  
-  # Create primary outcome variables (YP_ prefix)
-  # The primary outcome is radiological assessment at 6 months
+df32_final = df32 %>% 
   mutate(
-    YP_radiologic_6m = factor(radiologic_6m),
-    YP_considerable_improvement = factor(ifelse(radiologic_6m == "6_Considerable_improvement", 1, 0)),
-    YP_any_improvement = factor(improved)
-  ) %>%
-  
-  # Create secondary outcome variables (YS_ prefix)
-  # Based on paper: bacteriological outcomes, clinical condition changes
-  mutate(
-    YS_strep_resistance = factor(strep_resistance),
-    YS_death = factor(ifelse(radiologic_6m == "1_Death", 1, 0))
-  ) %>%
-  
-  # Create covariate variables (X_ prefix with _0w suffix)
-  mutate(
-    X_gender_0w = factor(gender),
-    X_condition_0w = factor(baseline_condition),
-    X_temp_0w = factor(baseline_temp),
-    X_esr_0w = factor(baseline_esr),
-    X_cavitation_0w = factor(baseline_cavitation)
-  ) %>%
-  
-  # Reorder columns: Treatment first, then YP_, YS_, X_ variables
-  select(Treatment, 
-         starts_with("YP_"), 
-         starts_with("YS_"), 
-         starts_with("X_"))
+    Treatment = factor(expgp, 
+                       levels = c(1, 2, 3),
+                       labels = c("Hyrax", "Hybrid-Hyrax", "Keles")),
+    Treatment = relevel(Treatment, ref = "Hyrax"),
+    
+    # Primary
+    YP_Pressure_6m = pres_pst,
+    YP_Velocity_6m = veloc_pst,
+    
+    # Secondary
+    YS_nasal_width_ANS_6m = naswidans_pst,
+    YS_nasal_width_M1_6m = naswid6_pst,
+    YS_nasal_obstruction_6m = conobstbi_pst,
+    YS_IMW_6m = imw_pst,
+    YS_mucosal_hypertrophy_6m = muchypbi_pst,
+    YS_adenoid_hypertrophy_6m = adehypbi_pst,
+    YS_nasal_septum_deviation_6m = nasdevbi_pst,
+    
+    # Baseline cov
+    X_Pressure_0m = as.numeric(pres_pre),
+    X_Velocity_0m = as.numeric(veloc_pre),
+    X_nasal_width_ANS_0m = naswidans_pre,
+    X_nasal_width_M1_0m = naswid6_pre,
+    X_nasal_obstruction_0m = conobstbi_pre,
+    X_IMW_0m = imw_pre,
+    X_mucosal_hypertrophy_0m = muchypbi_pre,
+    X_adenoid_hypertrophy_0m = adehypbi_pre,
+    X_nasal_septum_deviation_0m = nasdevbi_pre,
+    
+    # Demo cov
+    X_sex_0m = factor(male, levels = c(0, 1), labels = c("Female", "Male")),
+    X_age_0m = as.numeric(age),
+    X_CVM_0m = factor(CVM),
+    X_exp_0m = as.numeric(expmm),
+    
+        # Binary outcomes and covariates
+    X_nasal_obstruction_0m = factor(X_nasal_obstruction_0m, levels = c(0, 1), labels = c("No", "Yes")),
+    YS_nasal_obstruction_6m = factor(YS_nasal_obstruction_6m, levels = c(0, 1), labels = c("No", "Yes")),
+    
+    X_mucosal_hypertrophy_0m = factor(X_mucosal_hypertrophy_0m, levels = c(0, 1), labels = c("No", "Yes")),
+    YS_mucosal_hypertrophy_6m = factor(YS_mucosal_hypertrophy_6m, levels = c(0, 1), labels = c("No", "Yes")),
+    
+    X_adenoid_hypertrophy_0m = factor(X_adenoid_hypertrophy_0m, levels = c(0, 1), labels = c("No", "Yes")),
+    YS_adenoid_hypertrophy_6m = factor(YS_adenoid_hypertrophy_6m, levels = c(0, 1), labels = c("No", "Yes")),
+    
+    X_nasal_septum_deviation_0m = factor(X_nasal_septum_deviation_0m, levels = c(0, 1), labels = c("No", "Yes")),
+    YS_nasal_septum_deviation_6m = factor(YS_nasal_septum_deviation_6m, levels = c(0, 1), labels = c("No", "Yes"))
+    
+  ) %>% 
+  select(
+    Treatment,
+    starts_with("YP_"),
+    starts_with("YS_"),
+    starts_with("X_")
+  )
 ```
 ## Output Data
 
@@ -4299,7 +4322,6 @@ df50_final = baseline_data %>%
 write_csv(df50_final, "cleaned_data/Non_Clustered_RCT/trial50.csv")
 write_rds(df50_final, "cleaned_data/Non_Clustered_RCT/trial50.rds")
 ```
-
 
 
 # Cluster Trial 1
