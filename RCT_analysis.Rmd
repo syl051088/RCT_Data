@@ -728,8 +728,8 @@ update_df = function(trial_no,
         ANCOVA_robust_se                   = results$SE_RC_ANCOVA,
         ANHECOVA_est                       = results$Est_RC_ANHECOVA,
         ANHECOVA_robust_se                 = results$SE_RC_ANHECOVA,
-        Logistic_G_Computation_est         = results$Est_RC_Logistic_G_Computation,
-        Logistic_G_Computation_robust_se   = results$SE_RC_Logistic_G_Computation,
+        `Logistic G-Computation_est`       = results$Est_RC_Logistic_G_Computation,
+        `Logistic G-Computation_robust_se` = results$SE_RC_Logistic_G_Computation,
         ANCOVA_model_based_se              = results$SE_AC,
         Unadjust_est                       = results$Est_UN,
         Unadjust_se                        = results$SE_UN,
@@ -745,8 +745,8 @@ update_df = function(trial_no,
         !!paste0("ANCOVA", suffix_clean, "_robust_se")                   := results$SE_RC_ANCOVA,
         !!paste0("ANHECOVA", suffix_clean, "_est")                       := results$Est_RC_ANHECOVA,
         !!paste0("ANHECOVA", suffix_clean, "_robust_se")                 := results$SE_RC_ANHECOVA,
-        !!paste0("Logistic_G_Computation", suffix_clean, "_est")         := results$Est_RC_Logistic_G_Computation,
-        !!paste0("Logistic_G_Computation", suffix_clean, "_robust_se")   := results$SE_RC_Logistic_G_Computation,
+        !!paste0("Logistic G-Computation", suffix_clean, "_est")         := results$Est_RC_Logistic_G_Computation,
+        !!paste0("Logistic G-Computation", suffix_clean, "_robust_se")   := results$SE_RC_Logistic_G_Computation,
         !!paste0("ANCOVA", suffix_clean, "_model_based_se")              := results$SE_AC,
         !!paste0(sl_base_name, suffix_clean, "_est")                     := results$Est_SL,
         !!paste0(sl_base_name, suffix_clean, "_se")                      := results$SE_SL,
@@ -801,9 +801,9 @@ update_df = function(trial_no,
   if (suffix == "") {
     results_processed = results_processed %>%
       mutate(
-        `How much precision gain can ANCOVA provide?`                 = (ANCOVA_robust_se / Unadjust_se)^2,
-        `How much precision gain can ANHECOVA provide?`               = (ANHECOVA_robust_se / Unadjust_se)^2,
-        `How much precision gain can Logistic G-Computation provide?` = (Logistic_G_Computation_robust_se / Unadjust_se)^2,
+        `How much precision gain can ANCOVA provide?`                     = (ANCOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can ANHECOVA provide?`                   = (ANHECOVA_robust_se / Unadjust_se)^2,
+        `How much precision gain can Logistic G-Computation provide?`     = (`Logistic G-Computation_robust_se` / Unadjust_se)^2,
         !!paste0("How much precision gain can ", sl_base_name, " provide?") := 
           (.data[[sl_se_col]] / Unadjust_se)^2,
         `ANCOVA vs ANHECOVA variance ratio`             = (ANCOVA_robust_se / ANHECOVA_robust_se)^2,
@@ -816,23 +816,23 @@ update_df = function(trial_no,
           (ANHECOVA_est - Unadjust_est) /
           sqrt((ANHECOVA_robust_se^2 + Unadjust_se^2) / 2),
         `The difference between unadjusted and Logistic G-Computation point estimates` =
-          (Logistic_G_Computation_est - Unadjust_est) /
-          sqrt((Logistic_G_Computation_robust_se^2 + Unadjust_se^2) / 2),
+          (`Logistic G-Computation_est` - Unadjust_est) /
+          sqrt((`Logistic G-Computation_robust_se`^2 + Unadjust_se^2) / 2),
         !!paste0("The difference between unadjusted and ", sl_base_name, " point estimates") :=
           (.data[[sl_est_col]] - Unadjust_est) /
-          sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
+          sqrt((.data[[sl_est_col]]^2 + Unadjust_se^2) / 2)
       )
   } else {
     # For suffixed version
     suffix_clean = paste0("_", suffix)
     ancova_se_col = paste0("ANCOVA", suffix_clean, "_robust_se")
     anhecova_se_col = paste0("ANHECOVA", suffix_clean, "_robust_se")
-    logistic_g_computation_se_col = paste0("Logistic_G_Computation", suffix_clean, "_robust_se")
+    logistic_g_computation_se_col = paste0("Logistic G-Computation", suffix_clean, "_robust_se")
     ancova_model_se_col = paste0("ANCOVA", suffix_clean, "_model_based_se")
     
     ancova_est_col = paste0("ANCOVA", suffix_clean, "_est")
     anhecova_est_col = paste0("ANHECOVA", suffix_clean, "_est")
-    logistic_g_computation_est_col = paste0("Logistic_G_Computation", suffix_clean, "_est")
+    logistic_g_computation_est_col = paste0("Logistic G-Computation", suffix_clean, "_est")
     
     results_processed = results_processed %>%
       mutate(
@@ -856,7 +856,7 @@ update_df = function(trial_no,
           sqrt((.data[[anhecova_se_col]]^2 + Unadjust_se^2) / 2),
         !!paste0("The difference between unadjusted and Logistic G-Computation", suffix_clean, " point estimates") := 
           (.data[[logistic_g_computation_est_col]] - Unadjust_est) /
-          sqrt((.data[[logistic_g_computation_se_col]]^2 + Unadjust_se^2) / 2),
+          sqrt((.data[[logistic_g_computation_est_col]]^2 + Unadjust_se^2) / 2),
         !!paste0("The difference between unadjusted and ", sl_base_name, suffix_clean, " point estimates") := 
           (.data[[sl_est_col]] - Unadjust_est) /
           sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
@@ -4352,9 +4352,9 @@ cat(strrep("=", 70), "\n")
 # First, we need to create a new plotting function for smoothed original scale
 make_plot_smooth_original = function(data, outcome_type) {
   if (outcome_type == "binary") {
-    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-computation", "DML", "TMLE",
-                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-computation_VS1", "DML_VS1", "TMLE_VS1",
-                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-computation_VS2", "DML_VS2", "TMLE_VS2")
+    method_levels = c("ANCOVA", "ANHECOVA", "Logistic G-Computation", "DML", "TMLE",
+                     "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic G-Computation_VS1", "DML_VS1", "TMLE_VS1",
+                     "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic G-Computation_VS2", "DML_VS2", "TMLE_VS2")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
