@@ -3088,115 +3088,6 @@ analyze_rct_sl_tmle = function(data,
   
   results
 }
-
-## Variable selection functions (copy from existing code)
-
-variable_selection_correlation = function(outcome, valid_covariates, df_complete_numeric, n_select = 3) {
-  if (length(valid_covariates) > n_select) {
-    # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
-    cov_values = numeric(length(valid_covariates))
-    names(cov_values) = valid_covariates
-    
-    for (cov in valid_covariates) {
-      # Convert covariate to numeric temporarily for correlation computation
-      cov_numeric = as.numeric(df_complete_numeric[[cov]])
-      cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
-    }
-    
-    # Select top n_select by absolute correlation magnitude
-    top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
-    selected_covariates = valid_covariates[top_idx]
-    return(selected_covariates)
-  }
-  # If ≤n_select valid covariates, use all of them
-  return(valid_covariates)
-}
-
-variable_selection_manual = function(outcome, valid_covariates, manual_covariates = NULL) {
-  # Step 1: Look for baseline measures of the outcome
-  baseline_var = NULL
-  
-  # Extract outcome pattern and timing
-  if (startsWith(outcome, "YP_")) {
-    # For YP outcomes: YP_abc_7w -> look for X_abc_0w
-    # For YP_delta outcomes: YP_delta_abc_7w -> look for X_abc_0w (skip "delta")
-    outcome_parts = strsplit(outcome, "_")[[1]]
-    if (length(outcome_parts) >= 3) {
-      # Check if this is a delta outcome
-      if (outcome_parts[2] == "delta") {
-        # For YP_delta_abc_7w, extract from position 3 onwards (excluding last part which is timing)
-        if (length(outcome_parts) >= 4) {
-          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
-          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-        }
-      } else {
-        # For regular YP_abc_7w, extract the middle part(s) and construct baseline variable name
-        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-      }
-      
-      # Look for variables that start with this pattern (case-insensitive)
-      if (exists("baseline_pattern")) {
-        # Case-insensitive search using grepl
-        pattern_regex = paste0("^", gsub("_", "_", baseline_pattern, fixed = TRUE))
-        potential_baseline = valid_covariates[grepl(pattern_regex, valid_covariates, ignore.case = TRUE)]
-        if (length(potential_baseline) > 0) {
-          baseline_var = potential_baseline[1]  # Take the first match
-          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
-        }
-      }
-    }
-  } else if (startsWith(outcome, "YS_")) {
-    # For YS outcomes: YS_qwe_8m -> look for X_qwe_0m
-    # For YS_delta outcomes: YS_delta_qwe_8m -> look for X_qwe_0m (skip "delta")
-    outcome_parts = strsplit(outcome, "_")[[1]]
-    if (length(outcome_parts) >= 3) {
-      # Check if this is a delta outcome
-      if (outcome_parts[2] == "delta") {
-        # For YS_delta_qwe_8m, extract from position 3 onwards (excluding last part which is timing)
-        if (length(outcome_parts) >= 4) {
-          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
-          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-        }
-      } else {
-        # For regular YS_qwe_8m, extract the middle part(s) and construct baseline variable name
-        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-      }
-      
-      # Look for variables that start with this pattern (case-insensitive)
-      if (exists("baseline_pattern")) {
-        # Case-insensitive search using grepl
-        pattern_regex = paste0("^", gsub("_", "_", baseline_pattern, fixed = TRUE))
-        potential_baseline = valid_covariates[grepl(pattern_regex, valid_covariates, ignore.case = TRUE)]
-        if (length(potential_baseline) > 0) {
-          baseline_var = potential_baseline[1]  # Take the first match
-          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
-        }
-      }
-    }
-  }
-  
-  # Combine baseline variable with manual covariates
-  selected_covariates = character(0)
-  
-  # Add baseline variable if found
-  if (!is.null(baseline_var)) {
-    selected_covariates = c(selected_covariates, baseline_var)
-  }
-  
-  # Add manual covariates if provided
-  if (!is.null(manual_covariates)) {
-    # Filter manual covariates to only include those that exist in valid_covariates
-    manual_available = manual_covariates[manual_covariates %in% valid_covariates]
-    selected_covariates = c(selected_covariates, manual_available)
-  }
-  
-  # Remove duplicates
-  selected_covariates = unique(selected_covariates)
-  
-  return(selected_covariates)
-}
 ```
 ## test
 ```{r}
@@ -3336,1028 +3227,320 @@ if (nrow(final_tmle_results) > 0) {
 }
 ```
 
-# new update()
+# Simulation AIPW
 ```{r}
-update_df = function(trial_no,
-                     outcome_type,
-                     results,
-                     suffix = "",
-                     ensemble = 1,
-                     contrast = "diff",
-                     df = df_comparison) {
+# AIPW Wrapper Demo
+# This demonstrates what results aipw_wrapper returns
 
-  library(dplyr)
+library(AIPW)
+library(SuperLearner)
 
-  ## ────────────────────────────────────────────────────────────────
-  ## 0)  Outcome → Outcome-Type lookup
-  ## ────────────────────────────────────────────────────────────────
-  unique_outcomes = unique(results$Outcome)
-  stopifnot(length(outcome_type) == length(unique_outcomes))
+# Set seed for reproducibility
+set.seed(123)
 
-  outcome_type_map = tibble(
-    Outcome        = unique_outcomes,
-    `Outcome Type` = outcome_type
-  )
+# Create a simple simulated dataset (n=200)
+n <- 200
 
-  ## Dynamically detect SL members from results columns (excluding glm/mean)
-  est_cols = names(results)[grepl("^Est_SL_", names(results))]
-  sl_members = gsub("^Est_", "", est_cols)
-  
-  # Remove any glm or mean methods if they exist
-  sl_members = sl_members[!grepl("glm|mean", sl_members, ignore.case = TRUE)]
+# Generate covariates
+W1 <- rnorm(n)
+W2 <- rbinom(n, 1, 0.5)
 
-  ## ────────────────────────────────────────────────────────────────
-  ## 1)  Process results with the given suffix
-  ## ────────────────────────────────────────────────────────────────
-  
-  # Start with core columns that we want to keep
-  core_cols = c("Outcome", "Treatment", "Control", "N_Covariates")
-  results_processed = results[, core_cols, drop = FALSE]
-  
-  # Add Selected_Covariates with suffix if it exists
-  if ("Selected_Covariates" %in% names(results)) {
-    if (suffix == "") {
-      results_processed$Selected_Covariates = results$Selected_Covariates
-    } else {
-      results_processed[[paste0("Selected_Covariates_", suffix)]] = results$Selected_Covariates
-    }
-  }
-  
-  # Determine SL column names based on ensemble argument
-  sl_base_name = paste0("SL", ensemble)
-  
-  if (suffix == "") {
-    results_processed = results_processed %>%
-      mutate(
-        ANCOVA_est            = results$Est_RC_ANCOVA,
-        ANCOVA_robust_se      = results$SE_RC_ANCOVA,
-        ANHECOVA_est          = results$Est_RC_ANHECOVA,
-        ANHECOVA_robust_se    = results$SE_RC_ANHECOVA,
-        Binom_est             = results$Est_RC_Binom,
-        Binom_robust_se       = results$SE_RC_Binom,
-        ANCOVA_model_based_se = results$SE_AC,
-        Unadjust_est          = results$Est_UN,
-        Unadjust_se           = results$SE_UN,
-        !!paste0(sl_base_name, "_est") := results$Est_SL,
-        !!paste0(sl_base_name, "_se")  := results$SE_SL
-      )
-  } else {
-    # For suffixed version, add suffix to method names
-    suffix_clean = paste0("_", suffix)
-    results_processed = results_processed %>%
-      mutate(
-        !!paste0("ANCOVA", suffix_clean, "_est")            := results$Est_RC_ANCOVA,
-        !!paste0("ANCOVA", suffix_clean, "_robust_se")      := results$SE_RC_ANCOVA,
-        !!paste0("ANHECOVA", suffix_clean, "_est")          := results$Est_RC_ANHECOVA,
-        !!paste0("ANHECOVA", suffix_clean, "_robust_se")    := results$SE_RC_ANHECOVA,
-        !!paste0("Binom", suffix_clean, "_est")             := results$Est_RC_Binom,
-        !!paste0("Binom", suffix_clean, "_robust_se")       := results$SE_RC_Binom,
-        !!paste0("ANCOVA", suffix_clean, "_model_based_se") := results$SE_AC,
-        !!paste0(sl_base_name, suffix_clean, "_est")        := results$Est_SL,
-        !!paste0(sl_base_name, suffix_clean, "_se")         := results$SE_SL,
-        Unadjust_est                                        := results$Est_UN,
-        Unadjust_se                                         := results$SE_UN
-      )
-  }
+# Generate treatment based on covariates (confounding)
+p_treat <- plogis(-0.5 + 0.5*W1 + 0.3*W2)
+A <- rbinom(n, 1, p_treat)
 
-  ## ── Add individual SL member columns ─────────────────────────────
-  for (m in sl_members) {
-    old_est = paste0("Est_", m)
-    old_se  = paste0("SE_",  m)
-    
-    if (suffix == "") {
-      new_est = paste0(m, "_est")
-      new_se  = paste0(m, "_se")
-    } else {
-      new_est = paste0(m, "_", suffix, "_est")
-      new_se  = paste0(m, "_", suffix, "_se")
-    }
-    
-    # Only add if the original columns exist in results
-    if (old_est %in% names(results)) {
-      results_processed[[new_est]] = results[[old_est]]
-    }
-    if (old_se %in% names(results)) {
-      results_processed[[new_se]] = results[[old_se]]
-    }
-  }
+# Generate outcome based on treatment and covariates
+# True treatment effect: ATE = 0.2 on probability scale
+p_outcome <- plogis(-1 + 0.5*A + 0.4*W1 + 0.3*W2)
+Y <- rbinom(n, 1, p_outcome)
 
-  ## ── attach meta data ───────────────────────────────────────────
-  results_processed = results_processed %>%
-    left_join(outcome_type_map, by = "Outcome") %>%
-    mutate(
-      Trial_No     = trial_no,
-      Sample_Size  = results$N,  # Use results$N for Sample_Size but don't keep N column
-      N_Covariates = N_Covariates,
-      Contrast     = contrast
-    )
+# Combine covariates into a data frame
+W <- data.frame(W1 = W1, W2 = W2)
 
-  ## ── precision gain and difference calculations ────────────────
-  # Get the appropriate SL column names for calculations
-  if (suffix == "") {
-    sl_se_col = paste0(sl_base_name, "_se")
-    sl_est_col = paste0(sl_base_name, "_est")
-  } else {
-    suffix_clean = paste0("_", suffix)
-    sl_se_col = paste0(sl_base_name, suffix_clean, "_se")
-    sl_est_col = paste0(sl_base_name, suffix_clean, "_est")
-  }
-  
-  if (suffix == "") {
-    results_processed = results_processed %>%
-      mutate(
-        `How much precision gain can ANCOVA provide?`   = (ANCOVA_robust_se / Unadjust_se)^2,
-        `How much precision gain can ANHECOVA provide?` = (ANHECOVA_robust_se / Unadjust_se)^2,
-        `How much precision gain can Binom provide?`    = (Binom_robust_se / Unadjust_se)^2,
-        !!paste0("How much precision gain can ", sl_base_name, " provide?") := 
-          (.data[[sl_se_col]] / Unadjust_se)^2,
-        `ANCOVA vs ANHECOVA variance ratio`             = (ANCOVA_robust_se / ANHECOVA_robust_se)^2,
-        `The ratio between robust and model-based variance estimators` =
-          (ANCOVA_robust_se / ANCOVA_model_based_se)^2,
-        `The difference between unadjusted and ANCOVA point estimates` =
-          (ANCOVA_est - Unadjust_est) /
-          sqrt((ANCOVA_robust_se^2 + Unadjust_se^2) / 2),
-        `The difference between unadjusted and ANHECOVA point estimates` =
-          (ANHECOVA_est - Unadjust_est) /
-          sqrt((ANHECOVA_robust_se^2 + Unadjust_se^2) / 2),
-        `The difference between unadjusted and Binom point estimates` =
-          (Binom_est - Unadjust_est) /
-          sqrt((Binom_robust_se^2 + Unadjust_se^2) / 2),
-        !!paste0("The difference between unadjusted and ", sl_base_name, " point estimates") :=
-          (.data[[sl_est_col]] - Unadjust_est) /
-          sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
-      )
-  } else {
-    # For suffixed version
-    suffix_clean = paste0("_", suffix)
-    ancova_se_col = paste0("ANCOVA", suffix_clean, "_robust_se")
-    anhecova_se_col = paste0("ANHECOVA", suffix_clean, "_robust_se")
-    binom_se_col = paste0("Binom", suffix_clean, "_robust_se")
-    ancova_model_se_col = paste0("ANCOVA", suffix_clean, "_model_based_se")
-    
-    ancova_est_col = paste0("ANCOVA", suffix_clean, "_est")
-    anhecova_est_col = paste0("ANHECOVA", suffix_clean, "_est")
-    binom_est_col = paste0("Binom", suffix_clean, "_est")
-    
-    results_processed = results_processed %>%
-      mutate(
-        !!paste0("How much precision gain can ANCOVA", suffix_clean, " provide?") := 
-          (.data[[ancova_se_col]] / Unadjust_se)^2,
-        !!paste0("How much precision gain can ANHECOVA", suffix_clean, " provide?") := 
-          (.data[[anhecova_se_col]] / Unadjust_se)^2,
-        !!paste0("How much precision gain can Binom", suffix_clean, " provide?") := 
-          (.data[[binom_se_col]] / Unadjust_se)^2,
-        !!paste0("How much precision gain can ", sl_base_name, suffix_clean, " provide?") := 
-          (.data[[sl_se_col]] / Unadjust_se)^2,
-        !!paste0("ANCOVA", suffix_clean, " vs ANHECOVA", suffix_clean, " variance ratio") := 
-          (.data[[ancova_se_col]] / .data[[anhecova_se_col]])^2,
-        !!paste0("The ratio between robust and model-based variance estimators", suffix_clean) := 
-          (.data[[ancova_se_col]] / .data[[ancova_model_se_col]])^2,
-        !!paste0("The difference between unadjusted and ANCOVA", suffix_clean, " point estimates") := 
-          (.data[[ancova_est_col]] - Unadjust_est) /
-          sqrt((.data[[ancova_se_col]]^2 + Unadjust_se^2) / 2),
-        !!paste0("The difference between unadjusted and ANHECOVA", suffix_clean, " point estimates") := 
-          (.data[[anhecova_est_col]] - Unadjust_est) /
-          sqrt((.data[[anhecova_se_col]]^2 + Unadjust_se^2) / 2),
-        !!paste0("The difference between unadjusted and Binom", suffix_clean, " point estimates") := 
-          (.data[[binom_est_col]] - Unadjust_est) /
-          sqrt((.data[[binom_se_col]]^2 + Unadjust_se^2) / 2),
-        !!paste0("The difference between unadjusted and ", sl_base_name, suffix_clean, " point estimates") := 
-          (.data[[sl_est_col]] - Unadjust_est) /
-          sqrt((.data[[sl_se_col]]^2 + Unadjust_se^2) / 2)
-      )
-  }
+# Run AIPW wrapper with simple SuperLearner libraries
+# Using basic algorithms for quick demonstration
+result <- aipw_wrapper(
+  Y = Y,
+  A = A,
+  W = W,
+  Q.SL.library = c("SL.glm", "SL.mean"),  # Outcome model libraries
+  g.SL.library = c("SL.glm", "SL.mean"),  # Propensity score libraries
+  k_split = 5,                             # 5-fold cross-fitting
+  g.bound = 0.025,                         # Propensity score truncation
+  verbose = TRUE,
+  stratified_fit = FALSE
+)
 
-  ## ── explicit SL-member precision gains & diffs ─────────────────
-  for (m in sl_members) {
-    if (suffix == "") {
-      se_col  = paste0(m, "_se")
-      est_col = paste0(m, "_est")
-      pg_col  = paste0("How much precision gain can ", m, " provide?")
-      df_col  = paste0("The difference between unadjusted and ", m, " point estimates")
-    } else {
-      suffix_clean = paste0("_", suffix)
-      se_col  = paste0(m, suffix_clean, "_se")
-      est_col = paste0(m, suffix_clean, "_est")
-      pg_col  = paste0("How much precision gain can ", m, suffix_clean, " provide?")
-      df_col  = paste0("The difference between unadjusted and ", m, suffix_clean, " point estimates")
-    }
-    
-    if (all(c(se_col, est_col) %in% names(results_processed))) {
-      results_processed = results_processed %>%
-        mutate(
-          !!pg_col := (.data[[se_col]] / Unadjust_se)^2,
-          !!df_col := (.data[[est_col]] - Unadjust_est) /
-                      sqrt((.data[[se_col]]^2 + Unadjust_se^2) / 2)
-        )
-    }
-  }
+# Display the main results
+print("=" * 60)
+print("AIPW RESULTS SUMMARY")
+print("=" * 60)
 
-  ## ────────────────────────────────────────────────────────────────
-  ## 2)  Overwrite / append in df_comparison (with column addition support)
-  ## ────────────────────────────────────────────────────────────────
-  new_rows = results_processed
-  
-  for (i in seq_len(nrow(new_rows))) {
-    row_i = new_rows[i, ]
+# The result object contains:
+# 1. result$result - Main estimates table
+print("\nMain Estimates Table:")
+print(result$result)
 
-    idx = which(
-      df$Trial_No == row_i$Trial_No &
-      df$Outcome   == row_i$Outcome &
-      df$Treatment == row_i$Treatment &
-      df$Control   == row_i$Control
-    )
+# 2. result$estimates - List with detailed estimates
+print("\nDetailed Estimates:")
+print(names(result$estimates))
+print("\nRisk Difference:")
+print(result$estimates$RD)
+print("\nRisk Ratio:")
+print(result$estimates$RR)
+print("\nOdds Ratio:")
+print(result$estimates$OR)
 
-    if (length(idx) > 0) {
-      # Update existing row - add new columns if they don't exist
-      for (col_name in names(row_i)) {
-        if (!col_name %in% names(df)) {
-          df[[col_name]] = NA  # Add new column with NA values
-        }
-        df[idx[1], col_name] = row_i[[col_name]]
-      }
-    } else {
-      # Append new row - add missing columns with NA values
-      for (col_name in names(df)) {
-        if (!col_name %in% names(row_i)) {
-          row_i[[col_name]] = NA
-        }
-      }
-      df = dplyr::bind_rows(df, row_i)
-    }
-  }
+# 3. You can also access:
+# - result$obs_est: Individual-level estimates (propensity scores, predictions, etc.)
+# - result$n: Sample size
+# - result$libs: SuperLearner fitted objects (if save.sl.fit=TRUE)
 
-  df
-}
+print("\nSample size:")
+print(result$n)
+
+print("\nAvailable components in result object:")
+print(names(result))
 ```
 
 ```{r}
-# Variable selection helper function 1: Top correlation method
-variable_selection_correlation = function(outcome, valid_covariates, df_complete_numeric, n_select = 3) {
-  if (length(valid_covariates) > n_select) {
-    # Get correlations between this outcome and ALL covariates (convert factors to numeric temporarily)
-    cov_values = numeric(length(valid_covariates))
-    names(cov_values) = valid_covariates
-    
-    for (cov in valid_covariates) {
-      # Convert covariate to numeric temporarily for correlation computation
-      cov_numeric = as.numeric(df_complete_numeric[[cov]])
-      cov_values[cov] = cor(df_complete_numeric[[outcome]], cov_numeric, use = "complete.obs")
-    }
-    
-    # Select top n_select by absolute correlation magnitude
-    top_idx = order(abs(cov_values), decreasing = TRUE)[1:n_select]
-    selected_covariates = valid_covariates[top_idx]
-    return(selected_covariates)
-  }
-  # If ≤n_select valid covariates, use all of them
-  return(valid_covariates)
-}
+# AIPW Wrapper Demo - CONTINUOUS OUTCOME
+# This demonstrates what results aipw_wrapper returns for continuous Y
 
-# Variable selection helper function 2: Manual + baseline method
-variable_selection_manual = function(outcome, valid_covariates, manual_covariates = NULL) {
-  # Step 1: Look for baseline measures of the outcome
-  baseline_var = NULL
-  
-  # Extract outcome pattern and timing
-  if (startsWith(outcome, "YP_")) {
-    # For YP outcomes: YP_abc_7w -> look for X_abc_0w
-    # For YP_delta outcomes: YP_delta_abc_7w -> look for X_abc_0w (skip "delta")
-    outcome_parts = strsplit(outcome, "_")[[1]]
-    if (length(outcome_parts) >= 3) {
-      # Check if this is a delta outcome
-      if (outcome_parts[2] == "delta") {
-        # For YP_delta_abc_7w, extract from position 3 onwards (excluding last part which is timing)
-        if (length(outcome_parts) >= 4) {
-          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
-          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-        }
-      } else {
-        # For regular YP_abc_7w, extract the middle part(s) and construct baseline variable name
-        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-      }
-      
-      # Look for variables that start with this pattern
-      if (exists("baseline_pattern")) {
-        potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
-        if (length(potential_baseline) > 0) {
-          baseline_var = potential_baseline[1]  # Take the first match
-          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
-        }
-      }
-    }
-  } else if (startsWith(outcome, "YS_")) {
-    # For YS outcomes: YS_qwe_8m -> look for X_qwe_0m
-    # For YS_delta outcomes: YS_delta_qwe_8m -> look for X_qwe_0m (skip "delta")
-    outcome_parts = strsplit(outcome, "_")[[1]]
-    if (length(outcome_parts) >= 3) {
-      # Check if this is a delta outcome
-      if (outcome_parts[2] == "delta") {
-        # For YS_delta_qwe_8m, extract from position 3 onwards (excluding last part which is timing)
-        if (length(outcome_parts) >= 4) {
-          middle_parts = outcome_parts[3:(length(outcome_parts)-1)]
-          baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-        }
-      } else {
-        # For regular YS_qwe_8m, extract the middle part(s) and construct baseline variable name
-        middle_parts = outcome_parts[2:(length(outcome_parts)-1)]
-        baseline_pattern = paste0("X_", paste(middle_parts, collapse = "_"), "_0")
-      }
-      
-      # Look for variables that start with this pattern
-      if (exists("baseline_pattern")) {
-        potential_baseline = valid_covariates[startsWith(valid_covariates, baseline_pattern)]
-        if (length(potential_baseline) > 0) {
-          baseline_var = potential_baseline[1]  # Take the first match
-          cat("Found baseline measure for", outcome, ":", baseline_var, "\n")
-        }
-      }
-    }
-  }
-  
-  # Combine baseline variable with manual covariates
-  selected_covariates = character(0)
-  
-  # Add baseline variable if found
-  if (!is.null(baseline_var)) {
-    selected_covariates = c(selected_covariates, baseline_var)
-  }
-  
-  # Add manual covariates if provided
-  if (!is.null(manual_covariates)) {
-    # Filter manual covariates to only include those that exist in valid_covariates
-    manual_available = manual_covariates[manual_covariates %in% valid_covariates]
-    selected_covariates = c(selected_covariates, manual_available)
-  }
-  
-  # Remove duplicates
-  selected_covariates = unique(selected_covariates)
-  
-  return(selected_covariates)
-}
-```
-# new analyze_rct
+library(AIPW)
+library(SuperLearner)
 
-```{r}
-analyze_rct = function(df,
-                       selection = FALSE,
-                       variable_selection_type = 1,  # 1: correlation, 2: manual
-                       manual_covariates = NULL,
-                       run_individual_SL = TRUE,  # Whether to run individual SL methods after ensemble
-                       SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.randomForest", "SL.gam", "SL.bartMachine"),
-                       n_cores = parallel::detectCores() - 2,
-                       seed = 123,
-                       outcome_cols = NULL,
-                       covariate_col = NULL,
-                       treatment_col = "Treatment",
-                       K = 5,
-                       n_select = 3) {
-  require(dplyr)
-  require(RobinCar)
-  require(tidyr)
-  require(DescTools)
-  
-  # Set seed once at the beginning for reproducibility
-  set.seed(seed)
-  
-  # Auto-detect outcome columns if not specified
-  if (is.null(outcome_cols)) {
-    # All YP columns
-    yp_cols = names(df)[startsWith(names(df), "YP")]
-    
-    # Numeric and binary YS columns
-    ys_cols = names(df)[startsWith(names(df), "YS")]
-    ys_valid = character(0)
-    for (col in ys_cols) {
-      if (is.numeric(df[[col]]) ||
-          (is.factor(df[[col]]) &&
-           length(levels(df[[col]])) == 2)) {
-        ys_valid = c(ys_valid, col)
-      }
-    }
-    
-    outcome_cols = c(yp_cols, ys_valid)
-    cat(
-      "Auto-detected",
-      length(outcome_cols),
-      "outcome columns:",
-      paste(outcome_cols, collapse = ", "),
-      "\n"
-    )
-  }
-  
-  # Setup covariates
-  if (is.null(covariate_col)) {
-    covariates = names(df)[startsWith(names(df), "X_")]
-    # Add n_participants if it exists
-    if ("n_participants" %in% names(df)) {
-      covariates = c(covariates, "n_participants")
-    }
-  } else {
-    covariates = covariate_col
-  }
-  
-  # Fill missing values in covariates
-  df = df %>%
-    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
-      replace(., is.na(.), mean(., na.rm = TRUE))
-    } else if (is.factor(.)) {
-      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
-    }))
-  
-  control_level = levels(df[[treatment_col]])[1]
-  treat_pattern = paste0("^", treatment_col)
-  
-  # Process each outcome
-  all_results = vector("list", length(outcome_cols))
-  valid_outcomes = character(0)
-  
-  for (i in seq_along(outcome_cols)) {
-    outcome = outcome_cols[i]
-    
-    # Check missing proportion for outcome
-    missing_prop = mean(is.na(df[[outcome]]))
-    if (missing_prop > 0.4) {
-      cat(
-        "REMOVED outcome:",
-        outcome,
-        "- Missing proportion:",
-        round(missing_prop, 3),
-        "(> 0.4)\n"
-      )
-      next
-    }
-    
-    # Filter complete cases for this outcome
-    complete_vars = c(outcome, treatment_col, covariates)
-    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
-    df_complete = df[complete_cases_idx, , drop = FALSE]
-    
-    cat(
-      "Outcome:",
-      outcome,
-      "- Sample size:",
-      nrow(df_complete),
-      "(",
-      nrow(df) - nrow(df_complete),
-      "rows removed)\n"
-    )
-    
-    # Check for single-level factors after filtering
-    if (is.factor(df_complete[[outcome]]) &&
-        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
-      cat("REMOVED outcome:",
-          outcome,
-          "- Only one level after filtering\n")
-      next
-    }
-    
-    # Check covariates for single levels and remove them
-    valid_covariates = character(0)
-    for (cov in covariates) {
-      if (is.factor(df_complete[[cov]]) &&
-          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
-        cat(
-          "REMOVED covariate:",
-          cov,
-          "- Only one level after filtering (outcome:",
-          outcome,
-          ")\n"
-        )
-      } else {
-        valid_covariates = c(valid_covariates, cov)
-      }
-    }
-    
-    # Determine if outcome is binary
-    is_binary = is.factor(df_complete[[outcome]]) && 
-                length(levels(droplevels(df_complete[[outcome]]))) == 2
-    
-    # For variable selection and traditional models, convert to numeric
-    df_complete_numeric = df_complete
-    if (is_binary) {
-      # Convert binary factor/numeric to 0,1
-      # Handle cases where data is already 0,1 or needs conversion from 1,2
-      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
-      unique_vals = sort(unique(numeric_outcome))
-      
-      if (all(unique_vals == c(0, 1))) {
-        # Already 0,1 - keep as is
-        df_complete_numeric[[outcome]] = numeric_outcome
-      } else if (all(unique_vals == c(1, 2))) {
-        # Convert 1,2 to 0,1
-        df_complete_numeric[[outcome]] = numeric_outcome - 1
-      } else {
-        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
-      }
-    } else {
-      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
-    }
-    
-    # Variable selection based on type
-    if (selection && length(valid_covariates) > 0) {
-      if (variable_selection_type == 1) {
-        # Correlation-based selection
-        selected_covariates = variable_selection_correlation(outcome, valid_covariates, df_complete_numeric, n_select)
-      } else if (variable_selection_type == 2) {
-        # Manual + baseline selection
-        selected_covariates = variable_selection_manual(outcome, valid_covariates, manual_covariates)
-        
-        # Check if we have any covariates to work with for manual selection
-        if (length(selected_covariates) == 0) {
-          cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
-          
-          # Create results with NA values
-          treatment_levels = levels(df_complete[[treatment_col]])[-1]  # Exclude control
-          n_treat = length(treatment_levels)
-          
-          # Base tibble with core columns
-          outcome_results = tibble(
-            Outcome = rep(outcome, n_treat),
-            Treatment = treatment_levels,
-            Control = rep(control_level, n_treat),
-            N = rep(nrow(df_complete), n_treat),
-            N_Covariates = rep(0, n_treat),
-            Selected_Covariates = rep("", n_treat),
-            # Set all estimates and SEs to NA
-            Est_UN = rep(NA_real_, n_treat),
-            SE_UN = rep(NA_real_, n_treat),
-            Est_AC = rep(NA_real_, n_treat),
-            SE_AC = rep(NA_real_, n_treat),
-            Est_RC_ANCOVA = rep(NA_real_, n_treat),
-            SE_RC_ANCOVA = rep(NA_real_, n_treat),
-            Est_RC_ANHECOVA = rep(NA_real_, n_treat),
-            SE_RC_ANHECOVA = rep(NA_real_, n_treat),
-            Est_RC_Binom = rep(NA_real_, n_treat),
-            SE_RC_Binom = rep(NA_real_, n_treat),
-            Est_SL = rep(NA_real_, n_treat),
-            SE_SL = rep(NA_real_, n_treat)
-          )
-          
-          # Add individual SL method columns based on what's in SL_methods (excluding SL.glm and SL.mean)
-          individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
-          for (method in individual_methods) {
-            method_clean = gsub("SL\\.", "SL_", method)
-            outcome_results[[paste0("Est_", method_clean)]] = rep(NA_real_, n_treat)
-            outcome_results[[paste0("SE_", method_clean)]] = rep(NA_real_, n_treat)
-          }
-          
-          valid_outcomes = c(valid_outcomes, outcome)
-          all_results[[length(valid_outcomes)]] = outcome_results
-          next
-        }
-      }
-      
-      # Use the selected covariates
-      valid_covariates = selected_covariates
-      cat("Selected covariates for", outcome, ":", paste(valid_covariates, collapse = ", "), "\n")
-    }
-    
-    # Fit traditional models (using numeric version)
-    coef_unadj = coef(summary(lm(
-      reformulate(treatment_col, outcome), df_complete_numeric
-    )))
-    coef_ancova = coef(summary(lm(
-      reformulate(c(treatment_col, valid_covariates), outcome), df_complete_numeric
-    )))
-    
-    # Extract treatment effects
-    treat_idx_unadj = which(startsWith(rownames(coef_unadj), treatment_col))
-    treat_idx_ancova = which(startsWith(rownames(coef_ancova), treatment_col))
-    
-    # Create results for this outcome
-    n_treat = length(treat_idx_unadj)
-    treatment_levels = sub(treat_pattern, "", rownames(coef_unadj)[treat_idx_unadj])
-    
-    # Calculate pairwise sample sizes (control + current treatment)
-    pairwise_n = sapply(treatment_levels, function(treat_level) {
-      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
-    })
-    
-    # Create base outcome results
-    outcome_results = tibble(
-      Outcome = rep(outcome, n_treat),
-      Treatment = treatment_levels,
-      Control = rep(control_level, n_treat),
-      N = pairwise_n,
-      N_Covariates = rep(length(valid_covariates), n_treat),
-      # Unadjusted
-      Est_UN = coef_unadj[treat_idx_unadj, 1],
-      SE_UN = coef_unadj[treat_idx_unadj, 2],
-      # ANCOVA
-      Est_AC = coef_ancova[treat_idx_ancova, 1],
-      SE_AC = coef_ancova[treat_idx_ancova, 2]
-    )
-    
-    # Add Selected_Covariates column only if selection = TRUE
-    if (selection) {
-      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
-    }
-    
-    # RobinCar - run both ANCOVA and ANHECOVA (using numeric version)
-    rc_fit_ancova = suppressWarnings(
-      robincar_linear(
-        df_complete_numeric,
-        treatment_col,
-        outcome,
-        covariate_cols = valid_covariates,
-        adj_method = "ANCOVA",
-        contrast_h = "diff"
-      )
-    )
-    rc_result_ancova = rc_fit_ancova$contrast$result
-    outcome_results$Est_RC_ANCOVA = rc_result_ancova$estimate
-    outcome_results$SE_RC_ANCOVA = rc_result_ancova$se
-    
-    rc_fit_anhecova = suppressWarnings(
-      robincar_linear(
-        df_complete_numeric,
-        treatment_col,
-        outcome,
-        covariate_cols = valid_covariates,
-        adj_method = "ANHECOVA",
-        contrast_h = "diff"
-      )
-    )
-    rc_result_anhecova = rc_fit_anhecova$contrast$result
-    outcome_results$Est_RC_ANHECOVA = rc_result_anhecova$estimate
-    outcome_results$SE_RC_ANHECOVA = rc_result_anhecova$se
-    
-    # RobinCar GLM for binary outcomes
-    if (is_binary) {
-      # Create formula for GLM: outcome ~ Treatment + covariates
-      formula_terms = c(treatment_col, valid_covariates)
-      glm_formula = as.formula(paste(outcome, "~", paste(formula_terms, collapse = " + ")))
-      
-      rc_fit_binom = suppressWarnings(
-        robincar_glm(
-          df_complete_numeric,  # Use numeric version (0,1 for binary outcome)
-          treatment_col,
-          outcome,
-          formula = glm_formula,
-          g_family = stats::binomial,
-          contrast_h = "diff"
-        )
-      )
-      rc_result_binom = rc_fit_binom$contrast$result
-      outcome_results$Est_RC_Binom = rc_result_binom$estimate
-      outcome_results$SE_RC_Binom = rc_result_binom$se
-    } else {
-      # For non-binary outcomes, set Binom results to NA
-      outcome_results$Est_RC_Binom = rep(NA_real_, n_treat)
-      outcome_results$SE_RC_Binom = rep(NA_real_, n_treat)
-    }
-    
-    # SuperLearner - run ensemble and individual methods (using numeric version)
-    tryCatch({
-      sl_res = analyze_rct_sl(
-        data = df_complete_numeric,
-        outcome_cols = outcome,
-        covariate_cols = valid_covariates,
-        treatment_col = treatment_col,
-        reference_arm = control_level,
-        K = K,
-        SL_methods = SL_methods,
-        n_cores = n_cores
-      )
-      outcome_results$Est_SL = sl_res$Est_SL
-      outcome_results$SE_SL = sl_res$SE_SL
-    }, error = function(e) {
-      if (grepl("All algorithms dropped from library", e$message)) {
-        outcome_results$Est_SL <<- rep(NA_real_, n_treat)
-        outcome_results$SE_SL <<- rep(NA_real_, n_treat)
-      } else {
-        stop(e)
-      }
-    })
-    
-    # Run individual SL methods (only if run_individual_SL = TRUE)
-    if (run_individual_SL) {
-      individual_methods = SL_methods[!SL_methods %in% c("SL.glm", "SL.mean")]
-      for (method in individual_methods) {
-        tryCatch({
-          sl_res_individual = analyze_rct_sl(
-            data = df_complete_numeric,
-            outcome_cols = outcome,
-            covariate_cols = valid_covariates,
-            treatment_col = treatment_col,
-            reference_arm = control_level,
-            K = K,
-            SL_methods = method,
-            n_cores = n_cores
-          )
-          # Clean method name for column naming
-          method_clean = gsub("SL\\.", "SL_", method)
-          outcome_results[[paste0("Est_", method_clean)]] = sl_res_individual$Est_SL
-          outcome_results[[paste0("SE_", method_clean)]] = sl_res_individual$SE_SL
-        }, error = function(e) {
-          # For any error, set to NA
-          method_clean = gsub("SL\\.", "SL_", method)
-          outcome_results[[paste0("Est_", method_clean)]] <<- rep(NA_real_, n_treat)
-          outcome_results[[paste0("SE_", method_clean)]] <<- rep(NA_real_, n_treat)
-        })
-      }
-    }
-    
-    valid_outcomes = c(valid_outcomes, outcome)
-    all_results[[length(valid_outcomes)]] = outcome_results
-  }
-  
-  if (length(valid_outcomes) == 0) {
-    stop("No valid outcomes remaining after data cleaning")
-  }
-  
-  # Combine all outcomes
-  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
-    # Round for cleaner output
-    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
-           across(starts_with("SE_"), ~ round(.x, 5))) %>%
-    # Reorder columns
-    select(
-      Outcome,
-      N,
-      N_Covariates,
-      Treatment,
-      Control,
-      Est_RC_ANCOVA,
-      SE_RC_ANCOVA,
-      Est_RC_ANHECOVA,
-      SE_RC_ANHECOVA,
-      Est_RC_Binom,
-      SE_RC_Binom,
-      Est_AC,
-      SE_AC,
-      Est_UN,
-      SE_UN,
-      Est_SL,
-      SE_SL,
-      everything()
-    )
-  
-  return(final_results)
-}
+# Set seed for reproducibility
+set.seed(123)
+
+# Create a simple simulated dataset (n=200)
+n <- 200
+
+# Generate covariates
+W1 <- rnorm(n)
+W2 <- rbinom(n, 1, 0.5)
+
+# Generate treatment based on covariates (confounding)
+p_treat <- plogis(-0.5 + 0.5*W1 + 0.3*W2)
+A <- rbinom(n, 1, p_treat)
+
+# Generate CONTINUOUS outcome based on treatment and covariates
+# True treatment effect (ATE) = 5 units
+# Y = baseline (20) + treatment effect (5) + covariate effects + noise
+Y <- 20 + 5*A + 3*W1 + 2*W2 + rnorm(n, mean = 0, sd = 2)
+
+# Combine covariates into a data frame
+W <- data.frame(W1 = W1, W2 = W2)
+
+# Run AIPW wrapper with simple SuperLearner libraries
+# Using basic algorithms for quick demonstration
+result <- aipw_wrapper(
+  Y = Y,
+  A = A,
+  W = W,
+  Q.SL.library = c("SL.glm", "SL.mean"),  # Outcome model libraries
+  g.SL.library = c("SL.glm", "SL.mean"),  # Propensity score libraries
+  k_split = 5,                             # 5-fold cross-fitting
+  g.bound = 0.025,                         # Propensity score truncation
+  verbose = F,
+  stratified_fit = FALSE
+)
+
+result$estimates$RD[[1]]
+
+result$estimates$RD[[2]]
 ```
 
+## SL.mean test
 ```{r}
-df_comparison %>%
-  group_by(Trial_No) %>% 
-  summarise(max(N_Covariates))
-```
-
-# plot sample
-```{r}
-# ── Packages ───────────────────────────────────────────────────────────────────
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(forcats)
 library(patchwork)
+library(ggplot2)
 
-# ── 1) CONFIG ──────────────────────────────────────────────────────────────────
-# Choose which set of columns to use: "base" (no VS suffix), "VS1", or "VS2"
-variant = "base"   # change to "VS1" or "VS2" if you want those columns
-
-# Optional: file output (set to NULL to skip saving)
-outfile = "figure_variance_efficiency_2x2.png"
-dpi     = 300
-width   = 9.5   # inches
-height  = 7.5   # inches
-
-# ── 2) VALIDATE REQUIRED OBJECT ────────────────────────────────────────────────
-stopifnot(exists("df_comparison"))
-
-# Sample size column (accept either name)
-sample_size_col = c("Sample_Size", "N")
-sample_size_col = sample_size_col[sample_size_col %in% names(df_comparison)]
-if (length(sample_size_col) == 0) stop("No sample size column found (tried Sample_Size or N).")
-sample_size_col = sample_size_col[1]
-
-# Primary flag from Outcome Type (robust to capitalization)
-primary_flag = function(x) grepl("\\bprimary\\b", x %||% "", ignore.case = TRUE)
-
-# ── 3) BUILD SE COLUMN MAP FOR THE CHOSEN VARIANT ─────────────────────────────
-# Helper: suffix based on variant
-suf = switch(variant,
-  "base" = "",
-  "VS1"  = "_VS1",
-  "VS2"  = "_VS2",
-  stop("variant must be 'base', 'VS1', or 'VS2'")
-)
-
-colname = function(stem) paste0(stem, if (stem == "Unadjust_se") "" else suf, "_se")
-# Note: Unadjust_se has NO VS-suffix in most of your sheets; adjust here if yours differs.
-
-candidate_stems = c(
-  "Unadjust",              # reference
-  "ANCOVA_robust",
-  "ANCOVA_model_based",
-  "ANHECOVA_robust",
-  "Binom_robust",
-  "SL1",                   # your ensemble column
-  "SL_rpart",
-  "SL_randomForest",
-  "SL_glmnet",
-  "SL_gam",
-  "SL_bartMachine"
-)
-
-# Map to actual column names to look for in df_comparison
-cand_cols = sapply(candidate_stems, function(st) {
-  if (st == "Unadjust") "Unadjust_se" else paste0(st, suf, "_se")
-}, USE.NAMES = TRUE)
-
-present_cols = intersect(unname(cand_cols), names(df_comparison))
-if (!"Unadjust_se" %in% present_cols)
-  stop("Required 'Unadjust_se' not found in df_comparison.")
-
-# Pretty labels for plotting
-pretty_name = c(
-  Unadjust_se                       = "Unadjusted",
-  ANCOVA_robust_se                  = "ANCOVA (robust)",
-  ANCOVA_model_based_se             = "ANCOVA (model-based)",
-  ANHECOVA_robust_se                = "ANHECOVA (robust)",
-  Binom_robust_se                   = "Binomial (robust)",
-  SL1_se                            = "SL (ensemble)",
-  SL_rpart_se                       = "SL: rpart",
-  SL_randomForest_se                = "SL: randomForest",
-  SL_glmnet_se                      = "SL: glmnet",
-  SL_gam_se                         = "SL: gam",
-  SL_bartMachine_se                 = "SL: bartMachine",
-  # VS1
-  ANCOVA_robust_VS1_se              = "ANCOVA (robust, VS1)",
-  ANCOVA_model_based_VS1_se         = "ANCOVA (model-based, VS1)",
-  ANHECOVA_robust_VS1_se            = "ANHECOVA (robust, VS1)",
-  Binom_robust_VS1_se               = "Binomial (robust, VS1)",
-  SL1_VS1_se                        = "SL (ensemble, VS1)",
-  SL_rpart_VS1_se                   = "SL: rpart (VS1)",
-  SL_randomForest_VS1_se            = "SL: randomForest (VS1)",
-  SL_glmnet_VS1_se                  = "SL: glmnet (VS1)",
-  SL_gam_VS1_se                     = "SL: gam (VS1)",
-  SL_bartMachine_VS1_se             = "SL: bartMachine (VS1)",
-  # VS2
-  ANCOVA_robust_VS2_se              = "ANCOVA (robust, VS2)",
-  ANCOVA_model_based_VS2_se         = "ANCOVA (model-based, VS2)",
-  ANHECOVA_robust_VS2_se            = "ANHECOVA (robust, VS2)",
-  Binom_robust_VS2_se               = "Binomial (robust, VS2)",
-  SL1_VS2_se                        = "SL (ensemble, VS2)",
-  SL_rpart_VS2_se                   = "SL: rpart (VS2)",
-  SL_randomForest_VS2_se            = "SL: randomForest (VS2)",
-  SL_glmnet_VS2_se                  = "SL: glmnet (VS2)",
-  SL_gam_VS2_se                     = "SL: gam (VS2)",
-  SL_bartMachine_VS2_se             = "SL: bartMachine (VS2)"
-)
-
-# Figure out the “method display order” based on what you actually have
-method_levels_all = c(
-  "Unadjusted",
-  "ANCOVA (robust)","ANCOVA (model-based)","ANHECOVA (robust)","Binomial (robust)",
-  "SL (ensemble)","SL: rpart","SL: randomForest","SL: glmnet","SL: gam","SL: bartMachine",
-  "ANCOVA (robust, VS1)","ANCOVA (model-based, VS1)","ANHECOVA (robust, VS1)","Binomial (robust, VS1)",
-  "SL (ensemble, VS1)","SL: rpart (VS1)","SL: randomForest (VS1)","SL: glmnet (VS1)","SL: gam (VS1)","SL: bartMachine (VS1)",
-  "ANCOVA (robust, VS2)","ANCOVA (model-based, VS2)","ANHECOVA (robust, VS2)","Binomial (robust, VS2)",
-  "SL (ensemble, VS2)","SL: rpart (VS2)","SL: randomForest (VS2)","SL: glmnet (VS2)","SL: gam (VS2)","SL: bartMachine (VS2)"
-)
-
-# ── 4) LONG DATA + VARIANCE RATIOS (uses your df_comparison) ──────────────────
-base_cols = c("Trial_No","Outcome","Outcome Type", sample_size_col)
-base_cols = intersect(base_cols, names(df_comparison))
-
-df_long = df_comparison %>%
-  select(all_of(base_cols), all_of(present_cols)) %>%
-  mutate(is_primary = primary_flag(`Outcome Type`)) %>%
-  pivot_longer(
-    cols = all_of(present_cols),
-    names_to = "se_col",
-    values_to = "SE"
-  ) %>%
-  mutate(Method = pretty_name[se_col]) %>%
-  group_by(Trial_No, Outcome) %>%
-  mutate(SE_unadj = SE[se_col == "Unadjust_se"]) %>%
-  ungroup() %>%
-  filter(is.finite(SE_unadj), SE_unadj > 0) %>%
-  mutate(
-    Var_Ratio = ifelse(se_col == "Unadjust_se", 1, (SE^2) / (SE_unadj^2)),
-    Method    = factor(Method, levels = method_levels_all[method_levels_all %in% unique(pretty_name[present_cols])])
-  ) %>%
-  rename(Sample_Size = !!sample_size_col)
-
-# ── 5) PALETTE & THEME ─────────────────────────────────────────────────────────
-method_palette = c(
-  "Unadjusted"                = "grey50",
-  "ANCOVA (robust)"           = "#1f77b4",
-  "ANCOVA (model-based)"      = "#6baed6",
-  "ANHECOVA (robust)"         = "#ff7f0e",
-  "Binomial (robust)"         = "#8c564b",
-  "SL (ensemble)"             = "#2ca02c",
-  "SL: rpart"                 = "#98df8a",
-  "SL: randomForest"          = "#17becf",
-  "SL: glmnet"                = "#9467bd",
-  "SL: gam"                   = "#bcbd22",
-  "SL: bartMachine"           = "#d62728",
-  # VS1 (same hues, lighter)
-  "ANCOVA (robust, VS1)"      = "#1f77b4AA",
-  "ANCOVA (model-based, VS1)" = "#6baed6AA",
-  "ANHECOVA (robust, VS1)"    = "#ff7f0eAA",
-  "Binomial (robust, VS1)"    = "#8c564bAA",
-  "SL (ensemble, VS1)"        = "#2ca02cAA",
-  "SL: rpart (VS1)"           = "#98df8aAA",
-  "SL: randomForest (VS1)"    = "#17becfAA",
-  "SL: glmnet (VS1)"          = "#9467bdAA",
-  "SL: gam (VS1)"             = "#bcbd22AA",
-  "SL: bartMachine (VS1)"     = "#d62728AA",
-  # VS2 (same hues, darker)
-  "ANCOVA (robust, VS2)"      = "#1f77b4DD",
-  "ANCOVA (model-based, VS2)" = "#6baed6DD",
-  "ANHECOVA (robust, VS2)"    = "#ff7f0eDD",
-  "Binomial (robust, VS2)"    = "#8c564bDD",
-  "SL (ensemble, VS2)"        = "#2ca02cDD",
-  "SL: rpart (VS2)"           = "#98df8aDD",
-  "SL: randomForest (VS2)"    = "#17becfDD",
-  "SL: glmnet (VS2)"          = "#9467bdDD",
-  "SL: gam (VS2)"             = "#bcbd22DD",
-  "SL: bartMachine (VS2)"     = "#d62728DD"
-)
-
-nice_theme = theme_minimal(base_size = 11) +
-  theme(
-    panel.grid.minor = element_blank(),
-    axis.title       = element_text(color = "black"),
-    axis.text        = element_text(color = "black"),
-    legend.position  = "bottom",
-    legend.title     = element_blank(),
-    plot.margin      = margin(5.5, 5.5, 5.5, 5.5),
-    strip.text       = element_text(face = "bold")
-  )
-
-# ── 6) PANELS ──────────────────────────────────────────────────────────────────
-# (a) Violin: all outcomes
-p_a = ggplot(df_long, aes(x = Method, y = Var_Ratio, fill = Method)) +
-  geom_violin(width = 0.85, trim = TRUE, alpha = 0.75, color = NA) +
-  geom_boxplot(width = 0.16, outlier.shape = 21, outlier.size = 1.4, fill = "white") +
-  geom_hline(yintercept = 1, linetype = 3) +
-  scale_y_log10() +
-  scale_fill_manual(values = method_palette, guide = "none") +
-  labs(title = "(a) Variance ratios across methods (all outcomes)",
-       x = NULL, y = "Variance Ratio vs. Unadjusted (log scale)") +
-  nice_theme +
-  theme(axis.text.x = element_text(angle = 25, hjust = 1))
-
-# (b) Sample size vs var ratio: all outcomes
-p_b = ggplot(df_long, aes(x = Sample_Size, y = Var_Ratio, color = Method)) +
-  geom_point(alpha = 0.35, size = 1.3) +
-  geom_smooth(se = FALSE, method = "loess", span = 0.9) +
-  geom_hline(yintercept = 1, linetype = 3) +
-  scale_y_log10() +
-  scale_color_manual(values = method_palette) +
-  labs(title = "(b) Sample size vs. variance ratio (all outcomes)",
-       x = "Sample size", y = "Variance Ratio vs. Unadjusted (log scale)") +
-  nice_theme
-
-# Primary slice
-df_primary = df_long %>% filter(is_primary)
-
-# (c) Violin: primary outcomes only
-p_c = ggplot(df_primary, aes(x = Method, y = Var_Ratio, fill = Method)) +
-  geom_violin(width = 0.85, trim = TRUE, alpha = 0.75, color = NA) +
-  geom_boxplot(width = 0.16, outlier.shape = 21, outlier.size = 1.4, fill = "white") +
-  geom_hline(yintercept = 1, linetype = 3) +
-  scale_y_log10() +
-  scale_fill_manual(values = method_palette, guide = "none") +
-  labs(title = "(c) Variance ratios across methods (primary outcomes)",
-       x = NULL, y = "Variance Ratio vs. Unadjusted (log scale)") +
-  nice_theme +
-  theme(axis.text.x = element_text(angle = 25, hjust = 1))
-
-# (d) Sample size vs var ratio: primary outcomes only
-p_d = ggplot(df_primary, aes(x = Sample_Size, y = Var_Ratio, color = Method)) +
-  geom_point(alpha = 0.35, size = 1.3) +
-  geom_smooth(se = FALSE, method = "loess", span = 0.9) +
-  geom_hline(yintercept = 1, linetype = 3) +
-  scale_y_log10() +
-  scale_color_manual(values = method_palette) +
-  labs(title = "(d) Sample size vs. variance ratio (primary outcomes)",
-       x = "Sample size", y = "Variance Ratio vs. Unadjusted (log scale)") +
-  nice_theme
-
-# ── 7) ASSEMBLE & SAVE ────────────────────────────────────────────────────────
-fig_2x2 = (p_a | p_b) / (p_c | p_d) +
-  plot_annotation(
-    title = "Variance Efficiency Across Estimation Methods in Real-World RCTs",
-    theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"))
-  )
-
-print(fig_2x2)
-
-if (!is.null(outfile)) {
-  ggsave(filename = outfile, plot = fig_2x2, width = width, height = height, dpi = dpi, bg = "white")
-  message("Saved: ", outfile)
+# helper to build a single row with a skinny label column
+# left_weight > right_weight makes the left panel wider
+row_with_label = function(label_plot, p_left, p_right,
+                          label_width = 0.11,
+                          left_weight = 1.25,
+                          right_weight = 1.00) {
+  (label_plot | p_left | p_right) +
+    plot_layout(widths = c(label_width, left_weight, right_weight))
 }
 
+create_4panel_figure = function(outcome_type, vs_type) {
+  # pick the violin plots
+  if (outcome_type == "binary") {
+    if (vs_type == "all") {
+      p_violin_all = p_binary_all_all
+      p_violin_primary = p_binary_all_primary
+    } else if (vs_type == "top3") {
+      p_violin_all = p_binary_top3_all
+      p_violin_primary = p_binary_top3_primary
+    } else if (vs_type == "baseline") {
+      p_violin_all = p_binary_baseline_all
+      p_violin_primary = p_binary_baseline_primary
+    }
+  } else {
+    if (vs_type == "all") {
+      p_violin_all = p_cont_all_all
+      p_violin_primary = p_cont_all_primary
+    } else if (vs_type == "top3") {
+      p_violin_all = p_cont_top3_all
+      p_violin_primary = p_cont_top3_primary
+    } else if (vs_type == "baseline") {
+      p_violin_all = p_cont_baseline_all
+      p_violin_primary = p_cont_baseline_primary
+    }
+  }
+
+  # smooth plots
+  idx_all = which(plot_configs$outcome_type == outcome_type &
+                    plot_configs$vs_type == vs_type &
+                    plot_configs$data_source == "all" &
+                    plot_configs$version == "smooth_log")
+  idx_primary = which(plot_configs$outcome_type == outcome_type &
+                        plot_configs$vs_type == vs_type &
+                        plot_configs$data_source == "primary" &
+                        plot_configs$version == "smooth_log")
+  p_smooth_all = results[[idx_all]]$plot
+  p_smooth_primary = results[[idx_primary]]$plot
+
+  # label plots
+  base_label_theme = theme_void() + theme(plot.margin = margin(0,0,0,0))
+  label_all = ggplot() + annotate("text", x=0, y=0, label="All outcome analysis",
+                                  size=8, fontface="bold", angle=90) + base_label_theme
+  label_primary = ggplot() + annotate("text", x=0, y=0, label="Primary outcome analysis",
+                                      size=8, fontface="bold", angle=90) + base_label_theme
+
+  # build rows; tweak left/right weights here if you like
+  top_row = row_with_label(label_all,     p_violin_all,     p_smooth_all,
+                           label_width = 0.11, left_weight = 1.25, right_weight = 1.00)
+  bot_row = row_with_label(label_primary, p_violin_primary, p_smooth_primary,
+                           label_width = 0.11, left_weight = 1.25, right_weight = 1.00)
+
+  combined = top_row / bot_row + plot_layout(heights = c(1, 1))
+  combined
+}
+
+# --- saving unchanged, maybe slightly narrower width since label col is tiny
+combined_width = 20
+combined_height = 12
+
+for (i in 1:nrow(fig_configs)) {
+  outcome = fig_configs$outcome_type[i]
+  vs = fig_configs$vs_type[i]
+  fig_name = fig_configs$fig_name[i]
+
+  outcome_label = ifelse(outcome == "binary", "Binary", "Continuous")
+  vs_label = dplyr::case_when(
+    vs == "all" ~ "All Methods",
+    vs == "top3" ~ "Top-3 Methods",
+    vs == "baseline" ~ "Baseline+ Methods"
+  )
+
+  cat(sprintf("Creating figure %d/6: %s - %s...\n", i, outcome_label, vs_label))
+
+  combined_fig = create_4panel_figure(outcome, vs)
+
+  filename = paste0("cleaned_data/Plot/", fig_name, ".png")
+  ggsave(filename, combined_fig,
+         width = combined_width, height = combined_height, dpi = pub_dpi, bg = "white")
+
+  cat(sprintf("✓ Saved: %s\n  Dimensions: %d × %d inches @ %d dpi\n\n",
+              filename, combined_width, combined_height, pub_dpi))
+
+  print(combined_fig)
+}
 ```
 
+
+
+## run_tmle
 ```{r}
-df_comparison = df_comparison %>%
-  arrange(Trial_No)
+run_tmle_analysis = function(df_indices = 1:50, selection = T, variable_selection_type = 2) {
+
+  manual_covariates_list = list(
+    df1 = c("X_Age_0m", "X_Weight_0m"),
+    df2 = c("X_agegrp_0d", "X_sex_0d"),
+    df3 = c("X_age_0m", "X_sex_0m"),
+    df4 = c("X_Sex_0w", "X_Age_0w", "X_BMI_0w"),
+    df5 = c("X_age_0m", "X_sex_0m"),
+    df6 = c("X_age_0m", "X_sex_0m"),
+    df7 = c("X_Age_0h", "X_Gender_0h"),
+    df8 = c("X_Age_0d", "X_Sex_0d"),
+    df9 = c("X_age_0d"),
+    df10 = c("X_center_0d", "X_sex_0d", "X_age_0d", "X_weight_0d"),
+    df11 = c("X_sex_0w"),
+    df12 = c("X_AuthorGender_0w"),
+    df13 = c("X_AGE_0min"),
+    df14 = c("X_center_0w", "X_sex_0w", "X_age_0w"),
+    df15 = character(0),
+    df16 = c("X_age_0w", "X_sex_0w"),
+    df17 = c("X_age_0w", "X_sex_0w", "X_BMI_0w"),
+    df18 = c("X_AgeCat_0m", "X_Gender_0m"),
+    df19 = c("X_RECIPIENT_AGE_YEARS_0d", "X_RECIPIENT_GENDER_0d"),
+    df20 = c("X_Age_0w", "X_Sex_0w", "X_Weight_0w"),
+    df21 = character(0),
+    df22 = c("X_age_0w"),
+    df23 = character(0),
+    df24 = c("X_Age_0d", "X_Weight_0d"),
+    df25 = c("X_Sex_0w", "X_BMI_0w"),
+    df26 = c("X_Agecat_0m", "X_weight_0m"),
+    df27 = character(0),
+    df28 = c("X_SEX_0m", "X_Age_0m", "X_BMI_0m"),
+    df29 = c("X_age_0w", "X_sex_0w", "X_on_art_0w"),
+    df30 = c("X_Sex_0d", "X_Age_0d"),
+    df31 = c("X_age_0w"),
+    df32 = c("X_sex_0m", "X_age_0m"),
+    df33 = c("X_age_0w", "X_Gender_0w", "X_DiseaseGroup_0w"),
+    df34 = c("X_wt_0d", "X_sex_0d"),
+    df35 = c("X_BMI_0w"),
+    df36 = character(0),
+    df37 = c("X_site_0d", "X_age_0d", "X_gender_0d"),
+    df38 = c("X_age_0w", "X_weight_0w", "X_gender_0w"),
+    df39 = c("X_age_0w", "X_sex_0w", "X_substance_0w"),
+    df40 = c("X_age_0d", "X_gender_0d", "X_BMI_0d"),
+    df41 = c("X_gender_0h", "X_BMI_0h", "X_age_0h"),
+    df42 = c("X_gender_0h", "X_bmi_0h", "X_age_0h"),
+    df43 = c("X_Age_0d", "X_BMI_0d"),
+    df44 = c("X_Age_0m", "X_Sex_0m", "X_Wt_0m"),
+    df45 = c("X_weight_8w", "X_store_0w"),
+    df46 = c("X_Age_0y"),
+    df47 = c("X_gender_0h", "X_age_range_0h", "X_weight_range_0h"),
+    df48 = c("X_age_group", "X_sex"),
+    df49 = c("X_gestAge_0w", "X_birthWt_0d"),
+    df50 = c("X_sex_0w", "X_center_0w", "X_age_0w", "X_weight_0w")
+  )
+
+  final_tmle_results = data.frame()
+
+  for (i in df_indices) {
+    df_name = paste0("df", i)
+    df = get(df_name)
+    manual_covs = manual_covariates_list[[df_name]]
+
+    if (is.null(manual_covs)) {
+      manual_covs = character(0)
+    }
+
+    tryCatch({
+      res_tmle = analyze_rct_tmle(
+        df, 
+        selection = selection, 
+        variable_selection_type = variable_selection_type,
+        manual_covariates = manual_covs
+      )
+
+      res_tmle$Trial = i
+      res_tmle$DataFrame = df_name
+      final_tmle_results = rbind(final_tmle_results, res_tmle)
+
+    }, error = function(e) {
+      message("Error in ", df_name, ": ", e$message)
+    })
+  }
+
+  return(final_tmle_results)
+}
 ```
+
 

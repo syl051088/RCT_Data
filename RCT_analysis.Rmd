@@ -24,6 +24,7 @@ library(ggplot2)
 library(writexl)
 library(kableExtra)
 library(scales)
+library(AIPW)
 ```
 
 # Load Data
@@ -656,8 +657,693 @@ analyze_rct = function(df,
 }
 ```
 
-## update_df()
+## analyze_rct_sl_tmle()
+```{r}
+analyze_rct_sl_tmle = function(data,
+                               treatment_col  = "Treatment",
+                               outcome_cols,
+                               covariate_cols,
+                               reference_arm  = NULL,
+                               K              = 5,
+                               SL_methods     = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.gam"),
+                               n_cores        = parallel::detectCores() - 2) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+  require(foreach)
+  require(doSNOW)
+  require(doRNG)
+  
+  n  = nrow(data)
+  
+  ## ── set up inner cluster ────────────────────────────────────────────────
+  cl = makeCluster(n_cores)
+  registerDoSNOW(cl)
+  registerDoRNG()
+  on.exit(stopCluster(cl), add = TRUE)
+  
+  arms = levels(data[[treatment_col]])
+  if (is.null(reference_arm))
+    reference_arm = arms[1]
+  if (!(reference_arm %in% arms))
+    stop("reference_arm must be one of: ", paste(arms, collapse = ", "))
+  
+  combos = expand.grid(
+    Outcome   = outcome_cols,
+    Treatment = setdiff(arms, reference_arm),
+    stringsAsFactors = FALSE
+  )
+  
+  results = foreach(
+    i = seq_len(nrow(combos)),
+    .combine = dplyr::bind_rows,
+    .packages = c("dplyr", "tmle", "SuperLearner")
+  ) %dopar% {
+    Y   = combos$Outcome[i]
+    arm = combos$Treatment[i]
+    pair_arms = c(reference_arm, arm)
+    
+    # Filter data to only include the two arms being compared for this contrast
+    pair_data = data[data[[treatment_col]] %in% pair_arms, ]
+    pair_data[[treatment_col]] = factor(pair_data[[treatment_col]], levels = pair_arms)
+    
+    # Create binary treatment indicator (1 for treatment arm, 0 for reference)
+    A = as.numeric(pair_data[[treatment_col]] == arm)
+    Y_vec = pair_data[[Y]]
+    
+    # Handle covariates
+    if (length(covariate_cols) > 0) {
+      W = pair_data[, covariate_cols, drop = FALSE]
+    } else {
+      W = NULL  # No covariates case
+    }
+    
+    # Check for sufficient variation in treatment
+    if (sum(A) < 2 || sum(1-A) < 2) {
+      return(tibble(
+        Outcome   = Y,
+        Treatment = arm,
+        Control   = reference_arm,
+        Est_SL    = NA_real_,
+        SE_SL     = NA_real_
+      ))
+    }
+    
+    tryCatch({
+      # Fit TMLE with CV control
+      if (is.null(W)) {
+        # No covariates case
+        tmle_fit = tmle(
+          Y = Y_vec,
+          A = A,
+          Q.SL.library = SL_methods,
+          g.SL.library = "SL.mean",
+          family = "gaussian"
+        )
+      } else {
+        # With covariates
+        tmle_fit = tmle(
+          Y = Y_vec,
+          A = A,
+          W = W,
+          Q.SL.library = SL_methods,
+          g.SL.library = "SL.mean",
+          family = "gaussian"
+        )
+      }
+      
+      # Extract ATE estimate and SE directly from TMLE
+      Est_SL = tmle_fit$estimates$ATE$psi
+      SE_SL = sqrt(tmle_fit$estimates$ATE$var.psi)
+      
+    }, error = function(e) {
+      Est_SL = NA_real_
+      SE_SL = NA_real_
+    })
+    
+    tibble(
+      Outcome   = Y,
+      Treatment = arm,
+      Control   = reference_arm,
+      Est_SL    = Est_SL,
+      SE_SL     = SE_SL
+    )
+  }
+  
+  results
+}
+```
 
+
+## analyze_rct_tmle()
+```{r}
+analyze_rct_tmle = function(df,
+                            selection = FALSE,
+                            variable_selection_type = 1,  # 1: correlation, 2: manual
+                            manual_covariates = NULL,
+                            K = 5,
+                            SL_methods = c("SL.glm", "SL.mean", "SL.glmnet", "SL.rpart", "SL.gam"),
+                            n_select = 3,
+                            n_cores = parallel::detectCores() - 2,
+                            outcome_cols = NULL,
+                            covariate_col = NULL,
+                            treatment_col = "Treatment",
+                            seed = 123) {
+  require(dplyr)
+  require(tmle)
+  require(SuperLearner)
+  require(DescTools)
+  
+  # Set seed once at the beginning for reproducibility
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    # All YP columns
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    
+    # Numeric and binary YS columns
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) &&
+           length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    
+    outcome_cols = c(yp_cols, ys_valid)
+    cat(
+      "Auto-detected",
+      length(outcome_cols),
+      "outcome columns:",
+      paste(outcome_cols, collapse = ", "),
+      "\n"
+    )
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    # Add n_participants if it exists
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), DescTools::Mode(., na.rm = TRUE)[1])
+    }))
+  
+  control_level = levels(df[[treatment_col]])[1]
+  treat_pattern = paste0("^", treatment_col)
+  
+  # Process each outcome
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Check missing proportion for outcome
+    missing_prop = mean(is.na(df[[outcome]]))
+    if (missing_prop > 0.4) {
+      cat(
+        "REMOVED outcome:",
+        outcome,
+        "- Missing proportion:",
+        round(missing_prop, 3),
+        "(> 0.4)\n"
+      )
+      next
+    }
+    
+    # Filter complete cases for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    
+    cat(
+      "Outcome:",
+      outcome,
+      "- Sample size:",
+      nrow(df_complete),
+      "(",
+      nrow(df) - nrow(df_complete),
+      "rows removed)\n"
+    )
+    
+    # Check for single-level factors after filtering
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:",
+          outcome,
+          "- Only one level after filtering\n")
+      next
+    }
+    
+    # Check covariates for single levels and remove them
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat(
+          "REMOVED covariate:",
+          cov,
+          "- Only one level after filtering (outcome:",
+          outcome,
+          ")\n"
+        )
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    # Determine if outcome is binary
+    is_binary = is.factor(df_complete[[outcome]]) && 
+                length(levels(droplevels(df_complete[[outcome]]))) == 2
+    
+    # For variable selection and traditional models, convert to numeric
+    df_complete_numeric = df_complete
+    if (is_binary) {
+      # Convert binary factor/numeric to 0,1
+      # Handle cases where data is already 0,1 or needs conversion from 1,2
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      unique_vals = sort(unique(numeric_outcome))
+      
+      if (all(unique_vals == c(0, 1))) {
+        # Already 0,1 - keep as is
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(unique_vals == c(1, 2))) {
+        # Convert 1,2 to 0,1
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    # Variable selection based on type
+    if (selection && length(valid_covariates) > 0) {
+      if (variable_selection_type == 1) {
+        # Correlation-based selection
+        selected_covariates = variable_selection_correlation(outcome, valid_covariates, df_complete_numeric, n_select)
+      } else if (variable_selection_type == 2) {
+        # Manual + baseline selection
+        selected_covariates = variable_selection_manual(outcome, valid_covariates, manual_covariates)
+        
+        # Check if we have any covariates to work with for manual selection
+        if (length(selected_covariates) == 0) {
+          cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
+          
+          # Create results with NA values
+          treatment_levels = levels(df_complete[[treatment_col]])[-1]  # Exclude control
+          n_treat = length(treatment_levels)
+          
+          # Base tibble with core columns
+          outcome_results = tibble(
+            Outcome = rep(outcome, n_treat),
+            Treatment = treatment_levels,
+            Control = rep(control_level, n_treat),
+            N = rep(nrow(df_complete), n_treat),
+            N_Covariates = rep(0, n_treat),
+            Est_SL = rep(NA_real_, n_treat),
+            SE_SL = rep(NA_real_, n_treat)
+          )
+          
+          # Add Selected_Covariates column if selection = TRUE
+          if (selection) {
+            outcome_results$Selected_Covariates = rep("", n_treat)
+          }
+          
+          valid_outcomes = c(valid_outcomes, outcome)
+          all_results[[length(valid_outcomes)]] = outcome_results
+          next
+        }
+      }
+      
+      # Use the selected covariates
+      valid_covariates = selected_covariates
+      cat("Selected covariates for", outcome, ":", paste(valid_covariates, collapse = ", "), "\n")
+    }
+    
+    # Create results for this outcome
+    treatment_levels = setdiff(levels(df_complete[[treatment_col]]), control_level)
+    n_treat = length(treatment_levels)
+    
+    # Calculate pairwise sample sizes (control + current treatment)
+    pairwise_n = sapply(treatment_levels, function(treat_level) {
+      sum(df_complete[[treatment_col]] %in% c(control_level, treat_level))
+    })
+    
+    # Create base outcome results
+    outcome_results = tibble(
+      Outcome = rep(outcome, n_treat),
+      Treatment = treatment_levels,
+      Control = rep(control_level, n_treat),
+      N = pairwise_n,
+      N_Covariates = rep(length(valid_covariates), n_treat),
+      Est_SL = rep(NA_real_, n_treat),
+      SE_SL = rep(NA_real_, n_treat)
+    )
+    
+    # Add Selected_Covariates column only if selection = TRUE
+    if (selection) {
+      outcome_results$Selected_Covariates = rep(paste(valid_covariates, collapse = ", "), n_treat)
+    }
+    
+    # TMLE SuperLearner - run ensemble (using numeric version)
+    tryCatch({
+      sl_res = analyze_rct_sl_tmle(
+        data = df_complete_numeric,
+        outcome_cols = outcome,
+        covariate_cols = valid_covariates,
+        treatment_col = treatment_col,
+        reference_arm = control_level,
+        K = K,
+        SL_methods = SL_methods,
+        n_cores = n_cores
+      )
+      outcome_results$Est_SL = sl_res$Est_SL
+      outcome_results$SE_SL = sl_res$SE_SL
+    }, error = function(e) {
+      cat("TMLE Error for outcome", outcome, ":", e$message, "\n")
+      outcome_results$Est_SL <<- rep(NA_real_, n_treat)
+      outcome_results$SE_SL <<- rep(NA_real_, n_treat)
+    })
+    
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) {
+    stop("No valid outcomes remaining after data cleaning")
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    # Round for cleaner output
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5))) %>%
+    # Reorder columns
+    select(
+      Outcome,
+      N,
+      N_Covariates,
+      Treatment,
+      Control,
+      Est_SL,
+      SE_SL,
+      everything()
+    )
+  
+  return(final_results)
+}
+```
+
+## analyze_rct_aipw()
+```{r}
+analyze_rct_aipw = function(df,
+                           selection = FALSE,
+                           variable_selection_type = 1,  # 1: correlation, 2: manual
+                           manual_covariates = NULL,
+                           Q_SL_library = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet"),
+                           g_SL_library = "SL.mean",
+                           k_split = 5,
+                           g_bound = 0.05,
+                           seed = 123,
+                           outcome_cols = NULL,
+                           covariate_col = NULL,
+                           treatment_col = "Treatment",
+                           n_select = 3) {
+  require(dplyr)
+  require(AIPW)
+  require(SuperLearner)
+  require(tidyr)
+  require(DescTools)
+  
+  # Set seed once at the beginning for reproducibility
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    # All YP columns
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    
+    # Numeric and binary YS columns
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) &&
+           length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    
+    outcome_cols = c(yp_cols, ys_valid)
+    cat(
+      "Auto-detected",
+      length(outcome_cols),
+      "outcome columns:",
+      paste(outcome_cols, collapse = ", "),
+      "\n"
+    )
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    # Add n_participants if it exists
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+    }))
+  
+  # Get treatment arms - first level is the reference/control arm
+  arms = levels(df[[treatment_col]])
+  control_level = arms[1]  # Reference arm (set in data cleaning)
+  treatment_levels = arms[-1]  # All non-reference treatment arms
+  
+  # Process each outcome
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    # Check missing proportion for outcome
+    missing_prop = mean(is.na(df[[outcome]]))
+    if (missing_prop > 0.4) {
+      cat(
+        "REMOVED outcome:",
+        outcome,
+        "- Missing proportion:",
+        round(missing_prop, 3),
+        "(> 0.4)\n"
+      )
+      next
+    }
+    
+    # Filter complete cases for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    
+    cat(
+      "Outcome:",
+      outcome,
+      "- Sample size:",
+      nrow(df_complete),
+      "(",
+      nrow(df) - nrow(df_complete),
+      "rows removed)\n"
+    )
+    
+    # Check for single-level factors after filtering
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:",
+          outcome,
+          "- Only one level after filtering\n")
+      next
+    }
+    
+    # Check covariates for single levels and remove them
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat(
+          "REMOVED covariate:",
+          cov,
+          "- Only one level after filtering (outcome:",
+          outcome,
+          ")\n"
+        )
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    # Determine if outcome is binary
+    is_binary = is.factor(df_complete[[outcome]]) && 
+                length(levels(droplevels(df_complete[[outcome]]))) == 2
+    
+    # Convert data to numeric for AIPW
+    df_complete_numeric = df_complete
+    if (is_binary) {
+      # Convert binary factor/numeric to 0,1
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      unique_vals = sort(unique(numeric_outcome))
+      
+      if (all(unique_vals == c(0, 1))) {
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(unique_vals == c(1, 2))) {
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        stop(paste("Binary outcome", outcome, "has unexpected values:", paste(unique_vals, collapse = ", "), "- expected 0,1 or 1,2"))
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    # Variable selection based on type (using full dataset before pairwise splitting)
+    if (selection && length(valid_covariates) > 0) {
+      if (variable_selection_type == 1) {
+        # Correlation-based selection
+        selected_covariates = variable_selection_correlation(outcome, valid_covariates, df_complete_numeric, n_select)
+      } else if (variable_selection_type == 2) {
+        # Manual + baseline selection
+        selected_covariates = variable_selection_manual(outcome, valid_covariates, manual_covariates)
+        
+        # Check if we have any covariates to work with for manual selection
+        if (length(selected_covariates) == 0) {
+          cat("No valid covariates found for outcome:", outcome, "- Setting all estimates to NA\n")
+          
+          # Create NA results for all treatment arms
+          outcome_results_list = lapply(treatment_levels, function(treat_level) {
+            tibble(
+              Outcome = outcome,
+              Treatment = treat_level,
+              Control = control_level,
+              N = sum(df_complete[[treatment_col]] %in% c(control_level, treat_level)),
+              N_Covariates = 0,
+              Selected_Covariates = "",
+              Est_AIPW = NA_real_,
+              SE_AIPW = NA_real_
+            )
+          })
+          outcome_results = bind_rows(outcome_results_list)
+          
+          valid_outcomes = c(valid_outcomes, outcome)
+          all_results[[length(valid_outcomes)]] = outcome_results
+          next
+        }
+      }
+      
+      # Use the selected covariates
+      valid_covariates = selected_covariates
+      cat("Selected covariates for", outcome, ":", paste(valid_covariates, collapse = ", "), "\n")
+    }
+    
+    ## ────────────────────────────────────────────────────────────────
+    ## PAIRWISE COMPARISONS: Loop through each treatment arm vs reference
+    ## ────────────────────────────────────────────────────────────────
+    
+    outcome_results_list = vector("list", length(treatment_levels))
+    
+    for (j in seq_along(treatment_levels)) {
+      treat_level = treatment_levels[j]
+      
+      # Subset data to only reference arm and current treatment arm
+      df_pairwise = df_complete_numeric %>%
+        filter(!!sym(treatment_col) %in% c(control_level, treat_level))
+      
+      # Create binary treatment (0 = reference, 1 = current treatment)
+      df_pairwise_binary = df_pairwise
+      df_pairwise_binary[[treatment_col]] = as.numeric(df_pairwise_binary[[treatment_col]] == treat_level)
+      
+      # Prepare covariate matrix
+      W_matrix = df_pairwise_binary[, valid_covariates, drop = FALSE]
+      
+      # Convert factors to numeric if needed
+      for (col in names(W_matrix)) {
+        if (is.factor(W_matrix[[col]])) {
+          W_matrix[[col]] = as.numeric(W_matrix[[col]])
+        }
+      }
+      
+      # Fit AIPW model using wrapper - silently handle all errors
+      aipw_result = tryCatch({
+        aipw_fit = suppressWarnings(
+          aipw_wrapper(
+            Y = df_pairwise_binary[[outcome]],
+            A = df_pairwise_binary[[treatment_col]],
+            W = W_matrix,
+            Q.SL.library = Q_SL_library,
+            g.SL.library = g_SL_library,
+            k_split = k_split,
+            g.bound = g_bound,
+            stratified_fit = FALSE,
+            verbose = FALSE
+          )
+        )
+        
+        # Extract estimates
+        list(
+          est = aipw_fit$estimates$RD[[1]],
+          se = aipw_fit$estimates$RD[[2]],
+          success = TRUE
+        )
+        
+      }, error = function(e) {
+        # Silently return NA results on any error
+        list(
+          est = NA_real_,
+          se = NA_real_,
+          success = FALSE
+        )
+      })
+      
+      # Create outcome results for this treatment arm
+      outcome_results_list[[j]] = tibble(
+        Outcome = outcome,
+        Treatment = treat_level,
+        Control = control_level,
+        N = nrow(df_pairwise),
+        N_Covariates = length(valid_covariates),
+        Est_AIPW = aipw_result$est,
+        SE_AIPW = aipw_result$se
+      )
+      
+      # Add Selected_Covariates column only if selection = TRUE
+      if (selection) {
+        outcome_results_list[[j]]$Selected_Covariates = paste(valid_covariates, collapse = ", ")
+      }
+    }
+    
+    # Combine results from all treatment arms for this outcome
+    outcome_results = bind_rows(outcome_results_list)
+    
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) {
+    stop("No valid outcomes remaining after data cleaning")
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    # Round for cleaner output
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5)))
+  
+  return(final_results)
+}
+```
+
+
+## update_df()
 ```{r}
 update_df = function(trial_no,
                      outcome_type,
@@ -671,22 +1357,70 @@ update_df = function(trial_no,
 
   ## ────────────────────────────────────────────────────────────────
   ## 0) Check if all N_Covariates are 0 - if so, skip update entirely
+  ##    Otherwise, filter to only rows with covariates
   ## ────────────────────────────────────────────────────────────────
   if (all(results$N_Covariates == 0)) {
     cat("Skipping update for trial", trial_no, "- All outcomes have N_Covariates = 0\n")
     return(df)
   }
+  
+  # Store original results for outcome_type mapping
+  results_original = results
+  
+  # Filter to only rows with covariates
+  results_with_covariates = results[results$N_Covariates > 0, ]
+  
+  if (nrow(results_with_covariates) == 0) {
+    cat("Skipping update for trial", trial_no, "- No outcomes with covariates after filtering\n")
+    return(df)
+  }
+  
+  if (nrow(results_with_covariates) < nrow(results)) {
+    cat("Note: Processing", nrow(results_with_covariates), "out of", nrow(results), 
+        "outcomes (skipping", nrow(results) - nrow(results_with_covariates), "with N_Covariates = 0)\n")
+  }
+  
+  # Use filtered results for the rest of the function
+  results = results_with_covariates
 
   ## ────────────────────────────────────────────────────────────────
   ## 1)  Outcome → Outcome-Type lookup
   ## ────────────────────────────────────────────────────────────────
-  unique_outcomes = unique(results$Outcome)
-  stopifnot(length(outcome_type) == length(unique_outcomes))
-
-  outcome_type_map = tibble(
-    Outcome        = unique_outcomes,
-    `Outcome Type` = outcome_type
+  
+  # Determine the multiplier (number of comparisons per outcome)
+  # This is always nrow(results_original) / length(outcome_type)
+  multiplier = nrow(results_original) / length(outcome_type)
+  
+  if (multiplier != round(multiplier)) {
+    stop("Number of rows in results (", nrow(results_original), 
+         ") is not a multiple of length of outcome_type (", length(outcome_type), ")")
+  }
+  
+  # Create outcome_type mapping for filtered results
+  # For each row in results, find which outcome_type it corresponds to
+  outcome_type_expanded = rep(outcome_type, each = multiplier)
+  
+  # Now subset this expanded vector to match the filtered results
+  # We need to find the indices of results_with_covariates in results_original
+  original_indices = match(
+    paste(results_with_covariates$Outcome, 
+          results_with_covariates$Treatment, 
+          results_with_covariates$Control),
+    paste(results_original$Outcome, 
+          results_original$Treatment, 
+          results_original$Control)
   )
+  
+  outcome_type_filtered = outcome_type_expanded[original_indices]
+  
+  unique_outcomes = unique(results$Outcome)
+  
+  # Create mapping based on filtered data
+  outcome_type_map = tibble(
+    Outcome = results$Outcome,
+    `Outcome Type` = outcome_type_filtered
+  ) %>%
+    distinct(Outcome, .keep_all = TRUE)
 
   ## Dynamically detect SL members from results columns (excluding glm/mean)
   est_cols = names(results)[grepl("^Est_SL_", names(results))]
@@ -926,6 +1660,315 @@ update_df = function(trial_no,
 }
 ```
 
+
+## update_df_tmle()
+```{r}
+update_df_tmle = function(trial_no,
+                          outcome_type,
+                          results,
+                          suffix = "",
+                          contrast = "diff",
+                          df = df_comparison) {
+  
+  library(dplyr)
+  
+  ## ────────────────────────────────────────────────────────────────
+  ## 0) Check if all N_Covariates are 0 - if so, skip update entirely
+  ## ────────────────────────────────────────────────────────────────
+  if (all(results$N_Covariates == 0)) {
+    cat("Skipping TMLE update for trial", trial_no, "- All outcomes have N_Covariates = 0\n")
+    return(df)
+  }
+  
+  ## ────────────────────────────────────────────────────────────────
+  ## 1) Process each row in results and update only TMLE columns
+  ## ────────────────────────────────────────────────────────────────
+  
+  for (i in seq_len(nrow(results))) {
+    row_i = results[i, ]
+    
+    # Find matching row in df
+    idx = which(
+      df$Trial_No == trial_no &
+        df$Outcome   == row_i$Outcome &
+        df$Treatment == row_i$Treatment &
+        df$Control   == row_i$Control
+    )
+    
+    if (length(idx) == 0) {
+      warning("No matching row found in df for Trial_No=", trial_no, 
+              ", Outcome=", row_i$Outcome, ", Treatment=", row_i$Treatment)
+      next
+    }
+    
+    ## ────────────────────────────────────────────────────────────────
+    ## 2) Update TMLE estimate columns
+    ## ────────────────────────────────────────────────────────────────
+    
+    if (suffix == "") {
+      # Add columns if they don't exist
+      if (!"TMLE_est" %in% names(df)) {
+        df$TMLE_est = NA_real_
+      }
+      if (!"TMLE_se" %in% names(df)) {
+        df$TMLE_se = NA_real_
+      }
+      
+      # Update values
+      df[idx[1], "TMLE_est"] = row_i$Est_SL
+      df[idx[1], "TMLE_se"] = row_i$SE_SL
+      
+      tmle_se = row_i$Est_SL
+      tmle_est = row_i$SE_SL
+      
+    } else {
+      # For suffixed version
+      suffix_clean = paste0("_", suffix)
+      tmle_est_col = paste0("TMLE", suffix_clean, "_est")
+      tmle_se_col = paste0("TMLE", suffix_clean, "_se")
+      
+      # Add columns if they don't exist
+      if (!tmle_est_col %in% names(df)) {
+        df[[tmle_est_col]] = NA_real_
+      }
+      if (!tmle_se_col %in% names(df)) {
+        df[[tmle_se_col]] = NA_real_
+      }
+      
+      # Update values
+      df[idx[1], tmle_est_col] = row_i$Est_SL
+      df[idx[1], tmle_se_col] = row_i$SE_SL
+      
+      tmle_est = row_i$Est_SL
+      tmle_se = row_i$SE_SL
+    }
+    
+    ## ────────────────────────────────────────────────────────────────
+    ## 3) Calculate and update derived metrics (precision gain & difference)
+    ## ────────────────────────────────────────────────────────────────
+    
+    # Only if Unadjust_se and Unadjust_est exist in df
+    if ("Unadjust_se" %in% names(df) && "Unadjust_est" %in% names(df)) {
+      unadjust_se = df[idx[1], "Unadjust_se"]
+      unadjust_est = df[idx[1], "Unadjust_est"]
+      
+      if (suffix == "") {
+        # Add derived metric columns if they don't exist
+        if (!"How much precision gain can TMLE provide?" %in% names(df)) {
+          df[["How much precision gain can TMLE provide?"]] = NA_real_
+        }
+        if (!"The difference between unadjusted and TMLE point estimates" %in% names(df)) {
+          df[["The difference between unadjusted and TMLE point estimates"]] = NA_real_
+        }
+        
+        # Calculate precision gain
+        if (!is.na(tmle_se) && !is.na(unadjust_se) && unadjust_se != 0) {
+          df[idx[1], "How much precision gain can TMLE provide?"] = 
+            (tmle_se / unadjust_se)^2
+        }
+        
+        # Calculate point estimate difference
+        if (!is.na(tmle_est) && !is.na(unadjust_est) && !is.na(tmle_se) && !is.na(unadjust_se)) {
+          df[idx[1], "The difference between unadjusted and TMLE point estimates"] = 
+            (tmle_est - unadjust_est) / sqrt((tmle_se^2 + unadjust_se^2) / 2)
+        }
+        
+      } else {
+        # For suffixed version
+        suffix_clean = paste0("_", suffix)
+        pg_col = paste0("How much precision gain can TMLE", suffix_clean, " provide?")
+        diff_col = paste0("The difference between unadjusted and TMLE", suffix_clean, " point estimates")
+        
+        # Add derived metric columns if they don't exist
+        if (!pg_col %in% names(df)) {
+          df[[pg_col]] = NA_real_
+        }
+        if (!diff_col %in% names(df)) {
+          df[[diff_col]] = NA_real_
+        }
+        
+        # Calculate precision gain
+        if (!is.na(tmle_se) && !is.na(unadjust_se) && unadjust_se != 0) {
+          df[idx[1], pg_col] = (tmle_se / unadjust_se)^2
+        }
+        
+        # Calculate point estimate difference
+        if (!is.na(tmle_est) && !is.na(unadjust_est) && !is.na(tmle_se) && !is.na(unadjust_se)) {
+          df[idx[1], diff_col] = 
+            (tmle_est - unadjust_est) / sqrt((tmle_se^2 + unadjust_se^2) / 2)
+        }
+      }
+    }
+  }
+  
+  df
+}
+```
+
+## update_df_aipw()
+```{r}
+update_df_aipw = function(trial_no,
+                          outcome_type,
+                          results,
+                          method = "AIPW",  # Determines which columns to update in df
+                          suffix = "",
+                          contrast = "diff",
+                          df = df_comparison) {
+  
+  library(dplyr)
+  
+  ## ────────────────────────────────────────────────────────────────
+  ## 0) Check if all N_Covariates are 0 - if so, skip update entirely
+  ## ────────────────────────────────────────────────────────────────
+  if (all(results$N_Covariates == 0)) {
+    cat("Skipping", method, "update for trial", trial_no, "- All outcomes have N_Covariates = 0\n")
+    return(df)
+  }
+  
+  ## Validate method parameter
+  method = toupper(method)
+  if (!method %in% c("AIPW", "IPW")) {
+    stop("method must be either 'AIPW' or 'IPW'")
+  }
+  
+  ## ────────────────────────────────────────────────────────────────
+  ## 1) Process each row in results and update only specified method columns
+  ## ────────────────────────────────────────────────────────────────
+  
+  for (i in seq_len(nrow(results))) {
+    row_i = results[i, ]
+    
+    # Find matching row in df
+    idx = which(
+      df$Trial_No == trial_no &
+        df$Outcome   == row_i$Outcome &
+        df$Treatment == row_i$Treatment &
+        df$Control   == row_i$Control
+    )
+    
+    if (length(idx) == 0) {
+      warning("No matching row found in df for Trial_No=", trial_no, 
+              ", Outcome=", row_i$Outcome, ", Treatment=", row_i$Treatment)
+      next
+    }
+    
+    ## ────────────────────────────────────────────────────────────────
+    ## 2) Update estimate columns based on selected method
+    ## ────────────────────────────────────────────────────────────────
+    
+    # Always read from Est_AIPW and SE_AIPW in results
+    if (!"Est_AIPW" %in% names(row_i) || !"SE_AIPW" %in% names(row_i)) {
+      warning("Required columns Est_AIPW or SE_AIPW not found in results for Outcome=", row_i$Outcome)
+      next
+    }
+    
+    if (suffix == "") {
+      # Add columns if they don't exist (named based on method)
+      est_col = paste0(method, "_est")
+      se_col = paste0(method, "_se")
+      
+      if (!est_col %in% names(df)) {
+        df[[est_col]] = NA_real_
+      }
+      if (!se_col %in% names(df)) {
+        df[[se_col]] = NA_real_
+      }
+      
+      # Update values (read from Est_AIPW/SE_AIPW, write to method columns)
+      df[idx[1], est_col] = row_i$Est_AIPW
+      df[idx[1], se_col] = row_i$SE_AIPW
+      
+      method_est = row_i$Est_AIPW
+      method_se = row_i$SE_AIPW
+      
+    } else {
+      # For suffixed version
+      suffix_clean = paste0("_", suffix)
+      est_col = paste0(method, suffix_clean, "_est")
+      se_col = paste0(method, suffix_clean, "_se")
+      
+      # Add columns if they don't exist
+      if (!est_col %in% names(df)) {
+        df[[est_col]] = NA_real_
+      }
+      if (!se_col %in% names(df)) {
+        df[[se_col]] = NA_real_
+      }
+      
+      # Update values (read from Est_AIPW/SE_AIPW, write to method columns)
+      df[idx[1], est_col] = row_i$Est_AIPW
+      df[idx[1], se_col] = row_i$SE_AIPW
+      
+      method_est = row_i$Est_AIPW
+      method_se = row_i$SE_AIPW
+    }
+    
+    ## ────────────────────────────────────────────────────────────────
+    ## 3) Calculate and update derived metrics (precision gain & difference)
+    ## ────────────────────────────────────────────────────────────────
+    
+    # Only if Unadjust_se and Unadjust_est exist in df
+    if ("Unadjust_se" %in% names(df) && "Unadjust_est" %in% names(df)) {
+      unadjust_se = df[idx[1], "Unadjust_se"]
+      unadjust_est = df[idx[1], "Unadjust_est"]
+      
+      if (suffix == "") {
+        # Add derived metric columns if they don't exist
+        pg_col = paste0("How much precision gain can ", method, " provide?")
+        diff_col = paste0("The difference between unadjusted and ", method, " point estimates")
+        
+        if (!pg_col %in% names(df)) {
+          df[[pg_col]] = NA_real_
+        }
+        if (!diff_col %in% names(df)) {
+          df[[diff_col]] = NA_real_
+        }
+        
+        # Calculate precision gain
+        if (!is.na(method_se) && !is.na(unadjust_se) && unadjust_se != 0) {
+          df[idx[1], pg_col] = (method_se / unadjust_se)^2
+        }
+        
+        # Calculate point estimate difference
+        if (!is.na(method_est) && !is.na(unadjust_est) && !is.na(method_se) && !is.na(unadjust_se)) {
+          df[idx[1], diff_col] = 
+            (method_est - unadjust_est) / sqrt((method_se^2 + unadjust_se^2) / 2)
+        }
+        
+      } else {
+        # For suffixed version
+        suffix_clean = paste0("_", suffix)
+        pg_col = paste0("How much precision gain can ", method, suffix_clean, " provide?")
+        diff_col = paste0("The difference between unadjusted and ", method, suffix_clean, " point estimates")
+        
+        # Add derived metric columns if they don't exist
+        if (!pg_col %in% names(df)) {
+          df[[pg_col]] = NA_real_
+        }
+        if (!diff_col %in% names(df)) {
+          df[[diff_col]] = NA_real_
+        }
+        
+        # Calculate precision gain
+        if (!is.na(method_se) && !is.na(unadjust_se) && unadjust_se != 0) {
+          df[idx[1], pg_col] = (method_se / unadjust_se)^2
+        }
+        
+        # Calculate point estimate difference
+        if (!is.na(method_est) && !is.na(unadjust_est) && !is.na(method_se) && !is.na(unadjust_se)) {
+          df[idx[1], diff_col] = 
+            (method_est - unadjust_est) / sqrt((method_se^2 + unadjust_se^2) / 2)
+        }
+      }
+    }
+  }
+  
+  df
+}
+```
+
+
+
 # Setting
 ```{r}
 SL2_lib = c("SL.glm", "SL.mean", "SL.rpart", "SL.gam", "SL.glmnet")
@@ -962,7 +2005,6 @@ res3 = analyze_rct(df1, T, 2, demo)
 df_comparison = update_df(1, type, res3, "VS2")
 ```
 
-
 ```{r}
 # SL2
 res1 = analyze_rct(df1, F, 1, NULL, F, SL2_lib)
@@ -978,6 +2020,56 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df1, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(1, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df1, F, 1)
+df_comparison = update_df_aipw(1, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df1, T, 1)
+df_comparison = update_df_aipw(1, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df1, T, 2, demo)
+df_comparison = update_df_aipw(1, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df1, F, 1, NULL, "SL.mean",  c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(1, type, res1, "IPW")
+
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df1, T, 1, NULL, "SL.mean",  c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(1, type, res2, "IPW", "VS1")
+
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df1, T, 2, demo, "SL.mean",  c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(1, type, res3, "IPW", "VS2")
+```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df1)
+df_comparison = update_df_tmle(1, type, res1)
+
+# TMLE, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_tmle(df1, T)
+df_comparison = update_df_tmle(1, type, res2, "VS1")
+
+# TMLE, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_tmle(df1, T, 2, demo)
+df_comparison = update_df_tmle(1, type, res3, "VS2")
+```
+
+
 
 # Trial 2
 
@@ -1029,6 +2121,49 @@ res3 = analyze_rct(df2, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(2, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df2, F, 1)
+df_comparison = update_df_aipw(2, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df2, T, 1)
+df_comparison = update_df_aipw(2, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df2, T, 2, demo)
+df_comparison = update_df_aipw(2, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df2, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(2, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df2, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(2, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df2, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(2, type, res3, "IPW", "VS2")
+```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df2)
+df_comparison = update_df_tmle(2, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_tmle(df2, T)
+df_comparison = update_df_tmle(2, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_tmle(df2, T, 2, demo)
+df_comparison = update_df_tmle(2, type, res3, "VS2")
+```
 
 # Trial 3
 
@@ -1076,6 +2211,36 @@ df_comparison = update_df(3, type, res2, "VS1", 2)
 cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df3, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(3, type, res3, "VS2", 2)
+```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df3, F, 1)
+df_comparison = update_df_aipw(3, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df3, T, 1)
+df_comparison = update_df_aipw(3, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df3, T, 2, demo)
+df_comparison = update_df_aipw(3, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df3, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(3, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df3, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(3, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df3, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(3, type, res3, "IPW", "VS2")
 ```
 
 # Trial 4
@@ -1127,6 +2292,36 @@ res3 = analyze_rct(df4, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(4, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df4, F, 1)
+df_comparison = update_df_aipw(4, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df4, T, 1)
+df_comparison = update_df_aipw(4, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df4, T, 2, demo)
+df_comparison = update_df_aipw(4, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df4, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(4, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df4, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(4, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df4, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(4, type, res3, "IPW", "VS2")
+```
+
 # Trial 5
 
 ## Load Data
@@ -1173,6 +2368,36 @@ df_comparison = update_df(5, type, res2, "VS1", 2)
 cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df5, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(5, type, res3, "VS2", 2)
+```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df5, F, 1)
+df_comparison = update_df_aipw(5, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df5, T, 1)
+df_comparison = update_df_aipw(5, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df5, T, 2, demo)
+df_comparison = update_df_aipw(5, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df5, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(5, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df5, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(5, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df5, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(5, type, res3, "IPW", "VS2")
 ```
 
 # Trial 6
@@ -1223,6 +2448,35 @@ res3 = analyze_rct(df6, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(6, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df6, F, 1)
+df_comparison = update_df_aipw(6, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df6, T, 1)
+df_comparison = update_df_aipw(6, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df6, T, 2, demo)
+df_comparison = update_df_aipw(6, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df6, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(6, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df6, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(6, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df6, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(6, type, res3, "IPW", "VS2")
+```
 
 # Trial 7
 
@@ -1269,6 +2523,36 @@ df_comparison = update_df(7, type, res2, "VS1", 2)
 cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df7, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(7, type, res3, "VS2", 2)
+```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df7, F, 1)
+df_comparison = update_df_aipw(7, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df7, T, 1)
+df_comparison = update_df_aipw(7, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df7, T, 2, demo)
+df_comparison = update_df_aipw(7, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df7, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(7, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df7, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(7, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df7, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(7, type, res3, "IPW", "VS2")
 ```
 
 # Trial 8
@@ -1320,6 +2604,36 @@ res3 = analyze_rct(df8, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(8, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df8, F, 1)
+df_comparison = update_df_aipw(8, type, res1)
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df8, T, 1)
+df_comparison = update_df_aipw(8, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df8, T, 2, demo)
+df_comparison = update_df_aipw(8, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df8, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(8, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df8, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(8, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df8, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(8, type, res3, "IPW", "VS2")
+```
+
 # Trial 9
 
 ## Load Data
@@ -1366,6 +2680,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df9, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(9, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df9, F, 1)
+df_comparison = update_df_aipw(9, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df9, T, 1)
+df_comparison = update_df_aipw(9, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df9, T, 2, demo)
+df_comparison = update_df_aipw(9, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df9, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(9, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df9, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(9, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df9, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(9, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 10
 
@@ -1414,6 +2758,36 @@ res3 = analyze_rct(df10, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(10, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df10, F, 1)
+df_comparison = update_df_aipw(10, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df10, T, 1)
+df_comparison = update_df_aipw(10, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df10, T, 2, demo)
+df_comparison = update_df_aipw(10, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df10, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(10, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df10, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(10, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df10, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(10, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 11
 
 ## Load Data
@@ -1460,6 +2834,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df11, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(11, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df11, F, 1)
+df_comparison = update_df_aipw(11, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df11, T, 1)
+df_comparison = update_df_aipw(11, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df11, T, 2, demo)
+df_comparison = update_df_aipw(11, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df11, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(11, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df11, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(11, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df11, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(11, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 12
 
@@ -1508,6 +2912,36 @@ res3 = analyze_rct(df12, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(12, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df12, F, 1)
+df_comparison = update_df_aipw(12, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df12, T, 1)
+df_comparison = update_df_aipw(12, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df12, T, 2, demo)
+df_comparison = update_df_aipw(12, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df12, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(12, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df12, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(12, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df12, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(12, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 13
 
 ## Load Data
@@ -1554,6 +2988,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df13, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(13, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df13, F, 1)
+df_comparison = update_df_aipw(13, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df13, T, 1)
+df_comparison = update_df_aipw(13, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df13, T, 2, demo)
+df_comparison = update_df_aipw(13, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df13, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(13, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df13, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(13, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df13, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(13, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 14
 
@@ -1603,6 +3067,36 @@ res3 = analyze_rct(df14, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(14, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df14, F, 1)
+df_comparison = update_df_aipw(14, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df14, T, 1)
+df_comparison = update_df_aipw(14, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df14, T, 2, demo)
+df_comparison = update_df_aipw(14, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df14, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(14, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df14, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(14, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df14, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(14, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 15
 
 ## Load Data
@@ -1649,6 +3143,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df15, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(15, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df15, F, 1)
+df_comparison = update_df_aipw(15, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df15, T, 1)
+df_comparison = update_df_aipw(15, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df15, T, 2, demo)
+df_comparison = update_df_aipw(15, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df15, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(15, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df15, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(15, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df15, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(15, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 16
 
@@ -1697,6 +3221,36 @@ res3 = analyze_rct(df16, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(16, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df16, F, 1)
+df_comparison = update_df_aipw(16, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df16, T, 1)
+df_comparison = update_df_aipw(16, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df16, T, 2, demo)
+df_comparison = update_df_aipw(16, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df16, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(16, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df16, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(16, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df16, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(16, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 17
 
 ## Load Data
@@ -1743,6 +3297,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df17, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(17, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df17, F, 1)
+df_comparison = update_df_aipw(17, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df17, T, 1)
+df_comparison = update_df_aipw(17, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df17, T, 2, demo)
+df_comparison = update_df_aipw(17, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df17, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(17, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df17, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(17, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df17, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(17, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 18
 
@@ -1793,6 +3377,36 @@ res3 = analyze_rct(df18, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(18, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df18, F, 1)
+df_comparison = update_df_aipw(18, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df18, T, 1)
+df_comparison = update_df_aipw(18, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df18, T, 2, demo)
+df_comparison = update_df_aipw(18, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df18, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(18, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df18, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(18, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df18, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(18, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 19
 
 ## Load Data
@@ -1841,6 +3455,36 @@ res3 = analyze_rct(df19, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(19, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df19, F, 1)
+df_comparison = update_df_aipw(19, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df19, T, 1)
+df_comparison = update_df_aipw(19, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df19, T, 2, demo)
+df_comparison = update_df_aipw(19, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df19, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(19, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df19, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(19, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df19, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(19, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 20
 
 ## Load Data
@@ -1887,6 +3531,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df20, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(20, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df20, F, 1)
+df_comparison = update_df_aipw(20, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df20, T, 1)
+df_comparison = update_df_aipw(20, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df20, T, 2, demo)
+df_comparison = update_df_aipw(20, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df20, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(20, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df20, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(20, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df20, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(20, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 21
 
@@ -1936,6 +3610,36 @@ res3 = analyze_rct(df21, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(21, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df21, F, 1)
+df_comparison = update_df_aipw(21, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df21, T, 1)
+df_comparison = update_df_aipw(21, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df21, T, 2, demo)
+df_comparison = update_df_aipw(21, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df21, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(21, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df21, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(21, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df21, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(21, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 22
 
 ## Load Data
@@ -1966,6 +3670,52 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df22, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(22, type, res3, "VS2", 2)
 ```
+
+```{r}
+# SL2
+res1 = analyze_rct(df22, F, 1, NULL, F, SL2_lib)
+df_comparison = update_df(22, type, res1, "", 2)
+
+# SL2, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct(df22, T, 1, NULL, F, SL2_lib)
+df_comparison = update_df(22, type, res2, "VS1", 2)
+
+# SL2, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct(df22, T, 2, demo, F, SL2_lib)
+df_comparison = update_df(22, type, res3, "VS2", 2)
+```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df22, F, 1)
+df_comparison = update_df_aipw(22, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df22, T, 1)
+df_comparison = update_df_aipw(22, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df22, T, 2, demo)
+df_comparison = update_df_aipw(22, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df22, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(22, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df22, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(22, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df22, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(22, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 23
 
@@ -2016,6 +3766,36 @@ res3 = analyze_rct(df23, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(23, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df23, F, 1)
+df_comparison = update_df_aipw(23, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df23, T, 1)
+df_comparison = update_df_aipw(23, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df23, T, 2, demo)
+df_comparison = update_df_aipw(23, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df23, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(23, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df23, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(23, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df23, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(23, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 24
 
 ## Load Data
@@ -2063,6 +3843,36 @@ res3 = analyze_rct(df24, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(24, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df24, F, 1)
+df_comparison = update_df_aipw(24, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df24, T, 1)
+df_comparison = update_df_aipw(24, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df24, T, 2, demo)
+df_comparison = update_df_aipw(24, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df24, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(24, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df24, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(24, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df24, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(24, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 25
 
 ## Load Data
@@ -2109,6 +3919,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df25, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(25, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df25, F, 1)
+df_comparison = update_df_aipw(25, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df25, T, 1)
+df_comparison = update_df_aipw(25, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df25, T, 2, demo)
+df_comparison = update_df_aipw(25, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df25, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(25, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df25, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(25, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df25, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(25, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 26
 
@@ -2158,6 +3998,36 @@ res3 = analyze_rct(df26, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(26, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df26, F, 1)
+df_comparison = update_df_aipw(26, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df26, T, 1)
+df_comparison = update_df_aipw(26, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df26, T, 2, demo)
+df_comparison = update_df_aipw(26, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df26, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(26, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df26, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(26, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df26, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(26, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 27
 
 ## Load Data
@@ -2205,6 +4075,36 @@ res3 = analyze_rct(df27, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(27, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df27, F, 1)
+df_comparison = update_df_aipw(27, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df27, T, 1)
+df_comparison = update_df_aipw(27, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df27, T, 2, demo)
+df_comparison = update_df_aipw(27, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df27, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(27, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df27, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(27, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df27, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(27, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 28
 
 ## Load Data
@@ -2251,6 +4151,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df28, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(28, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df28, F, 1)
+df_comparison = update_df_aipw(28, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df28, T, 1)
+df_comparison = update_df_aipw(28, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df28, T, 2, demo)
+df_comparison = update_df_aipw(28, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df28, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(28, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df28, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(28, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df28, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(28, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 29
 
@@ -2300,6 +4230,36 @@ res3 = analyze_rct(df29, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(29, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df29, F, 1)
+df_comparison = update_df_aipw(29, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df29, T, 1)
+df_comparison = update_df_aipw(29, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df29, T, 2, demo)
+df_comparison = update_df_aipw(29, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df29, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(29, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df29, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(29, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df29, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(29, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 30
 
 ## Load Data
@@ -2346,6 +4306,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df30, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(30, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df30, F, 1)
+df_comparison = update_df_aipw(30, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df30, T, 1)
+df_comparison = update_df_aipw(30, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df30, T, 2, demo)
+df_comparison = update_df_aipw(30, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df30, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(30, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df30, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(30, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df30, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(30, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 31
 
@@ -2395,6 +4385,36 @@ res3 = analyze_rct(df31, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(31, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df31, F, 1)
+df_comparison = update_df_aipw(31, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df31, T, 1)
+df_comparison = update_df_aipw(31, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df31, T, 2, demo)
+df_comparison = update_df_aipw(31, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df31, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(31, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df31, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(31, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df31, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(31, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 32
 
 ## Load Data
@@ -2441,6 +4461,37 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df32, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(32, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df32, F, 1)
+df_comparison = update_df_aipw(32, type, res2, "AIPW")
+
+# AIPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df32, T, 1)
+df_comparison = update_df_aipw(32, type, res2, "AIPW", "VS1")
+
+# AIPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df32, T, 2, demo)
+df_comparison = update_df_aipw(32, type, res2, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df32, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(32, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df32, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(32, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df32, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(32, type, res3, "IPW", "VS2")
+```
+
 
 # Trial 33
 
@@ -2489,6 +4540,36 @@ res3 = analyze_rct(df33, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(33, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df33, F, 1)
+df_comparison = update_df_aipw(33, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df33, T, 1)
+df_comparison = update_df_aipw(33, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df33, T, 2, demo)
+df_comparison = update_df_aipw(33, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df33, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(33, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df33, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(33, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df33, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(33, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 34
 
 ## Load Data
@@ -2535,6 +4616,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df34, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(34, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df34, F, 1)
+df_comparison = update_df_aipw(34, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df34, T, 1)
+df_comparison = update_df_aipw(34, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df34, T, 2, demo)
+df_comparison = update_df_aipw(34, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df34, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(34, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df34, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(34, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df34, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(34, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 35
 
@@ -2583,6 +4694,36 @@ res3 = analyze_rct(df35, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(35, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df35, F, 1)
+df_comparison = update_df_aipw(35, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df35, T, 1)
+df_comparison = update_df_aipw(35, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df35, T, 2, demo)
+df_comparison = update_df_aipw(35, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df35, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(35, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df35, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(35, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df35, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(35, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 36
 
 ## Load Data
@@ -2630,6 +4771,36 @@ res3 = analyze_rct(df36, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(36, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df36, F, 1)
+df_comparison = update_df_aipw(36, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df36, T, 1)
+df_comparison = update_df_aipw(36, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df36, T, 2, demo)
+df_comparison = update_df_aipw(36, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df36, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(36, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df36, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(36, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df36, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(36, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 37
 
 ## Load Data
@@ -2676,6 +4847,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df37, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(37, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df37, F, 1)
+df_comparison = update_df_aipw(37, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df37, T, 1)
+df_comparison = update_df_aipw(37, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df37, T, 2, demo)
+df_comparison = update_df_aipw(37, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df37, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(37, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df37, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(37, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df37, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(37, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 38
 
@@ -2725,6 +4926,36 @@ res3 = analyze_rct(df38, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(38, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df38, F, 1)
+df_comparison = update_df_aipw(38, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df38, T, 1)
+df_comparison = update_df_aipw(38, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df38, T, 2, demo)
+df_comparison = update_df_aipw(38, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df38, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(38, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df38, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(38, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df38, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(38, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 39
 
 ## Load Data
@@ -2772,6 +5003,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df39, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(39, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df39, F, 1)
+df_comparison = update_df_aipw(39, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df39, T, 1)
+df_comparison = update_df_aipw(39, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df39, T, 2, demo)
+df_comparison = update_df_aipw(39, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df39, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(39, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df39, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(39, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df39, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(39, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 40
 
@@ -2822,6 +5083,36 @@ res3 = analyze_rct(df40, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(40, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df40, F, 1)
+df_comparison = update_df_aipw(40, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df40, T, 1)
+df_comparison = update_df_aipw(40, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df40, T, 2, demo)
+df_comparison = update_df_aipw(40, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df40, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(40, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df40, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(40, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df40, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(40, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 41
 
 ## Load Data
@@ -2868,6 +5159,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df41, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(41, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df41, F, 1)
+df_comparison = update_df_aipw(41, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df41, T, 1)
+df_comparison = update_df_aipw(41, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df41, T, 2, demo)
+df_comparison = update_df_aipw(41, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df41, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(41, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df41, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(41, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df41, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(41, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 42
 
@@ -2918,6 +5239,36 @@ res3 = analyze_rct(df42, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(42, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df42, F, 1)
+df_comparison = update_df_aipw(42, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df42, T, 1)
+df_comparison = update_df_aipw(42, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df42, T, 2, demo)
+df_comparison = update_df_aipw(42, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df42, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(42, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df42, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(42, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df42, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(42, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 43
 
 ## Load Data
@@ -2966,6 +5317,36 @@ res3 = analyze_rct(df43, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(43, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df43, F, 1)
+df_comparison = update_df_aipw(43, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df43, T, 1)
+df_comparison = update_df_aipw(43, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df43, T, 2, demo)
+df_comparison = update_df_aipw(43, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df43, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(43, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df43, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(43, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df43, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(43, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 44
 
 ## Load Data
@@ -3012,6 +5393,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df44, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(44, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df44, F, 1)
+df_comparison = update_df_aipw(44, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df44, T, 1)
+df_comparison = update_df_aipw(44, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df44, T, 2, demo)
+df_comparison = update_df_aipw(44, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df44, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(44, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df44, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(44, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df44, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(44, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 45
 
@@ -3062,6 +5473,36 @@ res3 = analyze_rct(df45, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(45, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df45, F, 1)
+df_comparison = update_df_aipw(45, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df45, T, 1)
+df_comparison = update_df_aipw(45, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df45, T, 2, demo)
+df_comparison = update_df_aipw(45, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df45, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(45, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df45, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(45, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df45, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(45, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 46
 
 ## Load Data
@@ -3108,6 +5549,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df46, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(46, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df46, F, 1)
+df_comparison = update_df_aipw(46, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df46, T, 1)
+df_comparison = update_df_aipw(46, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df46, T, 2, demo)
+df_comparison = update_df_aipw(46, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df46, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(46, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df46, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(46, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df46, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(46, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 47
 
@@ -3156,6 +5627,36 @@ res3 = analyze_rct(df47, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(47, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df47, F, 1)
+df_comparison = update_df_aipw(47, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df47, T, 1)
+df_comparison = update_df_aipw(47, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df47, T, 2, demo)
+df_comparison = update_df_aipw(47, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df47, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(47, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df47, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(47, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df47, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(47, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 48
 
 ## Load Data
@@ -3202,6 +5703,36 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct(df48, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(48, type, res3, "VS2", 2)
 ```
+
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df48, F, 1)
+df_comparison = update_df_aipw(48, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df48, T, 1)
+df_comparison = update_df_aipw(48, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df48, T, 2, demo)
+df_comparison = update_df_aipw(48, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df48, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(48, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df48, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(48, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df48, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(48, type, res3, "IPW", "VS2")
+```
+
+
 
 # Trial 49
 
@@ -3251,6 +5782,36 @@ res3 = analyze_rct(df49, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(49, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df49, F, 1)
+df_comparison = update_df_aipw(49, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df49, T, 1)
+df_comparison = update_df_aipw(49, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df49, T, 2, demo)
+df_comparison = update_df_aipw(49, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df49, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(49, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df49, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(49, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df49, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(49, type, res3, "IPW", "VS2")
+```
+
+
+
 # Trial 50
 
 ## Load Data
@@ -3299,6 +5860,36 @@ res3 = analyze_rct(df50, T, 2, demo, F, SL2_lib)
 df_comparison = update_df(50, type, res3, "VS2", 2)
 ```
 
+```{r}
+# AIPW
+res1 = analyze_rct_aipw(df50, F, 1)
+df_comparison = update_df_aipw(50, type, res1, "AIPW")
+# AIPW, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_aipw(df50, T, 1)
+df_comparison = update_df_aipw(50, type, res2, "AIPW", "VS1")
+# AIPW, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_aipw(df50, T, 2, demo)
+df_comparison = update_df_aipw(50, type, res3, "AIPW", "VS2")
+```
+
+```{r}
+# IPW
+res1 = analyze_rct_aipw(df50, F, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(50, type, res1, "IPW")
+# IPW, VS1
+cat("\n<------------------Variable Seclection------------->\n\n")
+res2 = analyze_rct_aipw(df50, T, 1, NULL, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(50, type, res2, "IPW", "VS1")
+# IPW, VS2
+cat("\n<------------------Variable Seclection 2------------->\n\n")
+res3 = analyze_rct_aipw(df50, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
+df_comparison = update_df_aipw(50, type, res3, "IPW", "VS2")
+```
+
+
+
 
 # Export
 ```{r}
@@ -3335,6 +5926,8 @@ df_new = df_new %>%
     precision_gain_SL_bartMachine = `How much precision gain can SL_bartMachine provide?`,
     precision_gain_DML = `How much precision gain can DML provide?`,
     precision_gain_TMLE = `How much precision gain can TMLE provide?`,
+    precision_gain_AIPW = `How much precision gain can AIPW provide?`,
+    precision_gain_IPW = `How much precision gain can IPW provide?`,
     
     # Top-3 (VS1) precision gain columns
     `precision_gain_ANCOVA_Top-3` = `How much precision gain can ANCOVA_VS1 provide?`,
@@ -3348,6 +5941,8 @@ df_new = df_new %>%
     `precision_gain_SL_bartMachine_Top-3` = `How much precision gain can SL_bartMachine_VS1 provide?`,
     `precision_gain_DML_Top-3` = `How much precision gain can DML_VS1 provide?`,
     `precision_gain_TMLE_Top-3` = `How much precision gain can TMLE_VS1 provide?`,
+    `precision_gain_AIPW_Top-3` = `How much precision gain can AIPW_VS1 provide?`,
+    `precision_gain_IPW_Top-3` = `How much precision gain can IPW_VS1 provide?`,
     
     # Baseline+ (VS2) precision gain columns
     `precision_gain_ANCOVA_Baseline+` = `How much precision gain can ANCOVA_VS2 provide?`,
@@ -3361,6 +5956,8 @@ df_new = df_new %>%
     `precision_gain_SL_bartMachine_Baseline+` = `How much precision gain can SL_bartMachine_VS2 provide?`,
     `precision_gain_DML_Baseline+` = `How much precision gain can DML_VS2 provide?`,
     `precision_gain_TMLE_Baseline+` = `How much precision gain can TMLE_VS2 provide?`,
+    `precision_gain_AIPW_Baseline+` = `How much precision gain can AIPW_VS2 provide?`,
+    `precision_gain_IPW_Baseline+` = `How much precision gain can IPW_VS2 provide?`,
     
     # All (base) variance ratio columns
     variance_ratio_robust_model = `The ratio between robust and model-based variance estimators`,
@@ -3374,320 +5971,6 @@ df_new = df_new %>%
     `variance_ratio_robust_model_Baseline+` = `The ratio between robust and model-based variance estimators_VS2`,
     `variance_ratio_ANCOVA_ANHECOVA_Baseline+` = `ANCOVA_VS2 vs ANHECOVA_VS2 variance ratio`
   )
-```
-
-
-## Violin Plot
-### Full(n)
-```{r}
-# Create sample size categories for better visualization
-df_new = df_new %>%
-  mutate(
-    sample_size_cat = case_when(
-      Sample_Size < 50 ~ "<50",
-      Sample_Size < 100 ~ "50-99", 
-      Sample_Size < 500 ~ "100-499",
-      TRUE ~ "≥500"
-    ),
-    sample_size_cat = factor(sample_size_cat, 
-                           levels = c("<50", "50-99", "100-499", "≥500")),
-    # Log-transform for size mapping (less skewed)
-    log_sample_size = log10(Sample_Size)
-  )
-
-# Color palette for sample size categories
-size_colors = c("<50" = "#d73027", "50-99" = "#fc8d59", 
-                "100-499" = "#74c476", "≥500" = "#4575b4")
-
-# Reshape data for plotting all methods together
-library(tidyr)
-
-##################################
-## Apply outlier removal for each method (except ANCOVA)
-##################################
-
-# Function to remove upper outliers
-remove_upper_outliers = function(x) {
-  ifelse(x >= 2, NA, x)
-}
-
-# Apply outlier removal to all methods except ANCOVA (base methods)
-df_outlier_removed = df_new %>%
-  mutate(
-    # Base methods - no outlier removal for ANCOVA
-    precision_gain_ANHECOVA = remove_upper_outliers(precision_gain_ANHECOVA),
-    precision_gain_Logistic_G_Computation = remove_upper_outliers(precision_gain_Logistic_G_Computation),
-    precision_gain_SL1 = remove_upper_outliers(precision_gain_SL1),
-    precision_gain_SL_rpart = remove_upper_outliers(precision_gain_SL_rpart),
-    precision_gain_SL_randomForest = remove_upper_outliers(precision_gain_SL_randomForest),
-    precision_gain_SL_glmnet = remove_upper_outliers(precision_gain_SL_glmnet),
-    precision_gain_SL_gam = remove_upper_outliers(precision_gain_SL_gam),
-    precision_gain_SL_bartMachine = remove_upper_outliers(precision_gain_SL_bartMachine),
-    precision_gain_DML = remove_upper_outliers(precision_gain_DML),
-    precision_gain_TMLE = remove_upper_outliers(precision_gain_TMLE),
-    
-    # VS1 methods - no outlier removal for ANCOVA_VS1
-    precision_gain_ANHECOVA_VS1 = remove_upper_outliers(precision_gain_ANHECOVA_VS1),
-    precision_gain_Logistic_G_Computation_VS1 = remove_upper_outliers(precision_gain_Logistic_G_Computation_VS1),
-    precision_gain_SL1_VS1 = remove_upper_outliers(precision_gain_SL1_VS1),
-    precision_gain_SL_rpart_VS1 = remove_upper_outliers(precision_gain_SL_rpart_VS1),
-    precision_gain_SL_randomForest_VS1 = remove_upper_outliers(precision_gain_SL_randomForest_VS1),
-    precision_gain_SL_glmnet_VS1 = remove_upper_outliers(precision_gain_SL_glmnet_VS1),
-    precision_gain_SL_gam_VS1 = remove_upper_outliers(precision_gain_SL_gam_VS1),
-    precision_gain_SL_bartMachine_VS1 = remove_upper_outliers(precision_gain_SL_bartMachine_VS1),
-    precision_gain_DML_VS1 = remove_upper_outliers(precision_gain_DML_VS1),
-    precision_gain_TMLE_VS1 = remove_upper_outliers(precision_gain_TMLE_VS1),
-    
-    # VS2 methods - no outlier removal for ANCOVA_VS2
-    precision_gain_ANHECOVA_VS2 = remove_upper_outliers(precision_gain_ANHECOVA_VS2),
-    precision_gain_Logistic_G_Computation_VS2 = remove_upper_outliers(precision_gain_Logistic_G_Computation_VS2),
-    precision_gain_SL1_VS2 = remove_upper_outliers(precision_gain_SL1_VS2),
-    precision_gain_SL_rpart_VS2 = remove_upper_outliers(precision_gain_SL_rpart_VS2),
-    precision_gain_SL_randomForest_VS2 = remove_upper_outliers(precision_gain_SL_randomForest_VS2),
-    precision_gain_SL_glmnet_VS2 = remove_upper_outliers(precision_gain_SL_glmnet_VS2),  # ADDED THIS LINE
-    precision_gain_SL_gam_VS2 = remove_upper_outliers(precision_gain_SL_gam_VS2),
-    precision_gain_SL_bartMachine_VS2 = remove_upper_outliers(precision_gain_SL_bartMachine_VS2),
-    precision_gain_DML_VS2 = remove_upper_outliers(precision_gain_DML_VS2),
-    precision_gain_TMLE_VS2 = remove_upper_outliers(precision_gain_TMLE_VS2)  # ADDED THIS LINE
-    # Note: precision_gain_ANCOVA, precision_gain_ANCOVA_VS1, precision_gain_ANCOVA_VS2 kept as-is (no outlier removal)
-  )
-
-# Create long format data with outlier-removed precision gain methods
-df_long_outlier_removed = df_outlier_removed %>%
-  select(outcome_group, sample_size_cat, 
-         # Base methods
-         precision_gain_ANCOVA, precision_gain_ANHECOVA, precision_gain_Logistic_G_Computation, precision_gain_SL1,
-         precision_gain_SL_rpart, precision_gain_SL_randomForest, precision_gain_SL_glmnet, 
-         precision_gain_SL_gam, precision_gain_SL_bartMachine, precision_gain_DML, precision_gain_TMLE,
-         # VS1 methods
-         precision_gain_ANCOVA_VS1, precision_gain_ANHECOVA_VS1, precision_gain_Logistic_G_Computation_VS1, precision_gain_SL1_VS1,
-         precision_gain_SL_rpart_VS1, precision_gain_SL_randomForest_VS1, precision_gain_SL_glmnet_VS1,
-         precision_gain_SL_gam_VS1, precision_gain_SL_bartMachine_VS1, precision_gain_DML_VS1, precision_gain_TMLE_VS1,
-         # VS2 methods
-         precision_gain_ANCOVA_VS2, precision_gain_ANHECOVA_VS2, precision_gain_Logistic_G_Computation_VS2, precision_gain_SL1_VS2,
-         precision_gain_SL_rpart_VS2, precision_gain_SL_randomForest_VS2, precision_gain_SL_glmnet_VS2,  # ADDED THIS
-         precision_gain_SL_gam_VS2, precision_gain_SL_bartMachine_VS2, precision_gain_DML_VS2, precision_gain_TMLE_VS2) %>%  # ADDED TMLE_VS2
-  pivot_longer(cols = starts_with("precision_gain_"), 
-               names_to = "method", 
-               values_to = "precision_gain") %>%
-  filter(!is.na(precision_gain)) %>%  # Remove NA values explicitly
-  mutate(
-    method = case_when(
-      # Base methods
-      method == "precision_gain_ANCOVA" ~ "ANCOVA",
-      method == "precision_gain_ANHECOVA" ~ "ANHECOVA", 
-      method == "precision_gain_Logistic_G_Computation" ~ "Logistic_G_Computation",
-      method == "precision_gain_SL1" ~ "SL1",
-      method == "precision_gain_SL_rpart" ~ "SL_rpart",
-      method == "precision_gain_SL_randomForest" ~ "SL_randomForest",
-      method == "precision_gain_SL_glmnet" ~ "SL_glmnet",
-      method == "precision_gain_SL_gam" ~ "SL_gam",
-      method == "precision_gain_SL_bartMachine" ~ "SL_bartMachine",
-      method == "precision_gain_DML" ~ "DML",
-      method == "precision_gain_TMLE" ~ "TMLE",
-      # VS1 methods
-      method == "precision_gain_ANCOVA_VS1" ~ "ANCOVA_VS1",
-      method == "precision_gain_ANHECOVA_VS1" ~ "ANHECOVA_VS1",
-      method == "precision_gain_Logistic_G_Computation_VS1" ~ "Logistic_G_Computation_VS1",
-      method == "precision_gain_SL1_VS1" ~ "SL1_VS1",
-      method == "precision_gain_SL_rpart_VS1" ~ "SL_rpart_VS1",
-      method == "precision_gain_SL_randomForest_VS1" ~ "SL_randomForest_VS1",
-      method == "precision_gain_SL_glmnet_VS1" ~ "SL_glmnet_VS1",
-      method == "precision_gain_SL_gam_VS1" ~ "SL_gam_VS1",
-      method == "precision_gain_SL_bartMachine_VS1" ~ "SL_bartMachine_VS1",
-      method == "precision_gain_DML_VS1" ~ "DML_VS1",
-      method == "precision_gain_TMLE_VS1" ~ "TMLE_VS1",
-      # VS2 methods
-      method == "precision_gain_ANCOVA_VS2" ~ "ANCOVA_VS2",
-      method == "precision_gain_ANHECOVA_VS2" ~ "ANHECOVA_VS2",
-      method == "precision_gain_Logistic_G_Computation_VS2" ~ "Logistic_G_Computation_VS2",
-      method == "precision_gain_SL1_VS2" ~ "SL1_VS2",
-      method == "precision_gain_SL_rpart_VS2" ~ "SL_rpart_VS2",
-      method == "precision_gain_SL_randomForest_VS2" ~ "SL_randomForest_VS2",
-      method == "precision_gain_SL_glmnet_VS2" ~ "SL_glmnet_VS2",  # ADDED THIS LINE
-      method == "precision_gain_SL_gam_VS2" ~ "SL_gam_VS2",
-      method == "precision_gain_SL_bartMachine_VS2" ~ "SL_bartMachine_VS2",
-      method == "precision_gain_DML_VS2" ~ "DML_VS2",
-      method == "precision_gain_TMLE_VS2" ~ "TMLE_VS2"  # ADDED THIS LINE
-    ),
-    method = factor(method, levels = c(
-      # Base methods
-      "ANCOVA", "ANHECOVA", "Logistic_G_Computation", "SL1", "SL_rpart", "SL_randomForest", 
-      "SL_glmnet", "SL_gam", "SL_bartMachine", "DML", "TMLE",
-      # VS1 methods
-      "ANCOVA_VS1", "ANHECOVA_VS1", "Logistic_G_Computation_VS1", "SL1_VS1", "SL_rpart_VS1", 
-      "SL_randomForest_VS1", "SL_glmnet_VS1", "SL_gam_VS1", "SL_bartMachine_VS1", "DML_VS1", "TMLE_VS1",
-      # VS2 methods
-      "ANCOVA_VS2", "ANHECOVA_VS2", "Logistic_G_Computation_VS2", "SL1_VS2", "SL_rpart_VS2", 
-      "SL_randomForest_VS2", "SL_glmnet_VS2", "SL_gam_VS2", "SL_bartMachine_VS2", "DML_VS2", "TMLE_VS2"))  # ADDED SL_glmnet_VS2 and TMLE_VS2
-  )
-
-# Color palette for methods (expanded for VS1 and VS2)
-method_colors = c(
-  # Base methods
-  "ANCOVA" = "#1f77b4", "ANHECOVA" = "#ff7f0e", "Logistic_G_Computation" = "#2ca02c", "SL1" = "#d62728",
-  "SL_rpart" = "#9467bd", "SL_randomForest" = "#8c564b", "SL_glmnet" = "#e377c2", 
-  "SL_gam" = "#7f7f7f", "SL_bartMachine" = "#bcbd22", "DML" = "#17becf", "TMLE" = "#aec7e8",
-  # VS1 methods
-  "ANCOVA_VS1" = "#1f77b4", "ANHECOVA_VS1" = "#ff9896", "Logistic_G_Computation_VS1" = "#98df8a", "SL1_VS1" = "#ffbb78",
-  "SL_rpart_VS1" = "#c5b0d5", "SL_randomForest_VS1" = "#c49c94", "SL_glmnet_VS1" = "#f7b6d3", 
-  "SL_gam_VS1" = "#c7c7c7", "SL_bartMachine_VS1" = "#dbdb8d", "DML_VS1" = "#9edae5", "TMLE_VS1" = "#393b79",
-  # VS2 methods  
-  "ANCOVA_VS2" = "#637939", "ANHECOVA_VS2" = "#8c6d31", "Logistic_G_Computation_VS2" = "#843c39", "SL1_VS2" = "#7b4173",
-  "SL_rpart_VS2" = "#5254a3", "SL_randomForest_VS2" = "#6b6ecf", "SL_glmnet_VS2" = "#ce6dbd",  # ADDED COLOR FOR SL_glmnet_VS2
-  "SL_gam_VS2" = "#9c9ede", "SL_bartMachine_VS2" = "#637939", "DML_VS2" = "#8ca252", "TMLE_VS2" = "#de9ed6"  # ADDED COLOR FOR TMLE_VS2
-)
-
-##################################
-## All Methods Together (Outlier Removed) - By Outcome Type with VS Split
-##################################
-
-# Function to create plots for each outcome group and VS type
-create_outcome_plot = function(outcome_type, vs_type = "none", title_suffix = "") {
-  
-  # Filter data based on VS type
-  if (vs_type == "none") {
-    data_filtered = df_long_outlier_removed %>% 
-      filter(outcome_group == outcome_type, !grepl("_VS[12]$", method))
-  } else if (vs_type == "VS1") {
-    data_filtered = df_long_outlier_removed %>% 
-      filter(outcome_group == outcome_type, grepl("_VS1$", method))
-  } else if (vs_type == "VS2") {
-    data_filtered = df_long_outlier_removed %>% 
-      filter(outcome_group == outcome_type, grepl("_VS2$", method))
-  }
-  
-  # Create title
-  vs_label = ifelse(vs_type == "none", "Base Methods", paste0(vs_type, " Methods"))
-  plot_title = paste0("Precision Gain vs Unadjusted - ", stringr::str_to_title(outcome_type), 
-                     " (", vs_label, ")", title_suffix)
-  
-  ggplot(data_filtered, aes(x = method, y = precision_gain)) +
-    geom_violin(aes(fill = method), trim = FALSE, alpha = 0.6) +
-    geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-    geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-    scale_fill_manual(values = method_colors, guide = "none") +
-    scale_color_manual(values = size_colors, name = "Sample Size") +
-    labs(
-      title = plot_title,
-      subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-      x = "",
-      y = "Variance Ratio"
-    ) +
-    theme_minimal(base_size = 14) +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-          plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-          axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-          panel.grid.minor = element_blank(),
-          legend.position = "right",
-          legend.title = element_text(size = 10),
-          legend.text = element_text(size = 9),
-          legend.key.size = unit(0.4, "cm"))
-}
-
-# Create all 12 plots (4 outcome types × 3 VS types)
-outcomes = c("binary", "continuous", "categorical", "time_to_event")
-vs_types = c("none", "VS1", "VS2")
-
-# Binary plots
-p_binary_base = create_outcome_plot("binary", "none", "\n(Outlier Removed)")
-p_binary_vs1 = create_outcome_plot("binary", "VS1", "\n(Outlier Removed)")
-p_binary_vs2 = create_outcome_plot("binary", "VS2", "\n(Outlier Removed)")
-
-# Continuous plots  
-p_continuous_base = create_outcome_plot("continuous", "none", "\n(Outlier Removed)")
-p_continuous_vs1 = create_outcome_plot("continuous", "VS1", "\n(Outlier Removed)")
-p_continuous_vs2 = create_outcome_plot("continuous", "VS2", "\n(Outlier Removed)")
-
-# Categorical plots
-p_categorical_base = create_outcome_plot("categorical", "none", "\n(Outlier Removed)")
-p_categorical_vs1 = create_outcome_plot("categorical", "VS1", "\n(Outlier Removed)")
-p_categorical_vs2 = create_outcome_plot("categorical", "VS2", "\n(Outlier Removed)")
-
-# Time-to-event plots
-p_time_to_event_base = create_outcome_plot("time_to_event", "none", "\n(Outlier Removed)")
-p_time_to_event_vs1 = create_outcome_plot("time_to_event", "VS1", "\n(Outlier Removed)")
-p_time_to_event_vs2 = create_outcome_plot("time_to_event", "VS2", "\n(Outlier Removed)")
-
-# Display all plots
-p_binary_base
-p_binary_vs1  
-p_binary_vs2
-p_continuous_base
-p_continuous_vs1
-p_continuous_vs2
-p_categorical_base
-p_categorical_vs1
-p_categorical_vs2
-p_time_to_event_base
-p_time_to_event_vs1
-p_time_to_event_vs2
-
-##################################
-## Individual Method Plots (Full Data - No Outlier Removal)
-##################################
-
-# Function to create individual method plots
-create_individual_method_plot = function(method_name, color_val) {
-  var_name = paste0("precision_gain_", method_name)
-  
-  ggplot(df_new %>% filter(!is.na(.data[[var_name]])), 
-         aes(x = outcome_group, y = .data[[var_name]])) +
-    geom_violin(trim = FALSE, fill = color_val, alpha = 0.6) +
-    geom_jitter(aes(color = sample_size_cat), width = 0.15, alpha = 0.7, size = 1) +
-    geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
-    scale_color_manual(values = size_colors, name = "Sample Size") +
-    labs(
-      title = paste(method_name, "Precision Gain vs Unadjusted (Full Data)"),
-      subtitle = "Values <1 indicate precision improvement over unadjusted analysis",
-      x = "Outcome Group",
-      y = "Variance Ratio"
-    ) +
-    theme_minimal(base_size = 14) +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-          plot.subtitle = element_text(hjust = 0.5, color = "gray60", size = 12),
-          panel.grid.minor = element_blank(),
-          legend.position = "right",
-          legend.title = element_text(size = 10),
-          legend.text = element_text(size = 9),
-          legend.key.size = unit(0.4, "cm"))
-}
-
-# Create individual plots for each method (example for key methods)
-p_ancova_individual = create_individual_method_plot("ANCOVA", "#1f77b4")
-p_anhecova_individual = create_individual_method_plot("ANHECOVA", "#ff7f0e") 
-p_sl1_individual = create_individual_method_plot("SL1", "#d62728")
-p_tmle_individual = create_individual_method_plot("TMLE", "#aec7e8")
-
-# VS1 methods
-p_ancova_vs1_individual = create_individual_method_plot("ANCOVA_VS1", "#1f77b4")
-p_anhecova_vs1_individual = create_individual_method_plot("ANHECOVA_VS1", "#ff9896")
-p_sl1_vs1_individual = create_individual_method_plot("SL1_VS1", "#ffbb78")
-p_tmle_vs1_individual = create_individual_method_plot("TMLE_VS1", "#393b79")
-
-# VS2 methods
-p_ancova_vs2_individual = create_individual_method_plot("ANCOVA_VS2", "#637939")
-p_anhecova_vs2_individual = create_individual_method_plot("ANHECOVA_VS2", "#8c6d31")
-p_sl1_vs2_individual = create_individual_method_plot("SL1_VS2", "#7b4173")
-p_sl_glmnet_vs2_individual = create_individual_method_plot("SL_glmnet_VS2", "#ce6dbd")  # ADDED THIS LINE
-p_dml_vs2_individual = create_individual_method_plot("DML_VS2", "#8ca252")
-p_tmle_vs2_individual = create_individual_method_plot("TMLE_VS2", "#de9ed6")  # ADDED THIS LINE
-
-# Display individual plots
-p_ancova_individual
-p_anhecova_individual
-p_sl1_individual
-p_tmle_individual
-p_ancova_vs1_individual
-p_anhecova_vs1_individual
-p_sl1_vs1_individual
-p_tmle_vs1_individual
-p_ancova_vs2_individual
-p_anhecova_vs2_individual
-p_sl1_vs2_individual
-p_sl_glmnet_vs2_individual  # ADDED THIS LINE
-p_dml_vs2_individual
-p_tmle_vs2_individual  # ADDED THIS LINE
 ```
 
 # Violin Plots
@@ -3715,23 +5998,29 @@ prepare_long_data = function(data) {
       # All methods - excluding SL1 and individual SL methods
       "precision_gain_ANCOVA"                       ~ "ANCOVA",
       "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
-      "precision_gain_G_Logistic"                  ~ "G-Logistic",
+      "precision_gain_G_Logistic"                   ~ "G-Logistic",
       "precision_gain_DML"                          ~ "DML",
       "precision_gain_TMLE"                         ~ "TMLE",
+      "precision_gain_AIPW"                         ~ "AIPW",
+      "precision_gain_IPW"                          ~ "IPW",
       
       # Top-3 methods
-      "precision_gain_ANCOVA_Top-3"                 ~ "ANCOVA Top-3",
-      "precision_gain_ANHECOVA_Top-3"               ~ "ANHECOVA Top-3",
-      "precision_gain_G_Logistic_Top-3"            ~ "G-Logistic Top-3",
-      "precision_gain_DML_Top-3"                    ~ "DML Top-3",
-      "precision_gain_TMLE_Top-3"                   ~ "TMLE Top-3",
+      "precision_gain_ANCOVA_Top-3"                 ~ "ANCOVA\nTop-3",
+      "precision_gain_ANHECOVA_Top-3"               ~ "ANHECOVA\nTop-3",
+      "precision_gain_G_Logistic_Top-3"             ~ "G-Logistic\nTop-3",
+      "precision_gain_DML_Top-3"                    ~ "DML\nTop-3",
+      "precision_gain_TMLE_Top-3"                   ~ "TMLE\nTop-3",
+      "precision_gain_AIPW_Top-3"                   ~ "AIPW\nTop-3",
+      "precision_gain_IPW_Top-3"                    ~ "IPW\nTop-3",
       
       # Baseline+ methods
       "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA\nBaseline+",
       "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA\nBaseline+",
-      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic\nBaseline+",
+      "precision_gain_G_Logistic_Baseline+"         ~ "G-Logistic\nBaseline+",
       "precision_gain_DML_Baseline+"                ~ "DML\nBaseline+",
-      "precision_gain_TMLE_Baseline+"               ~ "TMLE\nBaseline+"
+      "precision_gain_TMLE_Baseline+"               ~ "TMLE\nBaseline+",
+      "precision_gain_AIPW_Baseline+"               ~ "AIPW\nBaseline+",
+      "precision_gain_IPW_Baseline+"                ~ "IPW\nBaseline+"
     )) %>%
     filter(!is.na(method))  # Remove rows where method couldn't be matched
 }
@@ -3781,7 +6070,7 @@ build_and_print_table = function(outcome_type, vs_type = "All", data_type = "all
     logistic_methods = if (vs_type == "All") {
       "G-Logistic"
     } else if (vs_type == "Top-3") {
-      "G-Logistic Top-3"
+      "G-Logistic\nTop-3"
     } else if (vs_type == "Baseline+") {
       "G-Logistic\nBaseline+"
     }
@@ -3812,16 +6101,22 @@ method_colors = c(
   "G-Logistic" = "#00BA38",
   "DML" = "#00BFC4",
   "TMLE" = "#619CFF",
-  "ANCOVA Top-3" = "#F8766D",
-  "ANHECOVA Top-3" = "#B79F00",
-  "G-Logistic Top-3" = "#00BA38",
-  "DML Top-3" = "#00BFC4",
-  "TMLE Top-3" = "#619CFF",
+  "AIPW" = "#F564E3",
+  "IPW" = "#FF6F00",
+  "ANCOVA\nTop-3" = "#F8766D",
+  "ANHECOVA\nTop-3" = "#B79F00",
+  "G-Logistic\nTop-3" = "#00BA38",
+  "DML\nTop-3" = "#00BFC4",
+  "TMLE\nTop-3" = "#619CFF",
+  "AIPW\nTop-3" = "#F564E3",
+  "IPW\nTop-3" = "#FF6F00",
   "ANCOVA\nBaseline+" = "#F8766D",
   "ANHECOVA\nBaseline+" = "#B79F00",
   "G-Logistic\nBaseline+" = "#00BA38",
   "DML\nBaseline+" = "#00BFC4",
-  "TMLE\nBaseline+" = "#619CFF"
+  "TMLE\nBaseline+" = "#619CFF",
+  "AIPW\nBaseline+" = "#F564E3",
+  "IPW\nBaseline+" = "#FF6F00"
 )
 
 ###############################################################################
@@ -3829,33 +6124,80 @@ method_colors = c(
 ###############################################################################
 make_plot = function(data, outcome_type) {
   
-  # Set factor levels for binary outcomes to control order
+  # Transform variance ratio to proportional variance reduction (1 - original value)
+  data = data %>%
+    mutate(prop_var_reduction = 1 - precision_gain)
+  
+  # Set factor levels based on outcome type
   if (outcome_type == "binary") {
-    # Define custom order: G-Logistic before DML
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+")
-    
-    data = data %>%
-      mutate(method = factor(method, levels = method_levels))
+    # Binary: ANCOVA, ANHECOVA, G-Logistic, DML, TMLE, AIPW, IPW
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA\nTop-3", "ANHECOVA\nTop-3", "G-Logistic\nTop-3", "DML\nTop-3", "TMLE\nTop-3", "AIPW\nTop-3", "IPW\nTop-3",
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+", "AIPW\nBaseline+", "IPW\nBaseline+")
+  } else {
+    # Continuous: ANCOVA, ANHECOVA, DML, TMLE, AIPW, IPW (no G-Logistic)
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA\nTop-3", "ANHECOVA\nTop-3", "DML\nTop-3", "TMLE\nTop-3", "AIPW\nTop-3", "IPW\nTop-3",
+                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+", "AIPW\nBaseline+", "IPW\nBaseline+")
   }
   
-  ggplot(data, aes(method, precision_gain, fill = method)) +
+  data = data %>%
+    mutate(method = factor(method, levels = method_levels))
+  
+  # Calculate counts for each method
+  method_counts = data %>%
+    group_by(method) %>%
+    summarise(n = n(), .groups = "drop")
+  
+  # Create data frame for x-axis labels with method names
+  x_labels_df = data.frame(
+    method = method_levels[method_levels %in% unique(data$method)],
+    x_pos = 1:length(method_levels[method_levels %in% unique(data$method)])
+  )
+  
+  # Merge method names with counts
+  x_labels_counts = x_labels_df %>%
+    left_join(method_counts, by = "method")
+  
+  # Create the main plot
+  p = ggplot(data, aes(method, prop_var_reduction, fill = method)) +
     geom_violin(colour = "grey25", alpha = .50, width = 0.5) +
-    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
     scale_fill_manual(values = method_colors) +
-    labs(x = NULL, y = "Variance Ratio") +
-    coord_cartesian(ylim = c(0, 2)) +
-    theme_minimal(base_size = 15) +
+    labs(x = NULL, y = "Proportional Variance Reduction") +
+    coord_cartesian(ylim = c(-1, 1), clip = "off") +
+    theme_minimal(base_size = 18) +
     theme(
-      axis.text.x   = element_text(angle = 0, hjust = 0.5, size = 13),
-      axis.text.y   = element_text(size = 13),
-      axis.title.y  = element_text(size = 15),
+      axis.text.x   = element_blank(),  # Remove default x-axis text
+      axis.ticks.x  = element_blank(),
+      axis.text.y   = element_text(size = 16),
+      axis.title.y  = element_text(size = 18, face = "bold"),
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = "white", colour = NA),
       plot.background = element_rect(fill = "white", colour = NA),
-      legend.position = "none"
+      legend.position = "none",
+      plot.margin = margin(t = 5, r = 10, b = 60, l = 10)
     )
+  
+  # Add method labels as geom_text (bold)
+  p = p + 
+    geom_text(data = x_labels_counts, 
+              aes(x = x_pos, y = -1.15, label = method),
+              inherit.aes = FALSE,
+              size = 5.5,
+              fontface = "bold",
+              lineheight = 0.85,
+              hjust = 0.5)
+  
+  # Add counts below method labels as geom_text (in parentheses)
+  p = p + 
+    geom_text(data = x_labels_counts, 
+              aes(x = x_pos, y = -1.35, label = paste0("(", n, ")")),
+              inherit.aes = FALSE,
+              size = 4.5,
+              hjust = 0.5)
+  
+  return(p)
 }
 
 ###############################################################################
@@ -4013,6 +6355,7 @@ print(p_cont_all_primary)
 print(p_cont_top3_primary)
 print(p_cont_baseline_primary)
 ```
+
 # N vs Var Ratio Plot
 ```{r}
 ###############################################################################
@@ -4029,20 +6372,26 @@ plan(multisession, workers = parallel::detectCores() - 1)
 ###############################################################################
 method_colors = c(
   "ANCOVA" = "#F8766D",
-  "ANHECOVA" = "#A3A500",
-  "G-Logistic" = "#00BF7D",
-  "DML" = "#00B0F6",
-  "TMLE" = "#E76BF3",
+  "ANHECOVA" = "#B79F00",
+  "G-Logistic" = "#00BA38",
+  "DML" = "#00BFC4",
+  "TMLE" = "#619CFF",
+  "AIPW" = "#F564E3",
+  "IPW" = "#FF6F00",
   "ANCOVA Top-3" = "#F8766D",
-  "ANHECOVA Top-3" = "#A3A500",
-  "G-Logistic Top-3" = "#00BF7D",
-  "DML Top-3" = "#00B0F6",
-  "TMLE Top-3" = "#E76BF3",
+  "ANHECOVA Top-3" = "#B79F00",
+  "G-Logistic Top-3" = "#00BA38",
+  "DML Top-3" = "#00BFC4",
+  "TMLE Top-3" = "#619CFF",
+  "AIPW Top-3" = "#F564E3",
+  "IPW Top-3" = "#FF6F00",
   "ANCOVA Baseline+" = "#F8766D",
-  "ANHECOVA Baseline+" = "#A3A500",
-  "G-Logistic Baseline+" = "#00BF7D",
-  "DML Baseline+" = "#00B0F6",
-  "TMLE Baseline+" = "#E76BF3"
+  "ANHECOVA Baseline+" = "#B79F00",
+  "G-Logistic Baseline+" = "#00BA38",
+  "DML Baseline+" = "#00BFC4",
+  "TMLE Baseline+" = "#619CFF",
+  "AIPW Baseline+" = "#F564E3",
+  "IPW Baseline+" = "#FF6F00"
 )
 
 # CORRECT APPROACH: Add Sample_Size directly when creating long data
@@ -4057,23 +6406,29 @@ prepare_long_data_with_size = function(data) {
       # All methods
       "precision_gain_ANCOVA"                       ~ "ANCOVA",
       "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
-      "precision_gain_G_Logistic"                  ~ "G-Logistic",
+      "precision_gain_G_Logistic"                   ~ "G-Logistic",
       "precision_gain_DML"                          ~ "DML",
       "precision_gain_TMLE"                         ~ "TMLE",
+      "precision_gain_AIPW"                         ~ "AIPW",
+      "precision_gain_IPW"                          ~ "IPW",
       
-      # Top-3 methods
+      # Top-3 methods (no line break)
       "precision_gain_ANCOVA_Top-3"                 ~ "ANCOVA Top-3",
       "precision_gain_ANHECOVA_Top-3"               ~ "ANHECOVA Top-3",
-      "precision_gain_G_Logistic_Top-3"            ~ "G-Logistic Top-3",
+      "precision_gain_G_Logistic_Top-3"             ~ "G-Logistic Top-3",
       "precision_gain_DML_Top-3"                    ~ "DML Top-3",
       "precision_gain_TMLE_Top-3"                   ~ "TMLE Top-3",
+      "precision_gain_AIPW_Top-3"                   ~ "AIPW Top-3",
+      "precision_gain_IPW_Top-3"                    ~ "IPW Top-3",
       
-      # Baseline+ methods (no line break - used in legend)
+      # Baseline+ methods (no line break)
       "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA Baseline+",
       "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA Baseline+",
-      "precision_gain_G_Logistic_Baseline+"        ~ "G-Logistic Baseline+",
+      "precision_gain_G_Logistic_Baseline+"         ~ "G-Logistic Baseline+",
       "precision_gain_DML_Baseline+"                ~ "DML Baseline+",
-      "precision_gain_TMLE_Baseline+"               ~ "TMLE Baseline+"
+      "precision_gain_TMLE_Baseline+"               ~ "TMLE Baseline+",
+      "precision_gain_AIPW_Baseline+"               ~ "AIPW Baseline+",
+      "precision_gain_IPW_Baseline+"                ~ "IPW Baseline+"
     )) %>%
     filter(!is.na(method))
 }
@@ -4089,11 +6444,13 @@ cat("Primary outcomes:", nrow(df_long_with_size_primary), "rows\n")
 # Remove outliers (same as violin plots)
 df_long_size_cleaned_all = df_long_with_size_all %>%
   mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
-  filter(!is.na(precision_gain), !is.na(Sample_Size))
+  filter(!is.na(precision_gain), !is.na(Sample_Size)) %>%
+  mutate(prop_var_reduction = 1 - precision_gain)  # Transform to proportional variance reduction
 
 df_long_size_cleaned_primary = df_long_with_size_primary %>%
   mutate(precision_gain = ifelse(pg >= 2, NA, pg)) %>%
-  filter(!is.na(precision_gain), !is.na(Sample_Size))
+  filter(!is.na(precision_gain), !is.na(Sample_Size)) %>%
+  mutate(prop_var_reduction = 1 - precision_gain)  # Transform to proportional variance reduction
 
 cat("After outlier removal:\n")
 cat("All outcomes:", nrow(df_long_size_cleaned_all), "rows\n")
@@ -4104,97 +6461,97 @@ cat("Sample size range:", min(df_long_size_cleaned_all$Sample_Size),
 # Function for smoothed plot (log10 sample size) - USING LOESS
 make_plot_smooth_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3", "AIPW Top-3", "IPW Top-3",
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+", "AIPW Baseline+", "IPW Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
-    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3", "AIPW Top-3", "IPW Top-3",
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+", "AIPW Baseline+", "IPW Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
-  ggplot(data, aes(x = log10(Sample_Size), y = precision_gain, color = method)) +
-    geom_smooth(method = "loess", span = 0.75, se = FALSE, linewidth = 1) +
-    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+  ggplot(data, aes(x = log10(Sample_Size), y = prop_var_reduction, color = method)) +
+    geom_smooth(method = "loess", span = 0.75, se = FALSE, linewidth = 1.2) +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
     scale_color_manual(values = method_colors) +
-    labs(x = "Log10(Sample Size)", y = "Variance Ratio", color = "Method") +
-    coord_cartesian(ylim = c(0, 2)) +
-    theme_minimal(base_size = 15) +
+    labs(x = "Log10(Sample Size)", y = "Proportional Variance Reduction", color = "Method") +
+    coord_cartesian(ylim = c(-1, 1)) +
+    theme_minimal(base_size = 18) +
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
           legend.position = "right",
-          legend.text = element_text(size = 13),
-          legend.title = element_text(size = 15),
-          axis.text = element_text(size = 13),
-          axis.title = element_text(size = 15))
+          legend.text = element_text(size = 14),
+          legend.title = element_text(size = 16, face = "bold"),
+          axis.text = element_text(size = 16),
+          axis.title = element_text(size = 18, face = "bold"))
 }
 
 # Function for scatter plot (original sample size)
 make_plot_scatter = function(data, outcome_type) {
   if (outcome_type == "binary") {
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3", "AIPW Top-3", "IPW Top-3",
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+", "AIPW Baseline+", "IPW Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
-    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3", "AIPW Top-3", "IPW Top-3",
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+", "AIPW Baseline+", "IPW Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
-  ggplot(data, aes(x = Sample_Size, y = precision_gain, color = method)) +
-    geom_point(alpha = 0.5, size = 1) +
-    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+  ggplot(data, aes(x = Sample_Size, y = prop_var_reduction, color = method)) +
+    geom_point(alpha = 0.4, size = 1.5) +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
     scale_color_manual(values = method_colors) +
-    labs(x = "Sample Size", y = "Variance Ratio", color = "Method") +
-    coord_cartesian(ylim = c(0, 2)) +
-    theme_minimal(base_size = 15) +
+    labs(x = "Sample Size", y = "Proportional Variance Reduction", color = "Method") +
+    coord_cartesian(ylim = c(-1, 1)) +
+    theme_minimal(base_size = 18) +
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
           legend.position = "right",
-          legend.text = element_text(size = 13),
-          legend.title = element_text(size = 15),
-          axis.text = element_text(size = 13),
-          axis.title = element_text(size = 15))
+          legend.text = element_text(size = 14),
+          legend.title = element_text(size = 16, face = "bold"),
+          axis.text = element_text(size = 16),
+          axis.title = element_text(size = 18, face = "bold"))
 }
 
 # Function for scatter plot (log10 sample size)
 make_plot_scatter_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3", "AIPW Top-3", "IPW Top-3",
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+", "AIPW Baseline+", "IPW Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
-    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "AIPW", "IPW",
+                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3", "AIPW Top-3", "IPW Top-3",
+                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+", "AIPW Baseline+", "IPW Baseline+")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
-  ggplot(data, aes(x = log10(Sample_Size), y = precision_gain, color = method)) +
-    geom_point(alpha = 0.5, size = 1) +
-    geom_hline(yintercept = 1, linetype = "dashed", colour = "grey40") +
+  ggplot(data, aes(x = log10(Sample_Size), y = prop_var_reduction, color = method)) +
+    geom_point(alpha = 0.4, size = 1.5) +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
     scale_color_manual(values = method_colors) +
-    labs(x = "Log10(Sample Size)", y = "Variance Ratio", color = "Method") +
-    coord_cartesian(ylim = c(0, 2)) +
-    theme_minimal(base_size = 15) +
+    labs(x = "Log10(Sample Size)", y = "Proportional Variance Reduction", color = "Method") +
+    coord_cartesian(ylim = c(-1, 1)) +
+    theme_minimal(base_size = 18) +
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
           legend.position = "right",
-          legend.text = element_text(size = 13),
-          legend.title = element_text(size = 15),
-          axis.text = element_text(size = 13),
-          axis.title = element_text(size = 15))
+          legend.text = element_text(size = 15),
+          legend.title = element_text(size = 16, face = "bold"),
+          axis.text = element_text(size = 16),
+          axis.title = element_text(size = 18, face = "bold"))
 }
 
 # Create plot configs - only the necessary columns
@@ -4300,13 +6657,12 @@ plan(sequential)
 ###############################################################################
 ##  Publication quality settings ---------------------------------------------
 ###############################################################################
-pub_width = 10
+pub_width = 8
 pub_height = 6
 pub_dpi = 600
 ```
 ## smoothed log
 ```{r}
-
 ###############################################################################
 ##  Save all Version 1 plots (Smoothed Log10 Scale) with clear labels
 ###############################################################################
@@ -4347,6 +6703,7 @@ cat(strrep("=", 70), "\n")
 cat("ALL 12 VERSION 1 PLOTS SAVED\n")
 cat(strrep("=", 70), "\n")
 ```
+
 ## smoothed original(outdate)
 ```{r}
 # First, we need to create a new plotting function for smoothed original scale
@@ -4459,17 +6816,24 @@ cat("\n", strrep("=", 70), "\n")
 cat("ALL 12 SMOOTHED (ORIGINAL SCALE) PLOTS SAVED\n")
 cat(strrep("=", 70), "\n")
 ```
+
 # 4 Panel Plot
 ```{r}
 library(patchwork)
+library(ggplot2)
 
-###############################################################################
-##  Create 4-panel combined figures
-###############################################################################
-# Function to create a 4-panel figure
+# helper to build a single row with a skinny label column
+# left_weight > right_weight makes the left panel wider
+row_with_label = function(label_plot, p_left, p_right,
+                          label_width = 0.11,
+                          left_weight = 1.25,
+                          right_weight = 1.00) {
+  (label_plot | p_left | p_right) +
+    plot_layout(widths = c(label_width, left_weight, right_weight))
+}
+
 create_4panel_figure = function(outcome_type, vs_type) {
-  
-  # Get violin plots (already created)
+  # pick the violin plots
   if (outcome_type == "binary") {
     if (vs_type == "all") {
       p_violin_all = p_binary_all_all
@@ -4481,7 +6845,7 @@ create_4panel_figure = function(outcome_type, vs_type) {
       p_violin_all = p_binary_baseline_all
       p_violin_primary = p_binary_baseline_primary
     }
-  } else {  # continuous
+  } else {
     if (vs_type == "all") {
       p_violin_all = p_cont_all_all
       p_violin_primary = p_cont_all_primary
@@ -4493,89 +6857,65 @@ create_4panel_figure = function(outcome_type, vs_type) {
       p_violin_primary = p_cont_baseline_primary
     }
   }
-  
-  # Get corresponding smooth log plots from results
-  idx_all = which(plot_configs$outcome_type == outcome_type & 
-                  plot_configs$vs_type == vs_type & 
-                  plot_configs$data_source == "all" & 
-                  plot_configs$version == "smooth_log")
-  
-  idx_primary = which(plot_configs$outcome_type == outcome_type & 
-                      plot_configs$vs_type == vs_type & 
-                      plot_configs$data_source == "primary" & 
-                      plot_configs$version == "smooth_log")
-  
+
+  # smooth plots
+  idx_all = which(plot_configs$outcome_type == outcome_type &
+                    plot_configs$vs_type == vs_type &
+                    plot_configs$data_source == "all" &
+                    plot_configs$version == "smooth_log")
+  idx_primary = which(plot_configs$outcome_type == outcome_type &
+                        plot_configs$vs_type == vs_type &
+                        plot_configs$data_source == "primary" &
+                        plot_configs$version == "smooth_log")
   p_smooth_all = results[[idx_all]]$plot
   p_smooth_primary = results[[idx_primary]]$plot
-  
-  # Combine into 2x2 grid without labels
-  combined = (p_violin_all | p_smooth_all) / (p_violin_primary | p_smooth_primary)
-  
-  return(combined)
+
+  # label plots
+  base_label_theme = theme_void() + theme(plot.margin = margin(0,0,0,0))
+  label_all = ggplot() + annotate("text", x=0, y=0, label="All outcome analysis",
+                                  size=8, fontface="bold", angle=90) + base_label_theme
+  label_primary = ggplot() + annotate("text", x=0, y=0, label="Primary outcome analysis",
+                                      size=8, fontface="bold", angle=90) + base_label_theme
+
+  # build rows; tweak left/right weights here if you like
+  top_row = row_with_label(label_all,     p_violin_all,     p_smooth_all,
+                           label_width = 0.11, left_weight = 1.25, right_weight = 1.00)
+  bot_row = row_with_label(label_primary, p_violin_primary, p_smooth_primary,
+                           label_width = 0.11, left_weight = 1.25, right_weight = 1.00)
+
+  combined = top_row / bot_row + plot_layout(heights = c(1, 1))
+  combined
 }
 
-###############################################################################
-##  Generate and save all 6 four-panel figures
-###############################################################################
-cat("\n", strrep("=", 70), "\n")
-cat("Creating 6 four-panel combined figures...\n")
-cat(strrep("=", 70), "\n\n")
-
-# Configuration for all 6 figures
-fig_configs = tibble::tribble(
-  ~outcome_type, ~vs_type,     ~fig_name,
-  "binary",      "all",        "combined_binary_all",
-  "binary",      "top3",       "combined_binary_top3",
-  "binary",      "baseline",   "combined_binary_baseline",
-  "continuous",  "all",        "combined_continuous_all",
-  "continuous",  "top3",       "combined_continuous_top3",
-  "continuous",  "baseline",   "combined_continuous_baseline"
-)
-
-# Adjusted width since Baseline+ labels now fit better with line breaks
-combined_width = 24  # Reduced from 30 since text overlapping is solved
+# --- saving unchanged, maybe slightly narrower width since label col is tiny
+combined_width = 20
 combined_height = 12
 
-# Create and save each figure
 for (i in 1:nrow(fig_configs)) {
   outcome = fig_configs$outcome_type[i]
   vs = fig_configs$vs_type[i]
   fig_name = fig_configs$fig_name[i]
-  
-  # Create descriptive label for console output
+
   outcome_label = ifelse(outcome == "binary", "Binary", "Continuous")
-  vs_label = case_when(
+  vs_label = dplyr::case_when(
     vs == "all" ~ "All Methods",
     vs == "top3" ~ "Top-3 Methods",
     vs == "baseline" ~ "Baseline+ Methods"
   )
-  
+
   cat(sprintf("Creating figure %d/6: %s - %s...\n", i, outcome_label, vs_label))
-  
-  # Create the 4-panel figure
+
   combined_fig = create_4panel_figure(outcome, vs)
-  
-  # Save the figure
+
   filename = paste0("cleaned_data/Plot/", fig_name, ".png")
-  ggsave(filename, combined_fig, 
+  ggsave(filename, combined_fig,
          width = combined_width, height = combined_height, dpi = pub_dpi, bg = "white")
-  
-  cat(sprintf("✓ Saved: %s\n", filename))
-  cat(sprintf("  Dimensions: %d × %d inches @ %d dpi\n\n", 
-              combined_width, combined_height, pub_dpi))
-  
-  # Display the figure
+
+  cat(sprintf("✓ Saved: %s\n  Dimensions: %d × %d inches @ %d dpi\n\n",
+              filename, combined_width, combined_height, pub_dpi))
+
   print(combined_fig)
 }
-
-cat(strrep("=", 70), "\n")
-cat("ALL 6 FOUR-PANEL FIGURES CREATED AND SAVED\n")
-cat(strrep("=", 70), "\n")
-cat(sprintf("• Each figure: %d × %d inches @ %d dpi\n", 
-            combined_width, combined_height, pub_dpi))
-cat("• Layout: Violin plots (left) | Smoothed plots (right)\n")
-cat("          All outcomes (top) | Primary outcomes (bottom)\n")
-cat(strrep("=", 70), "\n\n")
 ```
 
 
@@ -4931,10 +7271,10 @@ p_pub_year = ggplot(df_pub_year, aes(x = pub_year)) +
   geom_histogram(binwidth = 1, fill = "#2196F3", color = "white", alpha = 0.8) +
   labs(x = "Publication Year",
        y = "Number of Trials") +
-  theme_minimal(base_size = 15) +
+  theme_minimal(base_size = 18) +
   theme(
-    axis.title = element_text(size = 15),
-    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 16),
     panel.grid.minor = element_blank(),
     panel.background = element_rect(fill = "white", colour = NA),
     plot.background = element_rect(fill = "white", colour = NA)
@@ -4962,6 +7302,72 @@ df_pub_year %>%
   print()
 cat("\nPlot saved to cleaned_data/Plot/publication_year_histogram.png\n")
 ```
+## version 2
+```{r}
+###############################################################################
+##  Publication Year Histogram with 5-year bins
+###############################################################################
+# Prepare data with 5-year bins
+df_pub_year = data.frame(
+  pub_year = df_meta$PublicationYear
+) %>%
+  filter(!is.na(pub_year)) %>%
+  mutate(
+    year_bin = cut(pub_year, 
+                   breaks = seq(floor(min(pub_year)/5)*5, 
+                               ceiling(max(pub_year)/5)*5 + 5, 
+                               by = 5),
+                   right = FALSE,
+                   include.lowest = TRUE)
+  )
+
+# Calculate counts for each bin
+df_pub_year_summary = df_pub_year %>%
+  count(year_bin) %>%
+  mutate(
+    # Extract start year from the bin label for x-axis positioning
+    start_year = as.numeric(sub("\\[([0-9]+),.*", "\\1", as.character(year_bin))),
+    # Create nice label like "2020-2025"
+    bin_label = paste0(start_year, "-", start_year + 5)
+  )
+
+# Create histogram with counts on top
+p_pub_year = ggplot(df_pub_year_summary, aes(x = start_year, y = n)) +
+  geom_col(fill = "#2196F3", color = "white", alpha = 0.8, width = 4.5) +
+  geom_text(aes(label = n), vjust = -0.5, size = 5, fontface = "bold") +
+  labs(x = "Publication Year",
+       y = "Number of Trials") +
+  scale_x_continuous(breaks = df_pub_year_summary$start_year,
+                     labels = df_pub_year_summary$bin_label) +
+  theme_minimal(base_size = 15) +
+  theme(
+    axis.title = element_text(size = 15, face = "bold"),
+    axis.text.x = element_text(size = 13, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 13),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = "white", colour = NA),
+    plot.background = element_rect(fill = "white", colour = NA)
+  ) +
+  coord_cartesian(ylim = c(0, max(df_pub_year_summary$n) * 1.1))  # Add space for labels
+
+# Display and save
+print(p_pub_year)
+ggsave("cleaned_data/Plot/publication_year_histogram.png", p_pub_year, 
+       width = 10, height = 6, dpi = 600, bg = "white")
+
+###############################################################################
+## Summary Statistics
+###############################################################################
+cat("\n=== Publication Year Summary ===\n")
+cat("Number of trials:", nrow(df_pub_year), "\n")
+cat("Year range:", min(df_pub_year$pub_year), "-", max(df_pub_year$pub_year), "\n")
+cat("\nYear Distribution:\n")
+print(summary(df_pub_year$pub_year))
+cat("\nTrials per 5-year bin:\n")
+print(df_pub_year_summary %>% select(bin_label, n))
+cat("\nPlot saved to cleaned_data/Plot/publication_year_histogram.png\n")
+```
+
 
 
 # N. Cova vs N Plot
@@ -4969,7 +7375,6 @@ cat("\nPlot saved to cleaned_data/Plot/publication_year_histogram.png\n")
 ###############################################################################
 ##  Covariates vs Sample Size - Scatter Plots Only
 ###############################################################################
-
 # Prepare data: get mean covariates per trial and merge with sample size
 df_cov_summary = df_comparison %>% 
   group_by(Trial_No) %>% 
@@ -4993,10 +7398,10 @@ p_cov_size = ggplot(df_cov_size, aes(x = Sample_Size, y = mean_covariates)) +
   geom_point(alpha = 0.6, size = 3, color = "#2196F3") +
   labs(x = "Sample Size",
        y = "Average Number of Covariates") +
-  theme_minimal(base_size = 15) +
+  theme_minimal(base_size = 18) +
   theme(
-    axis.title = element_text(size = 15),
-    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 16),
     panel.grid.minor = element_blank(),
     panel.background = element_rect(fill = "white", colour = NA),
     plot.background = element_rect(fill = "white", colour = NA)
@@ -5009,16 +7414,52 @@ ggsave("cleaned_data/Plot/covariates_vs_sample_size.png", p_cov_size,
        width = 10, height = 6, dpi = 600, bg = "white")
 
 ###############################################################################
-## Log10 Version (Scatter Only)
+## Log10 Version (Scatter with reference curves)
 ###############################################################################
+# Get the y-axis range from the original plot
+y_range = range(df_cov_size$mean_covariates, na.rm = TRUE)
+
+# Get the range for reference curves
+log_sample_size_range = range(log10(df_cov_size$Sample_Size), na.rm = TRUE)
+log_x_seq = seq(log_sample_size_range[1], log_sample_size_range[2], length.out = 200)
+
+# Create reference curve data
+ref_curve1 = data.frame(log_x = log_x_seq, y = 10^log_x_seq)
+ref_curve2 = data.frame(log_x = log_x_seq, y = 10^log_x_seq / 5)
+
+# Filter curves to stay within y-axis range
+ref_curve1 = ref_curve1 %>% filter(y >= y_range[1], y <= y_range[2])
+ref_curve2 = ref_curve2 %>% filter(y >= y_range[1], y <= y_range[2])
+
+# Find good positions for labels (around 75% along each curve)
+label_pos1 = ref_curve1[round(nrow(ref_curve1) * 0.75), ]
+label_pos2 = ref_curve2[round(nrow(ref_curve2) * 0.75), ]
+
 p_cov_size_log = ggplot(df_cov_size, aes(x = log10(Sample_Size), y = mean_covariates)) +
   geom_point(alpha = 0.6, size = 3, color = "#2196F3") +
+  geom_line(data = ref_curve1, 
+            aes(x = log_x, y = y),
+            color = "#E91E63", 
+            linewidth = 1,
+            inherit.aes = FALSE) +
+  geom_line(data = ref_curve2, 
+            aes(x = log_x, y = y),
+            color = "#FF9800", 
+            linewidth = 1,
+            inherit.aes = FALSE) +
+  annotate("text", x = label_pos1$log_x, y = label_pos1$y, 
+           label = "n = p", color = "#E91E63", size = 5, fontface = "bold",
+           hjust = -0.2, vjust = -0.5) +
+  annotate("text", x = label_pos2$log_x, y = label_pos2$y, 
+           label = "n = 5p", color = "#FF9800", size = 5, fontface = "bold",
+           hjust = -0.2, vjust = 1.5) +
   labs(x = "Log10(Sample Size)",
        y = "Average Number of Covariates") +
-  theme_minimal(base_size = 15) +
+  coord_cartesian(ylim = y_range) +
+  theme_minimal(base_size = 18) +
   theme(
-    axis.title = element_text(size = 15),
-    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 16),
     panel.grid.minor = element_blank(),
     panel.background = element_rect(fill = "white", colour = NA),
     plot.background = element_rect(fill = "white", colour = NA)
@@ -5041,7 +7482,10 @@ cat("\nNumber of Covariates Summary:\n")
 print(summary(df_cov_size$mean_covariates))
 cat("\nBoth plots saved to cleaned_data/Plot/\n")
 cat("  - covariates_vs_sample_size.png (original scale)\n")
-cat("  - covariates_vs_sample_size_log.png (log10 scale)\n")
+cat("  - covariates_vs_sample_size_log.png (log10 scale with reference curves)\n")
+cat("\nReference curves on log plot:\n")
+cat("  - n = p (pink): Sample size equals number of covariates\n")
+cat("  - n = 5p (orange): Sample size equals 5 times number of covariates\n")
 ```
 
 
@@ -5079,8 +7523,8 @@ p2 <- ggplot(area_counts,
   scale_fill_viridis_d(option = "turbo") +
   theme_void() +
   theme(
-    legend.title = element_text(size = 16, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 18, face = "bold"),
+    legend.text = element_text(size = 16),
     legend.position = "right"
   ) +
   labs(fill = "Research Area") +
@@ -5091,7 +7535,7 @@ p2 <- ggplot(area_counts,
 # Display and save
 print(p2)
 ggsave("cleaned_data/Plot/research_area_pie.png", p2, 
-       width = 12, height = 7, dpi = 600, bg = "white")
+       width = 10, height = 8, dpi = 600, bg = "white")
 
 # Print summary
 cat("\n=== Research Area Summary ===\n")
@@ -5131,8 +7575,8 @@ p1 <- ggplot(randomization_counts,
   scale_fill_manual(values = rand_colors) +
   theme_void() +
   theme(
-    legend.title = element_text(size = 16, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 18, face = "bold"),
+    legend.text = element_text(size = 16),
     legend.position = "right"
   ) +
   labs(fill = "Randomization Scheme") +
