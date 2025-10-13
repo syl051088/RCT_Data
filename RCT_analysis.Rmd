@@ -6483,8 +6483,8 @@ make_plot_smooth_log = function(data, outcome_type) {
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
-          legend.position = "right",
-          legend.text = element_text(size = 14),
+          legend.position = c(0.82, 0.82),
+          legend.text = element_text(size = 15),
           legend.title = element_text(size = 16, face = "bold"),
           axis.text = element_text(size = 16),
           axis.title = element_text(size = 18, face = "bold"))
@@ -6515,8 +6515,8 @@ make_plot_scatter = function(data, outcome_type) {
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
-          legend.position = "right",
-          legend.text = element_text(size = 14),
+          legend.position = c(0.82, 0.82),
+          legend.text = element_text(size = 15),
           legend.title = element_text(size = 16, face = "bold"),
           axis.text = element_text(size = 16),
           axis.title = element_text(size = 18, face = "bold"))
@@ -6547,7 +6547,7 @@ make_plot_scatter_log = function(data, outcome_type) {
     theme(panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = "white", colour = NA),
           plot.background = element_rect(fill = "white", colour = NA),
-          legend.position = "right",
+          legend.position = c(0.82, 0.82),
           legend.text = element_text(size = 15),
           legend.title = element_text(size = 16, face = "bold"),
           axis.text = element_text(size = 16),
@@ -6600,64 +6600,64 @@ generate_single_plot = function(data_source, outcome_type, vs_type, version, plo
   
   return(list(plot_name = plot_name, plot = p))
 }
-
-cat("\n========================================\n")
-cat("Generating 36 sample size plots (12 configs × 3 versions)...\n")
-cat(sprintf("Using %d cores\n", parallel::detectCores() - 1))
-cat("========================================\n\n")
-
-start_time = Sys.time()
-
-results = future_pmap(
-  plot_configs,
-  generate_single_plot,
-  .options = furrr_options(seed = TRUE),
-  .progress = TRUE
-)
-
-end_time = Sys.time()
-
-cat("\n========================================\n")
-cat("36 plots generated (not saved)\n")
-cat(sprintf("Time elapsed: %.2f seconds\n", as.numeric(end_time - start_time, units = "secs")))
-cat("========================================\n\n")
-
-# Display ALL 36 plots organized by type
-cat(strrep("=", 70), "\n")
-cat("DISPLAYING ALL 36 PLOTS\n")
-cat(strrep("=", 70), "\n\n")
-
-# Group plots by version for better organization
-for (v in c("smooth_log", "scatter", "scatter_log")) {
-  version_name = case_when(
-    v == "smooth_log" ~ "SMOOTHED (Log10 Scale)",
-    v == "scatter" ~ "SCATTER (Original Scale)",
-    v == "scatter_log" ~ "SCATTER (Log10 Scale)"
-  )
-  
-  cat("\n", strrep("=", 70), "\n")
-  cat(version_name, "\n")
-  cat(strrep("=", 70), "\n\n")
-  
-  # Get indices for this version
-  version_indices = which(plot_configs$version == v)
-  
-  for (idx in version_indices) {
-    cat("\n--- Plot", idx, ":", plot_configs$plot_name[idx], "---\n")
-    print(results[[idx]]$plot)
-  }
-}
-
-cat("\n", strrep("=", 70), "\n")
-cat("ALL 36 PLOTS DISPLAYED\n")
-cat(strrep("=", 70), "\n")
-
-plan(sequential)
+# 
+# cat("\n========================================\n")
+# cat("Generating 36 sample size plots (12 configs × 3 versions)...\n")
+# cat(sprintf("Using %d cores\n", parallel::detectCores() - 1))
+# cat("========================================\n\n")
+# 
+# start_time = Sys.time()
+# 
+# results = future_pmap(
+#   plot_configs,
+#   generate_single_plot,
+#   .options = furrr_options(seed = TRUE),
+#   .progress = TRUE
+# )
+# 
+# end_time = Sys.time()
+# 
+# cat("\n========================================\n")
+# cat("36 plots generated (not saved)\n")
+# cat(sprintf("Time elapsed: %.2f seconds\n", as.numeric(end_time - start_time, units = "secs")))
+# cat("========================================\n\n")
+# 
+# # Display ALL 36 plots organized by type
+# cat(strrep("=", 70), "\n")
+# cat("DISPLAYING ALL 36 PLOTS\n")
+# cat(strrep("=", 70), "\n\n")
+# 
+# # Group plots by version for better organization
+# for (v in c("smooth_log", "scatter", "scatter_log")) {
+#   version_name = case_when(
+#     v == "smooth_log" ~ "SMOOTHED (Log10 Scale)",
+#     v == "scatter" ~ "SCATTER (Original Scale)",
+#     v == "scatter_log" ~ "SCATTER (Log10 Scale)"
+#   )
+#   
+#   cat("\n", strrep("=", 70), "\n")
+#   cat(version_name, "\n")
+#   cat(strrep("=", 70), "\n\n")
+#   
+#   # Get indices for this version
+#   version_indices = which(plot_configs$version == v)
+#   
+#   for (idx in version_indices) {
+#     cat("\n--- Plot", idx, ":", plot_configs$plot_name[idx], "---\n")
+#     print(results[[idx]]$plot)
+#   }
+# }
+# 
+# cat("\n", strrep("=", 70), "\n")
+# cat("ALL 36 PLOTS DISPLAYED\n")
+# cat(strrep("=", 70), "\n")
+# 
+# plan(sequential)
 
 ###############################################################################
 ##  Publication quality settings ---------------------------------------------
 ###############################################################################
-pub_width = 8
+pub_width = 10
 pub_height = 6
 pub_dpi = 600
 ```
@@ -6826,7 +6826,7 @@ library(ggplot2)
 # left_weight > right_weight makes the left panel wider
 row_with_label = function(label_plot, p_left, p_right,
                           label_width = 0.11,
-                          left_weight = 1.25,
+                          left_weight = 1,
                           right_weight = 1.00) {
   (label_plot | p_left | p_right) +
     plot_layout(widths = c(label_width, left_weight, right_weight))
@@ -6879,13 +6879,24 @@ create_4panel_figure = function(outcome_type, vs_type) {
 
   # build rows; tweak left/right weights here if you like
   top_row = row_with_label(label_all,     p_violin_all,     p_smooth_all,
-                           label_width = 0.11, left_weight = 1.25, right_weight = 1.00)
+                           label_width = 0.11, left_weight = 1, right_weight = 1.00)
   bot_row = row_with_label(label_primary, p_violin_primary, p_smooth_primary,
-                           label_width = 0.11, left_weight = 1.25, right_weight = 1.00)
+                           label_width = 0.11, left_weight = 1, right_weight = 1.00)
 
   combined = top_row / bot_row + plot_layout(heights = c(1, 1))
   combined
 }
+
+# Configuration for all 6 figures
+fig_configs = tibble::tribble(
+  ~outcome_type, ~vs_type,     ~fig_name,
+  "binary",      "all",        "combined_binary_all",
+  "binary",      "top3",       "combined_binary_top3",
+  "binary",      "baseline",   "combined_binary_baseline",
+  "continuous",  "all",        "combined_continuous_all",
+  "continuous",  "top3",       "combined_continuous_top3",
+  "continuous",  "baseline",   "combined_continuous_baseline"
+)
 
 # --- saving unchanged, maybe slightly narrower width since label col is tiny
 combined_width = 20
@@ -7523,8 +7534,8 @@ p2 <- ggplot(area_counts,
   scale_fill_viridis_d(option = "turbo") +
   theme_void() +
   theme(
-    legend.title = element_text(size = 18, face = "bold"),
-    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 21, face = "bold"),
+    legend.text = element_text(size = 19),
     legend.position = "right"
   ) +
   labs(fill = "Research Area") +
@@ -7575,8 +7586,8 @@ p1 <- ggplot(randomization_counts,
   scale_fill_manual(values = rand_colors) +
   theme_void() +
   theme(
-    legend.title = element_text(size = 18, face = "bold"),
-    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 21, face = "bold"),
+    legend.text = element_text(size = 19),
     legend.position = "right"
   ) +
   labs(fill = "Randomization Scheme") +
@@ -7587,10 +7598,46 @@ p1 <- ggplot(randomization_counts,
 # Display and save
 print(p1)
 ggsave("cleaned_data/Plot/randomization_scheme_pie.png", p1, 
-       width = 10, height = 6, dpi = 600, bg = "white")
+       width = 8, height = 5, dpi = 600, bg = "white")
 
 # Print summary
 cat("\n=== Randomization Scheme Summary ===\n")
 print(randomization_counts %>% select(-label))
+```
+
+
+
+# Processing Flowchart
+```{r}
+library(DiagrammeR)
+library(DiagrammeRsvg)
+library(rsvg)
+
+dot = "
+digraph RCT_DataProcessing {
+  graph [rankdir=LR, fontsize=18, splines=ortho, nodesep=0.6, ranksep=0.5]
+  node  [shape=rect, fontname=Helvetica, fontsize=16, style=filled, fillcolor=white]
+  edge  [arrowhead=normal, penwidth=1.4]
+
+  # Stage 1: Raw and import
+  A [label='Raw dataset(s)\n(downloaded from Dryad / Dataverse)']
+
+  # Stage 2: Cleaning
+  B [label='Clean missing values\n(. , NULL , blank → NA)']
+  C [label='Define Treatment variable']
+  D [label='Rename outcomes\n(YP_/YS_/X_ convention)']
+
+  # Stage 3: Structuring
+  E [label='Reshape to wide format\n(1 row per subject)']
+  F [label='Cluster-level aggregation\n(mean within cluster)']
+  G [label='Save cleaned & cluster-level datasets']
+
+  # Edges
+  A -> B -> C -> D -> E -> F -> G
+}
+"
+
+grViz(dot)
+
 ```
 

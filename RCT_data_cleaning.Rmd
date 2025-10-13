@@ -5175,6 +5175,9 @@ write_rds(dfc6_final, "cleaned_data/Clustered_RCT/6_patient.rds")
 
 
 # test
+```{r}
+df48 = get(load("raw_data/48/48.rda"))
+```
 
 
 
