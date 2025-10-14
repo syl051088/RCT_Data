@@ -3544,3 +3544,8 @@ run_tmle_analysis = function(df_indices = 1:50, selection = T, variable_selectio
 ```
 
 
+# sss
+```{r}
+df_comparison = df_comparison %>% arrange(Trial_No)
+```
+

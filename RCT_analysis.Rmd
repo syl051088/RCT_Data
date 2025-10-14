@@ -5668,8 +5668,8 @@ df48 = read_rds("cleaned_data/Non_Clustered_RCT/trial48.rds")
 ## Process
 
 ```{r}
-type = c("binary", rep("continuous", 6), rep("binary", 2))
-demo = c("X_age_group", "X_sex")
+type = c("continuous")
+demo = c("X_AGE_0w", "X_SEX_0w", "X_STATUS_0w", "X_WEIGHT_0w")
 ```
 
 ```{r}

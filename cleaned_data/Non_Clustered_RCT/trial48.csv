@@ -1,118 +1,256 @@
-Treatment,YP_mite_presence_6m,YP_mite_count_6m,YP_mite_score_6m,pre_YP_mite_presence_2m,pre_YP_mite_presence_4m,pre_YP_mite_count_2m,pre_YP_mite_count_4m,pre_YP_mite_score_2m,pre_YP_mite_score_4m,YS_otitis_6m,YS_CGH_6m,YS_IgG_6m,YS_IgE_6m,YS_tumor_detected_6m,YS_tumor_group_6m,pre_YS_IgG_2m,pre_YS_IgG_4m,pre_YS_IgE_2m,pre_YS_IgE_4m,X_age_group,X_sex,X_captures,X_mite_presence_0w,X_mite_count_0w,X_mite_score_0w,X_otitis_0w,X_CGH_0w,X_IgG_0w,X_IgE_0w,X_tumor_detected_0w,X_tumor_group_0w,X_carcinoma_detected_0w,X_carcinoma_group_0w,X_gross_proliferative_lesions_0w,X_inflammation_0w,X_nodular_thickening_0w,X_pus_0w,X_sebaceous_hyperplasia_0w,X_epidermal_hyperplasia_0w,X_acanthosis_0w,X_hyperkeratosis_0w
-Treated,0,0,0,1,NA,98,NA,2.5,NA,1,1.5,317475,0,0,0,1069200,NA,0,NA,1,1,3,1,39,3,3,3,1174500,0,0,0,0,0,0,2,2,1,1,1,1,1
-Treated,0,0,0,0,NA,0,NA,0,0,0,1,15150,181.75833333333333,1,1,51750,37350,232.15833333333333,124.80833333333332,2,2,4,1,88,2.5,1.5,1.5,131400,0,0,0,0,0,0,1,2,1,1,1,1,1
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,153450,NA,0,NA,2,1,2,1,69,3,1.5,1.5,211050,0,0,0,0,0,0,1,1.5,0,1,1,0,1
-Untreated,NA,NA,NA,NA,1,NA,102,NA,3,NA,NA,NA,NA,NA,NA,NA,76950,NA,70.55833333333334,2,1,2,1,104,2.5,2.5,1,115650,62.408333333333346,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,1,0,0,0,1,0,0.5,1,265950,0,0,1,649350,490050,0,9.708333333333332,2,1,4,1,62,2.5,1.5,2.5,1024650,0,0,1,0,0,1,1,1,1,1,1,1,1
-Untreated,NA,NA,NA,1,NA,11,NA,2,NA,NA,NA,NA,NA,NA,NA,171000,NA,72.95833333333331,NA,1,1,2,1,64,3,1.5,1.5,223875,0,0,0,0,0,1,1,1,0,1,1,1,1
-Treated,NA,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,67050,NA,0,1,2,2,1,18,1.5,2,2,225225,0,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,86775,NA,205.45833333333334,NA,2,2,2,1,27,1.5,1.5,1.5,106650,161.30833333333334,0,0,0,0,0,1,0.5,0,1,1,1,1
-Untreated,1,81,3.5,NA,1,NA,197,NA,3,2,3,61500,92.25833333333333,0,0,NA,69900,NA,289.1083333333333,1,2,3,1,131,4,2.5,2.5,110250,165.85833333333335,0,0,0,0,0,1.5,1.5,0,0,1,1,1
-Treated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,1,1,1,10,3,2,1.5,258075,0,0,0,0,0,0,1,1,1,1,1,1,0
-Untreated,1,43,4,1,1,51,108,3,3.5,2,2,361800,25.708333333333346,0,0,262800,76050,47.058333333333344,2.008333333333334,1,1,4,1,116,3,2.5,1.5,183150,0,0,0,0,0,0,1,1,0,0,1,1,1
-Untreated,NA,NA,NA,1,NA,14,NA,2,NA,NA,NA,NA,NA,NA,NA,479250,NA,23.558333333333334,NA,1,1,2,1,9,3,2.5,3,476550,0,0,0,0,0,0,1,1,0,0,1,1,1
-Treated,0,0,0,0,NA,0,NA,0,NA,0.5,2,33000,43.55833333333334,0,1,65550,NA,0,NA,2,2,3,1,0,1.5,1.5,1.5,70950,2.308333333333343,1,1,1,1,1,1,1.5,0,1,1,1,0
-Treated,0,0,0,NA,NA,NA,NA,NA,NA,0.5,1.5,46200,55.40833333333334,0,0,NA,NA,NA,NA,2,2,2,1,135,3.5,1.5,2,133650,40.00833333333334,0,0,0,0,0,1,1,0,1,0,1,1
-Untreated,NA,NA,NA,1,NA,29,NA,2.5,NA,NA,NA,NA,NA,NA,NA,254475,NA,33.80833333333333,NA,1,2,2,1,32,3,3,3,561600,19.008333333333336,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,140.5,2.5,1,1,73,130,3.5,3.5,1.5,2.5,49050,0.15833333333334365,0,0,119700,64350,50.50833333333332,0,1,2,4,1,57,2.5,1,1.5,NA,NA,0,0,0,0,0,2,1,1,0,0,1,1
-Untreated,1,49,2.5,1,NA,58,NA,2,NA,1,2,140850,26.658333333333324,0,0,346950,NA,70.35833333333333,NA,1,2,3,1,123,3,3,3,286425,87.50833333333333,0,0,0,0,0,1,1,0,0,1,1,1
-Untreated,NA,NA,NA,1,1,9,55,2.5,3,NA,NA,NA,NA,NA,NA,195300,179100,40.108333333333356,32.60833333333335,1,2,3,1,29,2,1.5,1.5,215550,63.55833333333333,0,0,0,0,0,1,1.5,0,0,1,1,1
-Treated,0,0,0,0,0,0,0,0,0,1,1,131400,0,0,0,234450,150750,0,0,1,2,4,1,127,3,1,2.5,1040850,0,0,0,0,0,0,1,0,0,0,1,1,1
-Untreated,1,98,2.5,1,1,65,168,2.5,3,3,3,281925,0,0,0,249750,284400,39.00833333333334,8.00833333333334,1,2,4,1,130,3,2.5,1.5,484650,9.50833333333334,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,382,3.5,NA,1,NA,265,NA,3,1.5,2,62700,0,0,0,NA,99450,NA,0,2,2,3,1,264,4,3,2,144900,28.508333333333344,0,0,0,0,0,1,1.5,0,1,1,1,1
-Untreated,1,0,0.5,1,1,4,14,0.5,3,2,3,72150,0,0,1,103950,119700,0,0,2,1,4,1,0,0.5,0.5,1,92700,0,1,1,1,1,1,2,2,1,0,0,0,1
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,698625,NA,0,NA,2,1,2,1,51,3,2,2.5,1215000,0,0,0,0,0,0,1,1,0,0,1,1,1
-Untreated,1,47,3,NA,NA,NA,NA,NA,NA,0.5,1.5,191700,117.60833333333332,0,0,NA,NA,NA,NA,1,2,2,1,290,3.5,1.5,1.5,171900,117.00833333333333,0,0,0,0,0,1,1,0,1,0,0,1
-Treated,0,0,0,0,1,0,1,0,0,1,1,144000,0,1,1,NA,170100,NA,0,2,1,3,1,78,4,3,3,1988550,0,1,1,1,1,0,1,1.5,0,0,1,1,1
-Untreated,1,38,2.5,1,1,22,38,3,2.5,2,3,1158300,0,1,1,1372950,1113750,0,18.408333333333346,2,2,4,1,106,3,1.5,2.5,1482300,0,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,0,0,0,0,0,0,0,0,81525,7.758333333333339,0,0,140850,116100,103.40833333333333,37.783333333333346,1,2,4,1,274,3,0.5,0.5,190350,4.85833333333334,0,0,0,0,0,1,1,0,0,0,0,0
-Treated,0,0,0,0,0,0,0,0,0,1,2,163800,0,0,1,263025,207000,22.35833333333334,0,2,2,4,1,3,1.5,1,2.5,340200,0,1,1,1,1,0,1.5,1,1,0,1,1,1
-Untreated,1,3.5,0.5,NA,NA,NA,NA,NA,NA,2,2.5,280125,19.258333333333336,0,0,NA,NA,NA,NA,1,1,2,1,77,3.5,2,2.5,359100,47.958333333333336,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,0,NA,0,NA,0,NA,1,1,70950,29.408333333333356,0,0,118800,NA,60.60833333333332,NA,2,1,3,1,160,3,1.5,1.5,486000,0,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,67,3,1,NA,25,NA,1.5,NA,2,2.5,264375,0,1,1,131400,NA,0,NA,2,2,3,1,0,0.5,NA,NA,133650,15.608333333333348,0,0,0,0,1,1,1,0,0,0,0,0
-Untreated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,2,1,1,224,3,3,2,299700,327.10833333333335,0,0,0,0,0,1,1.5,0,0,1,1,1
-Treated,0,0,0,NA,NA,NA,NA,NA,NA,0.5,0.5,85800,24.458333333333346,0,0,NA,NA,NA,NA,1,1,2,1,250,3.5,3,2.5,162000,126.90833333333332,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,86,3,1,1,31,38,2.5,2.5,1.5,2,487350,60.10833333333335,0,0,577800,545400,231.20833333333334,315.1583333333333,1,2,4,1,156,2.5,0.5,1,572400,45.358333333333334,0,0,0,0,0,1,1,0,0,0,0,0
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,130950,NA,0,NA,2,2,2,1,0,0.5,0.5,0,103050,0,0,0,0,0,0,2,1,0,0,0,0,0
-Treated,0,0,0,1,0,1,0,0,0,0,0.5,237038,7,0,0,1190700,519750,0,0,1,1,4,1,50,3.5,2,2.5,1773900,0,0,0,0,0,1,1,1,0,0,1,1,1
-Untreated,1,115,4,NA,NA,NA,NA,NA,NA,1,2,65550,0,0,0,NA,NA,NA,NA,1,1,2,1,65,2,1,1.5,66300,0,0,0,0,0,1,1.5,1,1,1,0,0,0
-Treated,0,0,0,1,0,2,0,1,0,1.5,3,297225,0,1,1,558900,395550,0,0,2,2,4,1,1,2,0.5,1.5,674325,0,1,1,0,0,1,1,1,1,1,0,1,0
-Untreated,1,15,2,1,NA,30,NA,4,NA,2,3,375300,0,0,0,1190700,NA,0,NA,2,2,3,1,72,4,3,3,1449900,8.058333333333348,0,0,0,0,0,1,1,0,0,1,1,1
-Untreated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,1,1,1,102,3.5,1,2,115200,30.808333333333355,0,0,0,0,0,2,1,0,1,0,1,1
-Untreated,1,35,1.5,1,NA,1,NA,0.5,NA,2.5,3,465750,0,1,1,390150,NA,0,NA,1,2,3,1,1,0,1.5,1.5,388800,0,0,0,0,0,0,1,0,0,1,0,0,0
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,165600,NA,27.058333333333337,NA,1,1,2,1,23,2,2.5,2,518400,98.45833333333334,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,0,NA,0,NA,0,NA,0,0.5,81075,13.108333333333333,0,0,84975,NA,59.958333333333336,NA,1,2,3,1,182,3,1.5,2,192150,187.60833333333332,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,86550,NA,12.008333333333344,NA,2,2,2,1,186,2.5,1,1.5,154800,31.258333333333333,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,1,0,1,0,0,0,0.5,1.5,41100,28.158333333333342,0,0,169200,126000,347.0083333333333,27.10833333333333,1,2,4,1,40,2.5,2,2,392850,70.35833333333336,0,0,0,0,0,1,1,0,0,1,1,1
-Treated,0,0,0,0,0,0,0,0,0,0.5,1,44550,143.15833333333333,0,1,84000,59100,92.85833333333335,140.85833333333335,2,1,4,1,47,2,1,1,211500,112.15833333333333,1,1,1,1,1,1,2,0,0,1,1,1
-Untreated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,2,1,1,1,110,2.5,2.5,2.5,92625,72.75833333333331,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,NA,0,NA,0,NA,0,1,2.5,36075,22.5,1,1,NA,34500,NA,0,2,1,3,1,37,3.5,1.5,1.5,85800,0,1,1,1,1,1,2,2,1,0,1,1,1
-Treated,0,0,0,0,0,0,0,0,0,0.5,2,63000,0,0,0,90675,56400,0,0,2,1,4,1,2,0.5,0,0.5,115200,0,0,0,0,0,0,1,1,0,0,0,0,0
-Untreated,0,0,0,0,0,0,0,0,0,0.5,1.5,42600,0,0,0,50850,32250,0,66.25833333333335,2,2,4,1,1,1,0.5,1,49800,0,0,0,0,0,0,1,1,0,1,0,0,0
-Treated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,2,1,1,66,2,0.5,2,171000,60.458333333333336,0,0,0,0,1,1,1,0,1,1,1,1
-Untreated,0,0,0,1,1,67,13,3,3.5,0.5,3,506250,6,1,1,3402000,1632150,0,0,2,1,4,1,95,4,2,2.5,2745900,121.10833333333332,0,0,0,0,0,2,2,0,1,1,1,1
-Untreated,1,104,3,1,1,49,68,2.5,3.5,1.5,2.5,476550,0,0,0,452250,411750,0,0,1,1,4,1,75,4,2.5,2,1287900,0,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,9,2,1,1,13,24,1,2,1,2,39900,222.85833333333332,0,0,187650,146700,702.3083333333333,273.7083333333333,1,2,4,1,16,1.5,0,1,156600,239.85833333333335,0,0,0,0,0,1,1,0,1,0,0,0
-Treated,0,0,0,1,NA,5,NA,0.5,NA,1,1.5,72600,180.85833333333332,1,1,136350,NA,88.75833333333333,NA,2,1,3,1,42,3.5,2,2,88575,17.40833333333333,1,1,1,1,1,2,2.5,1,1,1,1,1
-Treated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,2,1,1,9,2.5,3,2.5,491400,0,0,0,0,0,0,1,1.5,1,0,1,1,1
-Untreated,NA,NA,NA,NA,1,NA,123,NA,2,NA,NA,NA,NA,NA,NA,NA,173250,NA,159.80833333333334,1,1,2,1,332,3,1,0.5,148500,135.35833333333332,0,0,0,0,0,1,1,0,1,1,0,1
-Untreated,NA,NA,NA,1,NA,15,NA,3.5,NA,NA,NA,NA,NA,NA,NA,66300,NA,86.15833333333333,NA,2,2,2,1,62,2.5,3,3,89325,35.00833333333333,1,1,1,1,1,1.5,1.5,0,0,1,1,1
-Treated,0,0,0,1,NA,1,NA,0,NA,0.5,0,29550,0,0,0,73500,NA,21.45833333333333,NA,1,2,3,1,45,2,1,1,72600,21.208333333333343,0,0,0,0,0,1,0,0,1,0,0,0
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,591300,NA,0,NA,2,2,2,1,95,3,NA,NA,797175,0,0,0,0,0,1,1.5,1.5,1,0,0,0,0
-Treated,0,0,0,NA,1,NA,15,NA,1.5,NA,NA,296550,0,1,1,NA,472500,NA,0,2,1,3,1,13,3.5,1.5,1.5,1377000,0,1,1,1,1,1,2,3,0,1,1,1,1
-Treated,0,0,0,NA,0,NA,0,NA,0,1.5,1.5,165150,0,0,0,NA,224550,NA,0,2,1,3,1,16,3.5,3,2.5,618300,0,0,0,0,0,0,1.5,2,1,0,1,1,1
-Untreated,0,0,0,0,0,0,0,0,0,0,1,64500,76.75833333333334,0,0,77475,75675,54.15833333333334,63.25833333333333,1,1,4,1,1,0.5,1,1,94950,70.00833333333334,0,0,0,0,0,0.5,0,0,1,0,0,0
-Treated,1,29,2,NA,0,NA,0,NA,0,2,3,52350,8.5,1,1,NA,54300,NA,0,2,2,3,1,8,2.5,0.5,1,130050,15.558333333333326,1,1,1,1,1,1.5,1.5,1,0,1,1,1
-Treated,1,99,3,NA,NA,NA,NA,NA,NA,1.5,2,67350,18.40833333333333,0,0,NA,NA,NA,NA,1,1,2,1,97,3,3,2.5,387450,19.15833333333333,0,0,0,0,1,2,2,1,1,1,1,1
-Treated,1,1,0.5,NA,NA,NA,NA,NA,NA,1,1.5,51000,75.80833333333334,0,1,NA,NA,NA,NA,1,2,2,1,5,1.5,1.5,2.5,332100,87.45833333333333,1,1,1,1,0,1.5,1.5,1,1,1,1,1
-Untreated,NA,NA,NA,1,1,77,92,3.5,3.5,NA,NA,NA,NA,NA,NA,280125,373950,0,0,1,1,3,1,65,3.5,1.5,NA,378000,0,0,0,0,0,0,2,1,0,1,1,1,1
-Treated,0,0,0,0,0,0,0,0,0,0.5,1.5,270675,0,0,0,461700,345600,0,22.15833333333335,1,2,4,1,49,4,3,3,1279800,0,0,0,0,0,1,2,1,0,1,1,1,1
-Untreated,1,37,2.5,1,NA,22,NA,2,NA,NA,NA,55650,0,0,0,86550,NA,0,NA,1,2,3,1,134,3.5,1.5,1.5,120600,0,0,0,0,0,0,1,1.5,1,0,1,1,1
-Untreated,1,141,2.5,1,1,264,365,4,2.5,1.5,2,122400,0,0,0,241875,132750,98.50833333333334,57.85833333333335,1,2,4,1,496,3.5,2.5,2.5,185850,7.758333333333339,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,2,1,1,108,3,1.5,1.5,116550,51.058333333333344,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,0,0,0,0,0,0,0,0,57600,0,0,0,72750,67800,49.858333333333334,0,1,2,4,1,18,2,1,1.5,71550,43.408333333333324,0,0,0,0,0,1,1,0,1,0,0,0
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,140400,NA,59.008333333333354,NA,1,2,2,1,48,2,1,1,356400,54.15833333333334,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,NA,NA,NA,1,NA,42,NA,1.5,NA,NA,NA,NA,NA,NA,NA,2549475,NA,0,NA,2,2,2,1,27,4,2,1.5,1413450,0,0,0,0,0,1,1,2,0,0,1,1,1
-Untreated,1,124,2.5,1,1,66,118,3.5,3.5,2.5,3,1243350,8.158333333333337,0,0,1688850,1251450,8.308333333333348,0.9583333333333388,1,2,4,1,142,4,2.5,3,2531250,0,0,0,0,0,0,1,1.5,0,1,1,1,1
-Untreated,NA,NA,NA,1,1,23,74,4,3.5,NA,NA,NA,NA,NA,NA,90525,494100,0,0,1,1,3,1,137,3.5,3,3,144000,29.55833333333335,0,0,0,0,0,1,2,0,1,1,1,1
-Treated,NA,NA,NA,0,0,0,0,0,0,NA,NA,NA,NA,NA,NA,74100,96975,0,5.208333333333343,1,2,3,1,111,2.5,2,2,255600,12.25833333333333,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,NA,NA,NA,NA,NA,NA,1,1,66000,156.65833333333333,0,1,NA,NA,NA,NA,2,1,2,1,52,3,2.5,3,211500,119.40833333333332,1,1,1,1,1,1,1,0,1,1,1,1
-Treated,0,0,0,0,0,0,0,0,0,0,1,55350,50.60833333333334,0,0,112950,60000,59.05833333333335,47.20833333333335,1,2,4,1,127,3,2,2,246825,84.20833333333336,0,0,0,0,0,1.5,1,0,1,1,1,1
-Untreated,1,10,2,1,1,24,20,2.5,2,1.5,2.5,161550,0,0,0,441450,372600,0,0,1,1,4,1,10,2,2.5,2.5,479250,0,0,0,0,0,1,1,1,0,0,1,1,1
-Untreated,NA,NA,NA,1,NA,74,NA,4,NA,NA,NA,NA,NA,NA,NA,262125,NA,7.608333333333342,NA,1,2,2,1,126,3,2,1.5,148950,85.15833333333333,0,0,0,0,0,1.5,1.5,1,1,1,1,1
-Treated,0,0,0,0,NA,0,NA,0,NA,0.5,1.5,64650,130.75833333333333,0,0,93975,NA,22.60833333333334,NA,1,1,3,1,159,3.5,2.5,2,156600,138.35833333333332,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,27,2.5,1,NA,35,NA,2,NA,1,2.5,133650,23.85833333333334,0,0,280350,NA,6.508333333333338,NA,1,2,3,1,76,3,2,1,461700,0,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,0,0,0,NA,NA,NA,NA,0,NA,0.5,1.5,35700,0,0,1,63000,NA,17.558333333333344,NA,2,2,3,1,21,1,1,1,122400,0,0,1,0,0,0,1,1,0,1,0,0,0
-Treated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,2,1,1,14,2,2.5,2.5,168300,0,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,44,2.5,1,1,1,131,0.5,3,1,2,122400,39.80833333333334,0,0,120600,117450,75.65833333333333,15.908333333333344,1,1,4,1,479,3,1,1,198000,66.15833333333332,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,NA,NA,NA,1,1,104,104,3,4,NA,NA,NA,NA,NA,NA,939600,815400,0,73.95833333333331,2,2,3,1,77,3.5,2,2,967950,0,0,0,0,0,0,1,1,0,0,1,1,1
-Treated,0,0,0,NA,0,NA,0,NA,0,1,1,54750,0,0,0,NA,61500,NA,0,1,2,3,1,113,3,3,2.5,156600,0,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,32,3,NA,1,NA,31,NA,4,3,2.5,351000,0,0,0,NA,652050,NA,0,1,1,3,1,107,4,3,3,468450,0,0,0,0,0,0,1,1.5,0,1,1,1,1
-Untreated,0,0,0,NA,0,NA,0,NA,0,1,1,61500,39.158333333333324,1,1,NA,56550,NA,0,2,1,3,1,26,2,0.5,2.5,174600,110.25833333333335,0,0,0,0,1,1,1,0,1,0,1,0
-Treated,0,0,0,0,0,0,0,0,0,0,1,47700,3.1583333333333465,0,0,65100,39150,74.65833333333333,16.20833333333334,1,2,4,1,37,1.5,0.5,1,123300,133.25833333333333,0,0,0,0,0,1,0.5,0,0,0,0,0
-Treated,0,0,0,1,NA,2,NA,1,NA,0.5,2,176850,0,0,1,486000,NA,0,NA,2,1,3,1,7,3,2.5,2.5,829575,0,1,1,1,1,1,2,2,1,0,1,1,1
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,114975,NA,0,NA,1,2,2,1,185,4,1.5,2,198000,0,0,0,0,0,1,1,1,0,1,1,1,1
-Treated,0,0,0,NA,NA,NA,NA,NA,NA,1,3,62850,0,1,1,NA,NA,NA,NA,2,1,2,1,16,2,2.5,2.5,140400,0,1,1,1,1,1,2,3,1,0,1,1,1
-Untreated,NA,NA,NA,1,1,12,132,1.5,3,NA,NA,NA,NA,NA,NA,256725,413100,128.60833333333335,0,1,1,3,1,66,2.5,1.5,1.5,351000,54.558333333333344,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,62,3,1,1,25,85,2.5,2.5,2.5,3,123300,0,0,1,189450,167400,4.108333333333325,0,2,1,4,1,25,2.5,2.5,2.5,303750,18.95833333333334,1,1,1,1,0,1,1,0,1,1,1,0
-Treated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1,1,1,1,192,3,1.5,0.5,338850,111.65833333333336,0,0,0,0,0,1,1,0,0,1,1,1
-Treated,0,0,0,0,NA,0,NA,0,NA,0,1,70800,60.30833333333332,0,0,162450,NA,32.25833333333335,NA,1,2,3,1,15,2.5,NA,NA,521100,0,0,0,0,0,0,1,1,0,0,1,1,0
-Treated,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,49800,NA,0,NA,1,1,2,1,292,4,2,2.5,172800,0,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,2,1,1,1,137,3,1.5,0.5,90675,0,1,1,1,1,1,1,2,0,0,0,0,1
-Treated,0,0,0,0,0,0,0,0,0,0,0,61200,0,0,0,246600,98025,0,0,1,2,4,1,7,2,NA,NA,410400,0,0,0,0,0,0,2,1,1,0,1,1,1
-Untreated,1,238,4,NA,NA,NA,NA,NA,NA,2,3,99750,0,0,1,NA,NA,NA,NA,2,1,2,1,189,4,3,3,144000,0,1,1,1,1,1,1,1,1,0,1,1,1
-Treated,0,0,0,1,NA,15,NA,0,NA,0.5,0.5,57450,0,0,0,139050,NA,30.85833333333335,NA,1,2,3,1,72,2,2.5,1.5,205200,0,0,0,0,0,0,1,1,1,0,1,1,1
-Untreated,1,103,3,1,1,20,54,2.5,2.5,2.5,3,46650,44.45833333333335,1,1,161550,70500,44.5,33.60833333333332,2,1,4,1,239,3,1,1.5,133200,78.80833333333334,0,0,0,0,0,1,1,0,0,0,1,0
-Treated,1,122,3,NA,NA,NA,NA,NA,NA,1.5,1.5,388800,88.35833333333335,0,0,NA,NA,NA,NA,2,2,2,1,40,2,1.5,0,346950,115.65833333333333,0,0,0,0,1,1,1.5,0,1,1,1,1
-Treated,0,0,0,0,NA,0,NA,0,NA,1,1,42150,0,0,0,92325,NA,0,NA,1,1,3,1,77,3.5,1.5,2.5,379350,20.458333333333343,0,0,0,0,0,0.5,1.5,0,0,1,1,1
-Untreated,NA,NA,NA,1,1,5,1,1,0,NA,NA,NA,NA,NA,NA,209700,162000,44.40833333333335,16.45833333333334,1,1,3,1,35,2.5,2,1,517050,32.80833333333333,0,0,0,0,0,1.5,2,1,0,1,1,1
-Untreated,NA,NA,NA,1,1,179,208,2.5,3,NA,NA,NA,NA,NA,NA,95625,140400,86.90833333333333,117.15833333333333,1,2,3,1,330,3,2.5,2,177300,0,0,0,0,0,0,1,1,0,1,1,1,1
-Untreated,1,2,2.5,1,1,109,51,3,3.5,2,2,78563,0,0,0,176400,131400,0,0,1,1,4,1,0,0.5,1,0,70500,0,0,0,0,0,0,0.5,0.5,0,0,0,0,0
-Untreated,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,2,1,1,1,26,2,2,2,183600,0,1,1,1,1,1,2,3,1,0,1,1,1
-Untreated,0,0,0,0,1,0,2,0,1,0,0,29400,0,0,1,71550,67950,0,0,2,2,4,1,1,0,NA,NA,62550,0,1,1,0,0,1,2,1,1,0,0,0,0
-Untreated,1,24,2,1,1,11,8,2.5,0.5,1.5,3,46350,168.30833333333334,0,0,136350,81525,36.95833333333334,363.1583333333333,1,1,4,1,23,4,3,2.5,115200,38.558333333333344,0,0,0,0,0,1,1,0,0,1,1,1
-Untreated,1,17,2,1,1,14,3,1.5,1.5,2.5,2,251100,0,0,0,256275,402300,0,0,1,2,4,1,28,2.5,1.5,1.5,572400,15.508333333333301,0,0,0,0,0,1,1,0,1,1,1,1
-Treated,0,0,0,1,0,28,0,0.5,0,1,1,268650,0,0,0,865350,399600,0,0,1,2,4,1,13,3,2.5,3,1421550,0,0,0,0,0,0,1,1,0,0,1,1,1
-Untreated,1,6,1,1,1,89,60,3,3,2,3,767475,0,0,0,1275750,2581875,0,0,1,1,4,1,20,1.5,2,1,3183300,0,0,0,0,0,0,2,2,0,1,1,1,1
-Treated,NA,NA,NA,NA,0,NA,0,NA,0,NA,NA,NA,NA,NA,NA,NA,137700,NA,0,1,1,2,1,18,2.5,2.5,3,399600,29.708333333333336,0,0,0,0,0,1,1.5,0,1,1,1,1
-Untreated,NA,NA,NA,1,1,4,2,1.5,1,NA,NA,NA,NA,NA,NA,48000,40500,0,0,2,1,3,1,3,1.5,0.5,0.5,41100,0,0,1,0,1,0,0.5,1,0,NA,1,1,1
+Treatment,YP_delta_WEIGHT_16w,YS_COMPLIANCE_16w,X_WEIGHT_0w,X_HEIGHT_0w,X_AGE_0w,X_SEX_0w,X_RACE_0w,X_SITE_0w,X_STATUS_0w
+NoBreakfast,-1,0.9909090909,69,162.3,42,(0) Female,(5) White Non-Hispanic,a,BreakfastEater
+Breakfast,0.3,1,89.7,159.9,30,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,0.7,0.4421052632,116.6,166.3,35,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,-1.2,0.9727272727,107.1,167.7,45,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,5.90000000001,NA,97.3,162.1,36,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,-2.7,0.9541284404,123.6,177.8,45,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,2.9,1,118.5,167.3,49,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Breakfast,-0.6,0.9579831933,103.3,167.7,43,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,0.6,NA,76,164.5,46,(0) Female,(5) White Non-Hispanic,a,BreakfastEater
+Control,-4.4,NA,81.9,165.2,46,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,-0.9,0.9908256881,81,168.9,51,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,0.2,1,108.5,157.7,51,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,1.4,0.9464285714,124.6,169.7,43,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,-0.6,NA,74.9,164.7,59,(0) Female,(3) Other,a,BreakfastEater
+NoBreakfast,-5.4,1,114.1,167.7,60,(0) Female,(5) White Non-Hispanic,a,BreakfastEater
+Breakfast,0.6,1,83.5,161.7,37,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,-2.3,NA,84.5,174.4,22,(0) Female,(5) White Non-Hispanic,a,BreakfastEater
+Control,-0.1,NA,75.6,156.7,27,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,NA,NA,129.1,187.1,41,(1) Male,(2) Black Non-Hispanic,a,aSkipper
+Control,2.3,NA,102.6,156.9,49,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,1.8,0.8090909091,118.4,170.8,33,(1) Male,(2) Black Non-Hispanic,a,BreakfastEater
+Control,0.7,NA,89.7,169,42,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,-3.2,NA,94.2,175.4,48,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Breakfast,-3,0.8818181818,97.4,160.2,28,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,3.6,1,102.3,170.1,57,(0) Female,(5) White Non-Hispanic,a,aSkipper
+Breakfast,-0.4,1,93.4,159.9,50,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,4.3,NA,81.3,167.5,42,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Control,2.6,NA,88.5,171.3,59,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,-3.4,1,78.4,165,42,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,-3,0.9181818182,95.5,157.2,54,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,-1,1,120,166.3,38,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,4.1,1,116.5,169.6,31,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,4.2,NA,126.8,168.2,48,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Breakfast,8.6,0.9803921569,98.9,157.9,39,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,-2,0.9272727273,103.7,159.3,51,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Control,0.2,NA,95.7,163.8,43,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Breakfast,0.6,0.9454545455,94,166.1,34,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,2.7,0.954954955,112.4,179.9,49,(1) Male,(5) White Non-Hispanic,a,BreakfastEater
+Breakfast,1.6,0.8648648649,79.8,167.1,35,(0) Female,(5) White Non-Hispanic,a,aSkipper
+Control,3.3,NA,134.5,185.5,37,(1) Male,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,1,0.8620689655,99.7,170.6,43,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Control,-1.8,NA,83.1,178.4,31,(1) Male,(3) Other,a,aSkipper
+Breakfast,-2.1,0.9727272727,79.2,162.4,21,(1) Male,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,-2.1,0.9537037037,91.6,158.7,40,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Breakfast,2.6,0.8440366972,86.7,178.2,35,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Control,-1.1,NA,92.6,169.2,41,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Control,-2.1,NA,73.7,168.7,58,(0) Female,(5) White Non-Hispanic,a,aSkipper
+Breakfast,0.9,0.974137931,91.8,176.9,22,(1) Male,(5) White Non-Hispanic,a,aSkipper
+NoBreakfast,0.1,0.8813559322,85.6,165.4,49,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,NA,NA,90.4,149.7,58,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Breakfast,NA,NA,93.3,172.4,32,(1) Male,(5) White Non-Hispanic,a,BreakfastEater
+NoBreakfast,-0.3,0.9482758621,98.5,162,40,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Control,0.4,NA,108.3,170,38,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Breakfast,-0.6,1,113.1,177,34,(1) Male,(2) Black Non-Hispanic,a,aSkipper
+Control,-2.5,NA,89.5,162,56,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Control,-1.3,NA,101.1,186.5,52,(1) Male,(5) White Non-Hispanic,a,aSkipper
+Breakfast,-1.5,1,74.8,164,23,(0) Female,(3) Other,a,aSkipper
+NoBreakfast,NA,NA,89.2,170,55,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,-1.1,0.9745762712,113.9,171,37,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,-0.2,1,86.7,173,22,(1) Male,(3) Other,a,BreakfastEater
+Control,7,NA,136.8,177.4,52,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,NA,NA,98.5,169.2,29,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,-2.8,1,76.4,163.5,37,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,-1.9,0.9732142857,78.7,155.67,36,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,-0.2,0.7307692308,93.5,160.4,41,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,1.7,0.9732142857,65.9,156.2,34,(0) Female,(3) Other,a,aSkipper
+Control,-1.3,NA,103.2,173.8,41,(0) Female,(2) Black Non-Hispanic,a,BreakfastEater
+Breakfast,1.2,1,97.5,191.3,34,(1) Male,(2) Black Non-Hispanic,a,BreakfastEater
+NoBreakfast,-9.5,0.8421052632,82.8,159.4,42,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+Control,-1,NA,122.9,185.6,36,(1) Male,(2) Black Non-Hispanic,a,aSkipper
+Control,-3.1,NA,108.2,168.8,52,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,-6.8,1,118.2,164.1,42,(0) Female,(2) Black Non-Hispanic,a,aSkipper
+NoBreakfast,-4.2,1,118,186.2,44,(1) Male,(5) White Non-Hispanic,e,BreakfastEater
+NoBreakfast,1.4,NA,102.2,185.2,62,(1) Male,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,-1.2,0.9626168224,101.8,164,57,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+NoBreakfast,0.1,0.9203539823,88.8,162,25,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Control,-0.5,NA,83.9,162,28,(0) Female,(5) White Non-Hispanic,e,aSkipper
+NoBreakfast,0.4,NA,79.7,173,22,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+NoBreakfast,NA,NA,84.9,158,30,(0) Female,(4) White Hispanic,e,BreakfastEater
+Control,0.3,NA,72.3,160,42,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,2.1,0.8245614035,93.5,158.5,47,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Breakfast,-3.8,0.9351851852,83.1,178.5,22,(1) Male,(5) White Non-Hispanic,e,BreakfastEater
+Control,0.4,NA,78.9,155,43,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,1,0.7899159664,98.2,158,56,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Breakfast,NA,NA,85.4,179,23,(1) Male,(5) White Non-Hispanic,e,aSkipper
+Breakfast,NA,NA,126,170,49,(1) Male,(2) Black Non-Hispanic,e,aSkipper
+Breakfast,-2,0.9137931034,77.3,162,22,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,0.6,NA,73.8,153.5,65,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Breakfast,0.4,0.9816513761,79.9,175,41,(1) Male,(2) Black Non-Hispanic,e,BreakfastEater
+Breakfast,-0.6,0.7733333333,75.7,162,52,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Control,-0.8,NA,105.5,160,61,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+NoBreakfast,NA,NA,78.3,162,29,(0) Female,(4) White Hispanic,e,BreakfastEater
+NoBreakfast,-0.6,0.4864864865,71.9,145,58,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Control,1,NA,63.1,158,27,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+NoBreakfast,1.1,NA,75.2,155,34,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Control,1.6,NA,72.7,157,48,(0) Female,(3) Other,e,BreakfastEater
+Control,-2.8,NA,81.6,165,26,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Control,0.5,NA,66.7,162,38,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Breakfast,3.4,0.9157894737,83.2,177,25,(1) Male,(4) White Hispanic,e,BreakfastEater
+NoBreakfast,-3,NA,84.8,149,53,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+Control,0.2,NA,104.3,175,26,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+NoBreakfast,-4.8,0.9829059829,109.6,163,53,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Control,-1.7,NA,75.9,155.5,50,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Control,0.2,NA,78.4,169,50,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,-5,0.625,86.6,180,24,(1) Male,(3) Other,e,aSkipper
+Breakfast,0.1,1,88.4,161,54,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+Control,-0.9,NA,87,167,60,(1) Male,(5) White Non-Hispanic,e,aSkipper
+NoBreakfast,NA,NA,73.3,170,49,(1) Male,(2) Black Non-Hispanic,e,aSkipper
+Breakfast,-0.2,1,100.2,162.5,46,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+NoBreakfast,4,0.9824561404,86.8,180,49,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+Control,-1.3,NA,75.8,169.9,24,(1) Male,(5) White Non-Hispanic,e,aSkipper
+Breakfast,-1.1,0.8482142857,85.4,155.5,56,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+Breakfast,3.8,1,84.9,166,33,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+NoBreakfast,2.2,0.9831932773,70.7,160,42,(0) Female,(3) Other,e,aSkipper
+NoBreakfast,-4.9,0.7747747748,86.4,166.5,34,(1) Male,(5) White Non-Hispanic,e,aSkipper
+Control,2.2,NA,83.4,173.5,35,(1) Male,(5) White Non-Hispanic,e,aSkipper
+Breakfast,1.2,1,74,170,44,(1) Male,(5) White Non-Hispanic,e,aSkipper
+Breakfast,-0.8,NA,71.7,166,29,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,2.6,NA,83.3,159,49,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Control,0.3,NA,83.6,169.5,22,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+Control,-5.6,NA,107.3,159,44,(0) Female,(2) Black Non-Hispanic,e,BreakfastEater
+Control,3,NA,71.8,164,42,(0) Female,(5) White Non-Hispanic,e,aSkipper
+Control,-0.6,NA,78.3,159,46,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+Control,0.9,NA,68,157.5,31,(0) Female,(4) White Hispanic,e,aSkipper
+Control,-3.3,NA,66,155,44,(0) Female,(3) Other,e,aSkipper
+NoBreakfast,-1.3,0.9473684211,89.4,163,52,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+NoBreakfast,NA,NA,74.4,157,28,(0) Female,(3) Other,e,aSkipper
+NoBreakfast,NA,NA,81.3,162,33,(0) Female,(3) Other,e,aSkipper
+Breakfast,-5.6,NA,93.5,171,60,(1) Male,(5) White Non-Hispanic,e,aSkipper
+Control,NA,NA,95.8,159,35,(0) Female,(5) White Non-Hispanic,e,aSkipper
+Breakfast,1.6,NA,78.9,172.5,32,(1) Male,(5) White Non-Hispanic,e,aSkipper
+NoBreakfast,0.5,1,65.3,157,30,(0) Female,(3) Other,e,aSkipper
+Control,-0.2,NA,118.7,166,41,(0) Female,(2) Black Non-Hispanic,e,aSkipper
+NoBreakfast,-0.5,0.8839285714,89.1,175.5,35,(1) Male,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,-1.2,1,99.9,165,64,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+NoBreakfast,4.8,0.8053097345,111,157,30,(0) Female,(5) White Non-Hispanic,e,aSkipper
+NoBreakfast,6.6,1,98.5,155.5,29,(0) Female,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,1.1,0.8739495798,103.4,164,22,(0) Female,(5) White Non-Hispanic,e,aSkipper
+NoBreakfast,-0.5,0.9375,78.1,165.5,22,(0) Female,(5) White Non-Hispanic,e,aSkipper
+NoBreakfast,2.9,NA,76.3,172,26,(1) Male,(5) White Non-Hispanic,e,BreakfastEater
+Breakfast,1.2,NA,62.9,158.5,27,(0) Female,(5) White Non-Hispanic,e,aSkipper
+Control,-2.1,NA,74.1,172,26,(1) Male,(3) Other,e,aSkipper
+Control,-1.7,NA,92.8,172,58,(0) Female,(5) White Non-Hispanic,e,aSkipper
+NoBreakfast,1.6,0.8495575221,69.5,156,57,(0) Female,(5) White Non-Hispanic,e,aSkipper
+Control,NA,NA,100.7,165,47,(0) Female,(1) Black Hispanic,b,aSkipper
+NoBreakfast,-3.4,1,98.9,169.5,47,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Breakfast,-11.5,0.8655462185,91.4,165.1,28,(1) Male,(4) White Hispanic,b,BreakfastEater
+Control,-0.9,NA,117,164.5,43,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Control,-2,NA,77.6,173.4,28,(0) Female,(3) Other,b,BreakfastEater
+Breakfast,-7.2,0.9913793103,74.8,172.7,44,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Control,4,NA,68.5,157.5,30,(0) Female,(3) Other,b,BreakfastEater
+NoBreakfast,3.6,NA,96.6,175.3,22,(0) Female,(4) White Hispanic,b,BreakfastEater
+Control,-1.4,NA,117.9,160,37,(0) Female,(4) White Hispanic,b,BreakfastEater
+NoBreakfast,3,1,100.7,175.3,47,(1) Male,(4) White Hispanic,b,BreakfastEater
+NoBreakfast,-0.9,0.9831932773,84.4,157.5,41,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+Breakfast,0.6,1,120.7,174.6,49,(1) Male,(2) Black Non-Hispanic,b,BreakfastEater
+Control,-0.7,NA,95.5,168.3,50,(1) Male,(5) White Non-Hispanic,b,aSkipper
+Breakfast,-6.6,0.974789916,95.5,162.6,29,(0) Female,(3) Other,b,aSkipper
+Control,1.8,NA,74.4,156.2,41,(0) Female,(5) White Non-Hispanic,b,aSkipper
+Breakfast,-4,NA,118.4,167.6,58,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Control,-2.6,NA,72.6,154.9,64,(0) Female,(3) Other,b,BreakfastEater
+Control,1.8,NA,78,168.9,35,(1) Male,(3) Other,b,aSkipper
+Breakfast,3,0.9579831933,120.7,170.2,45,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+NoBreakfast,NA,NA,93.9,162.6,58,(0) Female,(4) White Hispanic,b,aSkipper
+Breakfast,-7.3,0.9821428571,76.7,160.7,45,(1) Male,(5) White Non-Hispanic,b,aSkipper
+Control,-3.5,NA,81,160.6,52,(0) Female,(5) White Non-Hispanic,b,BreakfastEater
+Breakfast,-4.8,1,90.7,158.5,39,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+NoBreakfast,-0.7,0.6554621849,106.2,179.8,52,(0) Female,(5) White Non-Hispanic,b,aSkipper
+Breakfast,10.4,0.974789916,86.6,168,37,(0) Female,(1) Black Hispanic,b,BreakfastEater
+NoBreakfast,-0.5,0.9230769231,92.8,168.9,61,(1) Male,(5) White Non-Hispanic,b,aSkipper
+Breakfast,2.8,0.9316239316,96.7,168.9,57,(1) Male,(5) White Non-Hispanic,b,BreakfastEater
+NoBreakfast,5.4,1,130.2,190.8,21,(1) Male,(4) White Hispanic,b,BreakfastEater
+NoBreakfast,2.9,1,75.1,165.1,31,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+NoBreakfast,-3.5,0.7777777778,108,165.1,48,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+Control,-7.3,NA,100.7,168.9,54,(1) Male,(2) Black Non-Hispanic,b,BreakfastEater
+NoBreakfast,3.9,0.9655172414,89.5,168.3,28,(0) Female,(1) Black Hispanic,b,BreakfastEater
+Breakfast,0.9,1,102.3,177.8,58,(1) Male,(1) Black Hispanic,b,aSkipper
+Control,-2,NA,88.2,170.2,35,(0) Female,(5) White Non-Hispanic,b,BreakfastEater
+Control,-0.6,NA,85.2,169.54,40,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+NoBreakfast,-1.6,0.9243697479,94.8,174.6,55,(0) Female,(5) White Non-Hispanic,b,aSkipper
+NoBreakfast,2.5,0.8050847458,68.3,158.1,27,(0) Female,(1) Black Hispanic,b,BreakfastEater
+Control,NA,NA,110.7,193,58,(1) Male,(5) White Non-Hispanic,b,aSkipper
+Control,4.8,NA,93.6,162.56,60,(0) Female,(5) White Non-Hispanic,b,BreakfastEater
+Breakfast,12.4,0.8739495798,110.1,168.9,35,(0) Female,(1) Black Hispanic,b,BreakfastEater
+Breakfast,0,0.8655462185,82.2,157.48,60,(0) Female,(1) Black Hispanic,b,BreakfastEater
+NoBreakfast,-1.7,NA,115.8,170.18,38,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Breakfast,3.16,0.974137931,93.44,158.1,30,(0) Female,(5) White Non-Hispanic,b,BreakfastEater
+NoBreakfast,5.80000000001,0.9829059829,72.6,161.9,31,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+Breakfast,-7.3,0.8151260504,85.3,168.9,40,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Control,2.5,NA,112,175.9,27,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Breakfast,-3.1,1,99.3,173,64,(1) Male,(2) Black Non-Hispanic,b,aSkipper
+Control,NA,NA,117,177,29,(1) Male,(2) Black Non-Hispanic,b,aSkipper
+Control,-4.8,NA,120.5,172.7,53,(1) Male,(1) Black Hispanic,b,aSkipper
+Control,-1.7,NA,91.5,161.9,30,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+NoBreakfast,1.1,NA,86.9,150.7,24,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+NoBreakfast,NA,NA,69.4,144.8,28,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Breakfast,-3.6,0.9743589744,99.8,160,26,(0) Female,(1) Black Hispanic,b,aSkipper
+NoBreakfast,4.1,0.9285714286,99.8,165.7,27,(0) Female,(4) White Hispanic,b,BreakfastEater
+Breakfast,NA,NA,76.2,170.8,25,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+Breakfast,6.5,0.8362068966,98.1,160,24,(0) Female,(2) Black Non-Hispanic,b,aSkipper
+Control,6.1,NA,81,163.8,32,(0) Female,(4) White Hispanic,b,BreakfastEater
+Breakfast,-2.8,0.9159663866,76.1,163.2,49,(0) Female,(5) White Non-Hispanic,b,BreakfastEater
+NoBreakfast,-0.2,1,122.9,180.3,37,(1) Male,(1) Black Hispanic,b,aSkipper
+Control,0,NA,88.4,167.6,62,(0) Female,(2) Black Non-Hispanic,b,BreakfastEater
+Control,-0.9,NA,90.7,170.8,24,(0) Female,(3) Other,b,aSkipper
+NoBreakfast,-11.4,1,108.9,158.1,55,(1) Male,(5) White Non-Hispanic,b,BreakfastEater
+Control,0,NA,68.5,160.6,44,(0) Female,(5) White Non-Hispanic,b,aSkipper
+NoBreakfast,1.8,0.7394957983,110.7,197,63,(1) Male,(5) White Non-Hispanic,b,aSkipper
+Control,NA,NA,97.7,175.9,57,(1) Male,(5) White Non-Hispanic,b,aSkipper
+NoBreakfast,-1.2,0.9487179487,95.3,176.5,44,(1) Male,(4) White Hispanic,b,aSkipper
+NoBreakfast,-0.5,1,76.7,167,31,(0) Female,(5) White Non-Hispanic,b,aSkipper
+Breakfast,1.1,1,76.6,173,36,(0) Female,(5) White Non-Hispanic,c,aSkipper
+Control,-2,NA,95.2,180.5,39,(1) Male,(5) White Non-Hispanic,c,aSkipper
+NoBreakfast,2.9,0.9576271186,104.5,163.7,36,(0) Female,(2) Black Non-Hispanic,c,aSkipper
+Breakfast,0.5,0.75,66,157.5,40,(0) Female,(5) White Non-Hispanic,c,aSkipper
+NoBreakfast,-5,0.9561403509,88.1,180.5,23,(1) Male,(5) White Non-Hispanic,c,aSkipper
+Control,1.9,NA,80.1,163.9,25,(0) Female,(2) Black Non-Hispanic,c,aSkipper
+NoBreakfast,-3.7,1,62.7,154.4,53,(0) Female,(5) White Non-Hispanic,c,aSkipper
+Control,1.7,NA,99,169.9,46,(1) Male,(4) White Hispanic,c,aSkipper
+Control,-0.5,NA,76.4,172,48,(1) Male,(5) White Non-Hispanic,c,aSkipper
+NoBreakfast,0.6,NA,58.7,148.5,31,(0) Female,(4) White Hispanic,c,aSkipper
+NoBreakfast,2.8,0.9732142857,84.5,170,20,(0) Female,(4) White Hispanic,c,aSkipper
+Breakfast,NA,NA,87.7,178.5,28,(1) Male,(5) White Non-Hispanic,c,aSkipper
+Breakfast,2.2,0.7345132743,81.6,169.5,23,(0) Female,(5) White Non-Hispanic,c,aSkipper
+Control,-2.4,NA,66.2,161.5,40,(0) Female,(5) White Non-Hispanic,c,aSkipper
+Control,-2.1,NA,112.2,167.4,25,(0) Female,(5) White Non-Hispanic,c,aSkipper
+NoBreakfast,-4.7,0.7767857143,91.5,181.5,28,(0) Female,(5) White Non-Hispanic,c,aSkipper
+Breakfast,-1.6,0.9545454545,84.1,166,37,(0) Female,(5) White Non-Hispanic,c,aSkipper
+Control,2.1,NA,69.1,162.3,38,(0) Female,(3) Other,c,BreakfastEater
+Control,-0.5,NA,85.6,163.8,35,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+NoBreakfast,NA,NA,98.6,154,33,(0) Female,(4) White Hispanic,c,BreakfastEater
+Control,-0.1,NA,72.3,167.8,26,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,0.8,0.9655172414,61.5,154,34,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+NoBreakfast,-1.2,0.9391304348,96,161.5,63,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,2,0.9043478261,109.8,165.1,47,(0) Female,(4) White Hispanic,c,BreakfastEater
+NoBreakfast,-1.8,0.8695652174,109.4,162.5,52,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Control,-4.6,NA,95.2,169.4,31,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+NoBreakfast,-1.4,0.9813084112,89.9,181.5,35,(1) Male,(5) White Non-Hispanic,c,BreakfastEater
+Control,-0.3,NA,68.8,162.6,31,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+NoBreakfast,NA,NA,84.4,175.5,53,(0) Female,(4) White Hispanic,c,BreakfastEater
+NoBreakfast,-5.4,0.9454545455,67.1,162.6,25,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,0.7,1,88,159.5,44,(0) Female,(4) White Hispanic,c,BreakfastEater
+Breakfast,-0.4,0.9439252336,90,172.5,48,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,-3.7,1,91.2,174.6,36,(1) Male,(4) White Hispanic,c,BreakfastEater
+NoBreakfast,NA,NA,90.7,166.6,51,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Control,-0.8,NA,81.6,175.7,26,(1) Male,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,-1.3,0.9642857143,88.2,182.5,33,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,2.9,0.9572649573,93.7,171.3,32,(0) Female,(2) Black Non-Hispanic,c,BreakfastEater
+Control,0.1,NA,86.6,165.8,47,(0) Female,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,2.4,0.8495575221,76,167.3,48,(0) Female,(2) Black Non-Hispanic,c,BreakfastEater
+NoBreakfast,-3.3,NA,89.1,184.5,30,(1) Male,(5) White Non-Hispanic,c,BreakfastEater
+Control,-1,NA,99.1,187.3,38,(1) Male,(5) White Non-Hispanic,c,BreakfastEater
+NoBreakfast,0,0.9736842105,97.2,185.9,32,(1) Male,(5) White Non-Hispanic,c,BreakfastEater
+Breakfast,-4,0.9428571429,116,159.6,46,(0) Female,(2) Black Non-Hispanic,c,BreakfastEater
+Control,-3.4,NA,77.3,161.9,30,(0) Female,(4) White Hispanic,c,BreakfastEater
