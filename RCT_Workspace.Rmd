@@ -3546,6 +3546,97 @@ run_tmle_analysis = function(df_indices = 1:50, selection = T, variable_selectio
 
 # sss
 ```{r}
+get_outcome_types <- function(data, outcomes) {
+  sapply(outcomes, function(var) {
+    x <- data[[var]]
+    if (is.numeric(x)) {
+      "continuous"
+    } else if (is.factor(x) || is.character(x)) {
+      n_levels <- length(unique(na.omit(x)))
+      if (n_levels == 2) {
+        "binary"
+      } else if (n_levels >= 3) {
+        "categorical"
+      } else {
+        NA_character_
+      }
+    } else {
+      NA_character_
+    }
+  })
+}
+
+# ---- Example ----
+# outcomes is your vector of variable names
+# e.g.
+# outcomes <- c("YS_SmokingStatus_6m", "YP_BMI_6m", "YS_Region")
+
+outcome_types <- get_outcome_types(df12_final, outcomes)
+outcome_types
+```
+
+```{r}
+library(dplyr)
+library(car)
+
+check_multicollinearity_cont <- function(data, prefix = "X_", vif_threshold = 5, corr_threshold = 0.9) {
+  # 1) Grab only numeric variables starting with prefix
+  xdat <- data %>%
+    select(starts_with(prefix)) %>%
+    select(where(is.numeric))
+  
+  if (ncol(xdat) == 0)
+    stop("No numeric columns found starting with '", prefix, "'.")
+
+  # 2) Drop all-NA and zero-variance columns
+  nzv <- vapply(xdat, function(z) !all(is.na(z)) && (sd(z, na.rm = TRUE) > 0), logical(1))
+  xdat <- xdat[, nzv, drop = FALSE]
+  if (ncol(xdat) == 0)
+    stop("All selected numeric columns are all-NA or zero-variance after filtering.")
+
+  # 3) Correlation matrix (for inspection)
+  cor_mat <- cor(xdat, use = "pairwise.complete.obs")
+  
+  # 4) Dummy regression to compute VIF (depends only on X)
+  y_dummy <- rnorm(nrow(xdat))
+  fit <- lm(y_dummy ~ ., data = xdat)
+  
+  vif_vals <- car::vif(fit)
+  vif_tbl  <- sort(vif_vals, decreasing = TRUE)
+  high_vif <- vif_tbl[vif_tbl > vif_threshold]
+
+  # 5) Pairwise correlations exceeding threshold
+  idx <- which(abs(cor_mat) > corr_threshold & abs(cor_mat) < 1, arr.ind = TRUE)
+  corr_pairs <- if (nrow(idx) > 0) {
+    unique(data.frame(
+      Var1 = rownames(cor_mat)[idx[,1]],
+      Var2 = colnames(cor_mat)[idx[,2]],
+      Cor  = cor_mat[idx],
+      row.names = NULL
+    ))
+  } else {
+    data.frame()
+  }
+
+  list(
+    vif = vif_tbl,
+    high_vif = high_vif,
+    high_corr_pairs = corr_pairs
+  )
+}
+
+# ---- Usage ----
+res <- check_multicollinearity_cont(df12_final, prefix = "X_", vif_threshold = 5, corr_threshold = 0.9)
+
+# Inspect results
+res$vif              # All VIFs sorted high → low
+res$high_vif         # Continuous vars with VIF > 5
+res$high_corr_pairs  # High correlations (|r| > 0.9)
+
+
+```
+# sort
+```{r}
 df_comparison = df_comparison %>% arrange(Trial_No)
 ```
 

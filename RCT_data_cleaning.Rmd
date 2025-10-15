@@ -1129,53 +1129,161 @@ write_rds(df11_final, "cleaned_data/Non_Clustered_RCT/trial11.rds")
 # Trial 12
 ## Load Data
 ```{r}
-df12 = read_csv("raw_data/Non_Clustered_RCT/12/12.csv", na=c("."))
+df12 = read_csv("raw_data/Non_Clustered_RCT/12/12.csv")
 ```
-
 
 ## Cleaning
 ```{r}
-df12_final = df12 %>%
-  ## 2a. Treatment (control = single-blind) ------------------------------------
-  mutate(
-    Treatment = factor(
-      Treatment,
-      levels = c("SingleBlind", "DoubleBlind"),
-      labels = c("SingleBlind", "DoubleBlind")
-    ),
-    Treatment = relevel(Treatment, ref = "SingleBlind")
+df12_final = df12 %>% 
+  filter(!is.na(months_with_visits_6mo)) %>%
+  rename(Treatment = treat_now) %>%
+  select(
+    # Treatment variable
+    Treatment,
+    
+    # Primary outcome: HbA1c at 6 months (primary timepoint)
+    YP_hba1c_6m = hba1c_val_6mo,
+    
+    # Primary outcome at other timepoints
+    YS_hba1c_12m = hba1c_val_12mo,
+    
+    # Secondary outcomes at 6 months
+    YS_ldl_6m = ldl_val_6mo,
+    YS_hdl_6m = hdl_val_6mo,
+    YS_trigly_6m = trigly_val_6mo,
+    YS_weight_6m = weight_val_6mo,
+    YS_sys_bp_6m = sys_val_6mo,
+    YS_dias_bp_6m = dias_val_6mo,
+    YS_op_n_6m = op_n_6mo,
+    YS_op_payment_6m = op_payment_6mo,
+    YS_nf_payment_6m = nf_payment_6mo,
+    YS_oth_payment_6m = oth_payment_6mo,
+    YS_total_payment_6m = total_payment_6mo,
+    YS_drug_insulin_6m = drug_insulin_6mo,
+    YS_drug_metformin_6m = drug_metformin_6mo,
+    YS_drug_sulf_6m = drug_sulf_6mo,
+    YS_drug_glp1_6m = drug_glp1_6mo,
+    YS_drug_other_6m = drug_other_6mo,
+    YS_drug_any_db_6m = drug_any_db_6mo,
+    YS_dietician_visits_6m = dietician_visits_n_6mo,
+    YS_endocrinology_visits_6m = endocrinology_visits_n_6mo,
+    YS_dsmt_visits_6m = dsmt_visits_6mo,
+    YS_weight_visits_6m = weight_visits_n_6mo,
+    YS_months_with_visits_6m = months_with_visits_6mo,
+    YS_site_visits_6m = site_visits_6mo,
+    YS_fruit_num_6m = fruit_num,
+    YS_vegetables_num_6m = vegetables_num,
+    YS_sweet_drink_num_6m = sweet_drink_num,
+    YS_diet_improved_yn_6m = diet_improved_yn,
+    YS_never_eat_out_yn_6m = never_eat_out_yn,
+    YS_engagement_index_6m = engagement_index,
+    YS_healthy_attitudes_index_6m = healthy_attitudes_index,
+    YS_self_efficacy_index_6m = self_efficacy_index,
+    YS_diet_improve_index_6m = diet_improve_index,
+    YS_exercise_smoking_index_6m = exercise_smoking_index,
+    YS_diabetes_knowledge_score_6m = diabetes_knowledge_score,
+    
+    # Secondary outcomes at 12 months
+    YS_ldl_12m = ldl_val_12mo,
+    YS_hdl_12m = hdl_val_12mo,
+    YS_trigly_12m = trigly_val_12mo,
+    YS_weight_12m = weight_val_12mo,
+    YS_sys_bp_12m = sys_val_12mo,
+    YS_dias_bp_12m = dias_val_12mo,
+    YS_op_n_12m = op_n_12mo,
+    YS_op_payment_12m = op_payment_12mo,
+    YS_nf_payment_12m = nf_payment_12mo,
+    YS_oth_payment_12m = oth_payment_12mo,
+    YS_total_payment_12m = total_payment_12mo,
+    YS_drug_insulin_12m = drug_insulin_12mo,
+    YS_drug_metformin_12m = drug_metformin_12mo,
+    YS_drug_sulf_12m = drug_sulf_12mo,
+    YS_drug_glp1_12m = drug_glp1_12mo,
+    YS_drug_other_12m = drug_other_12mo,
+    YS_drug_any_db_12m = drug_any_db_12mo,
+    YS_dietician_visits_12m = dietician_visits_n_12mo,
+    YS_endocrinology_visits_12m = endocrinology_visits_n_12mo,
+    YS_dsmt_visits_12m = dsmt_visits_12mo,
+    YS_weight_visits_12m = weight_visits_n_12mo,
+    YS_months_with_visits_12m = months_with_visits_12mo,
+    YS_site_visits_12m = site_visits_12mo,
+    
+    # Covariates (baseline measures) - all end with _0m
+    X_hba1c_0m = hba1c_val_0mo,
+    X_ldl_0m = ldl_val_0mo,
+    X_hdl_0m = hdl_val_0mo,
+    X_trigly_0m = trigly_val_0mo,
+    X_weight_0m = weight_val_0mo,
+    X_sys_bp_0m = sys_val_0mo,
+    X_dias_bp_0m = dias_val_0mo,
+    X_op_n_0m = op_n_0mo,
+    X_op_payment_0m = op_payment_0mo,
+    X_nf_payment_0m = nf_payment_0mo,
+    X_oth_payment_0m = oth_payment_0mo,
+    X_total_payment_0m = total_payment_0mo,
+    X_drug_insulin_0m = drug_insulin_0mo,
+    X_drug_metformin_0m = drug_metformin_0mo,
+    X_drug_sulf_0m = drug_sulf_0mo,
+    X_drug_glp1_0m = drug_glp1_0mo,
+    X_drug_other_0m = drug_other_0mo,
+    X_drug_any_db_0m = drug_any_db_0mo,
+    X_dietician_visits_0m = dietician_visits_n_0mo,
+    X_endocrinology_visits_0m = endocrinology_visits_n_0mo,
+    X_dsmt_visits_0m = dsmt_visits_0mo,
+    X_weight_visits_0m = weight_visits_n_0mo,
+    X_op_i_0m = op_i_0mo,
+    X_ip_i_0m = ip_i_0mo,
+    X_ed_i_0m = ed_i_0mo,
+    X_age_0m = age,
+    X_sex_0m = sex,
+    X_hispanic_0m = hispanic,
+    X_race_0m = race,
+    X_rural_site_0m = rural_site,
+    hba1c_cat_control
   ) %>%
-
-  ## 2b. Outcomes & covariates -------------------------------------------------
   mutate(
-    # -- Primary outcome
-    YP_ReviewScore                 = ReviewScore_Mean,
-
-    # -- Secondary outcomes
-    YS_PaperReviewed               = factor(PaperReviewed),
-    YS_RevisionInvited             = factor(RevisionInvited),
-    YS_ResubInvited                = factor(ResubInvited),
-    YS_RevOrResubInvited           = factor(RevOrResubInvited),
-    YS_NumberReviewsCompleted      = NumberReviewsCompleted,
-
-    # -- Baseline covariates (suffix “_0w”)
-    X_Year_0w                      = Year,
-    X_AuthorGender_0w              = factor(AuthorGender),
-    X_AuthorHDICat_0w              = factor(AuthorHDICat),
-    X_AuthorEnglish_0w             = factor(AuthorEnglish)
-  ) %>%
-
-  ## 2c. Drop the ID column ----------------------------------------------------
-  select(-ManuscriptID) %>%
-
-  ## 2e. Order columns as required --------------------------------------------
+    Treatment = factor(Treatment, 
+                      levels = c(0, 1),
+                      labels = c("Waitlist", "Immediate")),
+    Treatment = relevel(Treatment, ref = "Waitlist"),
+    
+    # Binary indicator variables
+    YS_diet_improved_yn_6m = factor(YS_diet_improved_yn_6m),
+    YS_never_eat_out_yn_6m = factor(YS_never_eat_out_yn_6m),
+    YS_drug_insulin_6m = factor(YS_drug_insulin_6m),
+    YS_drug_metformin_6m = factor(YS_drug_metformin_6m),
+    YS_drug_sulf_6m = factor(YS_drug_sulf_6m),
+    YS_drug_glp1_6m = factor(YS_drug_glp1_6m),
+    YS_drug_other_6m = factor(YS_drug_other_6m),
+    YS_drug_any_db_6m = factor(YS_drug_any_db_6m),
+    YS_drug_insulin_12m = factor(YS_drug_insulin_12m),
+    YS_drug_metformin_12m = factor(YS_drug_metformin_12m),
+    YS_drug_sulf_12m = factor(YS_drug_sulf_12m),
+    YS_drug_glp1_12m = factor(YS_drug_glp1_12m),
+    YS_drug_other_12m = factor(YS_drug_other_12m),
+    YS_drug_any_db_12m = factor(YS_drug_any_db_12m),
+    
+    # Baseline categorical variables
+    X_sex_0m = factor(X_sex_0m),
+    X_hispanic_0m = factor(X_hispanic_0m),
+    X_race_0m = factor(X_race_0m),
+    X_rural_site_0m = factor(X_rural_site_0m),
+    X_drug_insulin_0m = factor(X_drug_insulin_0m),
+    X_drug_metformin_0m = factor(X_drug_metformin_0m),
+    X_drug_sulf_0m = factor(X_drug_sulf_0m),
+    X_drug_glp1_0m = factor(X_drug_glp1_0m),
+    X_drug_other_0m = factor(X_drug_other_0m),
+    X_drug_any_db_0m = factor(X_drug_any_db_0m),
+    X_op_i_0m = factor(X_op_i_0m),
+    X_ip_i_0m = factor(X_ip_i_0m),
+    X_ed_i_0m = factor(X_ed_i_0m),
+    X_hba1c_cat_control_0m = factor(hba1c_cat_control)
+  ) %>% 
   select(
     Treatment,
-    starts_with("YP_"),
-    starts_with("pre_YP_"),
-    starts_with("post_YP_"),
-    starts_with("YS_"),
-    starts_with("X_")
+    starts_with("YP"),
+    starts_with("YS"),
+    starts_with("X")
   )
 ```
 
@@ -5079,6 +5187,7 @@ write_rds(dfc6_final, "cleaned_data/Clustered_RCT/6_patient.rds")
 
 
 # New
+
 
 ## Output Data
 

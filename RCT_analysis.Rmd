@@ -2876,8 +2876,17 @@ df12 = read_rds("cleaned_data/Non_Clustered_RCT/trial12.rds")
 ## Process
 
 ```{r}
-type = rep("binary", 3)
-demo = c("X_AuthorGender_0w")
+type = c(
+  rep("continuous", 9),
+  rep("binary", 6),
+  rep("continuous", 9),
+  rep("binary", 2),
+  rep("continuous", 13),
+  rep("binary", 6),
+  rep("continuous", 6)
+)
+
+demo = c("X_hba1c_cat_control_0m", "X_rural_site_0m", "X_age_0m", "X_sex_0m", "X_weight_0m")
 ```
 
 ```{r}
