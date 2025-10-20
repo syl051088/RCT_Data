@@ -1718,8 +1718,8 @@ update_df_tmle = function(trial_no,
       df[idx[1], "TMLE_est"] = row_i$Est_SL
       df[idx[1], "TMLE_se"] = row_i$SE_SL
       
-      tmle_se = row_i$Est_SL
-      tmle_est = row_i$SE_SL
+      tmle_est = row_i$Est_SL
+      tmle_se = row_i$SE_SL
       
     } else {
       # For suffixed version
@@ -2243,6 +2243,21 @@ res3 = analyze_rct_aipw(df3, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(3, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df3)
+df_comparison = update_df_tmle(3, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df3, T)
+df_comparison = update_df_tmle(3, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df3, T, 2, demo)
+df_comparison = update_df_tmle(3, type, res3, "VS2")
+```
+
+
 # Trial 4
 
 ## Load Data
@@ -2322,6 +2337,21 @@ res3 = analyze_rct_aipw(df4, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(4, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df4)
+df_comparison = update_df_tmle(4, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df4, T)
+df_comparison = update_df_tmle(4, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df4, T, 2, demo)
+df_comparison = update_df_tmle(4, type, res3, "VS2")
+```
+
+
 # Trial 5
 
 ## Load Data
@@ -2399,6 +2429,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df5, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(5, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df5)
+df_comparison = update_df_tmle(5, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df5, T)
+df_comparison = update_df_tmle(5, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df5, T, 2, demo)
+df_comparison = update_df_tmle(5, type, res3, "VS2")
+```
+
 
 # Trial 6
 
@@ -2478,6 +2523,21 @@ res3 = analyze_rct_aipw(df6, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(6, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df6)
+df_comparison = update_df_tmle(6, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df6, T)
+df_comparison = update_df_tmle(6, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df6, T, 2, demo)
+df_comparison = update_df_tmle(6, type, res3, "VS2")
+```
+
+
 # Trial 7
 
 ## Load Data
@@ -2554,6 +2614,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df7, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(7, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df7)
+df_comparison = update_df_tmle(7, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df7, T)
+df_comparison = update_df_tmle(7, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df7, T, 2, demo)
+df_comparison = update_df_tmle(7, type, res3, "VS2")
+```
+
 
 # Trial 8
 
@@ -2634,6 +2709,21 @@ res3 = analyze_rct_aipw(df8, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(8, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df8)
+df_comparison = update_df_tmle(8, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df8, T)
+df_comparison = update_df_tmle(8, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df8, T, 2, demo)
+df_comparison = update_df_tmle(8, type, res3, "VS2")
+```
+
+
 # Trial 9
 
 ## Load Data
@@ -2708,6 +2798,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df9, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(9, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df9)
+df_comparison = update_df_tmle(9, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df9, T)
+df_comparison = update_df_tmle(9, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df9, T, 2, demo)
+df_comparison = update_df_tmle(9, type, res3, "VS2")
+```
+
 
 
 
@@ -2786,6 +2891,21 @@ res3 = analyze_rct_aipw(df10, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(10, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df10)
+df_comparison = update_df_tmle(10, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df10, T)
+df_comparison = update_df_tmle(10, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df10, T, 2, demo)
+df_comparison = update_df_tmle(10, type, res3, "VS2")
+```
+
+
 
 
 # Trial 11
@@ -2862,6 +2982,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df11, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(11, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df11)
+df_comparison = update_df_tmle(11, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df11, T)
+df_comparison = update_df_tmle(11, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df11, T, 2, demo)
+df_comparison = update_df_tmle(11, type, res3, "VS2")
+```
+
 
 
 
@@ -2949,6 +3084,21 @@ res3 = analyze_rct_aipw(df12, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(12, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df12)
+df_comparison = update_df_tmle(12, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df12, T)
+df_comparison = update_df_tmle(12, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df12, T, 2, demo)
+df_comparison = update_df_tmle(12, type, res3, "VS2")
+```
+
+
 
 
 # Trial 13
@@ -3025,6 +3175,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df13, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(13, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df13)
+df_comparison = update_df_tmle(13, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df13, T)
+df_comparison = update_df_tmle(13, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df13, T, 2, demo)
+df_comparison = update_df_tmle(13, type, res3, "VS2")
+```
+
 
 
 
@@ -3104,6 +3269,21 @@ res3 = analyze_rct_aipw(df14, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(14, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df14)
+df_comparison = update_df_tmle(14, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df14, T)
+df_comparison = update_df_tmle(14, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df14, T, 2, demo)
+df_comparison = update_df_tmle(14, type, res3, "VS2")
+```
+
+
 
 
 # Trial 15
@@ -3180,6 +3360,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df15, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(15, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df15)
+df_comparison = update_df_tmle(15, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df15, T)
+df_comparison = update_df_tmle(15, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df15, T, 2, demo)
+df_comparison = update_df_tmle(15, type, res3, "VS2")
+```
+
 
 
 
@@ -3258,6 +3453,21 @@ res3 = analyze_rct_aipw(df16, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(16, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df16)
+df_comparison = update_df_tmle(16, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df16, T)
+df_comparison = update_df_tmle(16, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df16, T, 2, demo)
+df_comparison = update_df_tmle(16, type, res3, "VS2")
+```
+
+
 
 
 # Trial 17
@@ -3334,6 +3544,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df17, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(17, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df17)
+df_comparison = update_df_tmle(17, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df17, T)
+df_comparison = update_df_tmle(17, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df17, T, 2, demo)
+df_comparison = update_df_tmle(17, type, res3, "VS2")
+```
+
 
 
 
@@ -3414,6 +3639,21 @@ res3 = analyze_rct_aipw(df18, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(18, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df18)
+df_comparison = update_df_tmle(18, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df18, T)
+df_comparison = update_df_tmle(18, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df18, T, 2, demo)
+df_comparison = update_df_tmle(18, type, res3, "VS2")
+```
+
+
 
 
 # Trial 19
@@ -3492,6 +3732,21 @@ res3 = analyze_rct_aipw(df19, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(19, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df19)
+df_comparison = update_df_tmle(19, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df19, T)
+df_comparison = update_df_tmle(19, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df19, T, 2, demo)
+df_comparison = update_df_tmle(19, type, res3, "VS2")
+```
+
+
 
 
 # Trial 20
@@ -3568,6 +3823,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df20, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(20, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df20)
+df_comparison = update_df_tmle(20, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df20, T)
+df_comparison = update_df_tmle(20, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df20, T, 2, demo)
+df_comparison = update_df_tmle(20, type, res3, "VS2")
+```
+
 
 
 
@@ -3647,6 +3917,21 @@ res3 = analyze_rct_aipw(df21, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(21, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df21)
+df_comparison = update_df_tmle(21, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df21, T)
+df_comparison = update_df_tmle(21, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df21, T, 2, demo)
+df_comparison = update_df_tmle(21, type, res3, "VS2")
+```
+
+
 
 
 # Trial 22
@@ -3723,6 +4008,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df22, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(22, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df22)
+df_comparison = update_df_tmle(22, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df22, T)
+df_comparison = update_df_tmle(22, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df22, T, 2, demo)
+df_comparison = update_df_tmle(22, type, res3, "VS2")
+```
+
 
 
 
@@ -3803,6 +4103,21 @@ res3 = analyze_rct_aipw(df23, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(23, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df23)
+df_comparison = update_df_tmle(23, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df23, T)
+df_comparison = update_df_tmle(23, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df23, T, 2, demo)
+df_comparison = update_df_tmle(23, type, res3, "VS2")
+```
+
+
 
 
 # Trial 24
@@ -3880,6 +4195,21 @@ res3 = analyze_rct_aipw(df24, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(24, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df24)
+df_comparison = update_df_tmle(24, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df24, T)
+df_comparison = update_df_tmle(24, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df24, T, 2, demo)
+df_comparison = update_df_tmle(24, type, res3, "VS2")
+```
+
+
 
 
 # Trial 25
@@ -3956,6 +4286,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df25, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(25, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df25)
+df_comparison = update_df_tmle(25, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df25, T)
+df_comparison = update_df_tmle(25, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df25, T, 2, demo)
+df_comparison = update_df_tmle(25, type, res3, "VS2")
+```
+
 
 
 
@@ -4035,6 +4380,21 @@ res3 = analyze_rct_aipw(df26, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(26, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df26)
+df_comparison = update_df_tmle(26, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df26, T)
+df_comparison = update_df_tmle(26, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df26, T, 2, demo)
+df_comparison = update_df_tmle(26, type, res3, "VS2")
+```
+
+
 
 
 # Trial 27
@@ -4112,6 +4472,21 @@ res3 = analyze_rct_aipw(df27, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(27, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df27)
+df_comparison = update_df_tmle(27, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df27, T)
+df_comparison = update_df_tmle(27, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df27, T, 2, demo)
+df_comparison = update_df_tmle(27, type, res3, "VS2")
+```
+
+
 
 
 # Trial 28
@@ -4188,6 +4563,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df28, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(28, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df28)
+df_comparison = update_df_tmle(28, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df28, T)
+df_comparison = update_df_tmle(28, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df28, T, 2, demo)
+df_comparison = update_df_tmle(28, type, res3, "VS2")
+```
+
 
 
 
@@ -4267,6 +4657,21 @@ res3 = analyze_rct_aipw(df29, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(29, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df29)
+df_comparison = update_df_tmle(29, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df29, T)
+df_comparison = update_df_tmle(29, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df29, T, 2, demo)
+df_comparison = update_df_tmle(29, type, res3, "VS2")
+```
+
+
 
 
 # Trial 30
@@ -4343,6 +4748,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df30, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(30, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df30)
+df_comparison = update_df_tmle(30, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df30, T)
+df_comparison = update_df_tmle(30, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df30, T, 2, demo)
+df_comparison = update_df_tmle(30, type, res3, "VS2")
+```
+
 
 
 
@@ -4421,6 +4841,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df31, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(31, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df31)
+df_comparison = update_df_tmle(31, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df31, T)
+df_comparison = update_df_tmle(31, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df31, T, 2, demo)
+df_comparison = update_df_tmle(31, type, res3, "VS2")
+```
+
 
 
 
@@ -4501,6 +4936,21 @@ res3 = analyze_rct_aipw(df32, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(32, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df32)
+df_comparison = update_df_tmle(32, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df32, T)
+df_comparison = update_df_tmle(32, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df32, T, 2, demo)
+df_comparison = update_df_tmle(32, type, res3, "VS2")
+```
+
+
 
 # Trial 33
 
@@ -4576,6 +5026,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df33, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(33, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df33)
+df_comparison = update_df_tmle(33, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df33, T)
+df_comparison = update_df_tmle(33, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df33, T, 2, demo)
+df_comparison = update_df_tmle(33, type, res3, "VS2")
+```
+
 
 
 
@@ -4654,6 +5119,21 @@ res3 = analyze_rct_aipw(df34, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(34, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df34)
+df_comparison = update_df_tmle(34, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df34, T)
+df_comparison = update_df_tmle(34, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df34, T, 2, demo)
+df_comparison = update_df_tmle(34, type, res3, "VS2")
+```
+
+
 
 
 # Trial 35
@@ -4730,6 +5210,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df35, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(35, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df35)
+df_comparison = update_df_tmle(35, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df35, T)
+df_comparison = update_df_tmle(35, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df35, T, 2, demo)
+df_comparison = update_df_tmle(35, type, res3, "VS2")
+```
+
 
 
 
@@ -4808,6 +5303,21 @@ res3 = analyze_rct_aipw(df36, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(36, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df36)
+df_comparison = update_df_tmle(36, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df36, T)
+df_comparison = update_df_tmle(36, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df36, T, 2, demo)
+df_comparison = update_df_tmle(36, type, res3, "VS2")
+```
+
+
 
 
 # Trial 37
@@ -4884,6 +5394,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df37, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(37, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df37)
+df_comparison = update_df_tmle(37, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df37, T)
+df_comparison = update_df_tmle(37, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df37, T, 2, demo)
+df_comparison = update_df_tmle(37, type, res3, "VS2")
+```
+
 
 
 
@@ -4963,6 +5488,21 @@ res3 = analyze_rct_aipw(df38, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(38, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df38)
+df_comparison = update_df_tmle(38, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df38, T)
+df_comparison = update_df_tmle(38, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df38, T, 2, demo)
+df_comparison = update_df_tmle(38, type, res3, "VS2")
+```
+
+
 
 
 # Trial 39
@@ -5040,6 +5580,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df39, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(39, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df39)
+df_comparison = update_df_tmle(39, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df39, T)
+df_comparison = update_df_tmle(39, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df39, T, 2, demo)
+df_comparison = update_df_tmle(39, type, res3, "VS2")
+```
+
 
 
 
@@ -5120,6 +5675,21 @@ res3 = analyze_rct_aipw(df40, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(40, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df40)
+df_comparison = update_df_tmle(40, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df40, T)
+df_comparison = update_df_tmle(40, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df40, T, 2, demo)
+df_comparison = update_df_tmle(40, type, res3, "VS2")
+```
+
+
 
 
 # Trial 41
@@ -5196,6 +5766,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df41, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(41, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df41)
+df_comparison = update_df_tmle(41, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df41, T)
+df_comparison = update_df_tmle(41, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df41, T, 2, demo)
+df_comparison = update_df_tmle(41, type, res3, "VS2")
+```
+
 
 
 
@@ -5276,6 +5861,21 @@ res3 = analyze_rct_aipw(df42, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(42, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df42)
+df_comparison = update_df_tmle(42, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df42, T)
+df_comparison = update_df_tmle(42, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df42, T, 2, demo)
+df_comparison = update_df_tmle(42, type, res3, "VS2")
+```
+
+
 
 
 # Trial 43
@@ -5354,6 +5954,21 @@ res3 = analyze_rct_aipw(df43, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(43, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df43)
+df_comparison = update_df_tmle(43, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df43, T)
+df_comparison = update_df_tmle(43, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df43, T, 2, demo)
+df_comparison = update_df_tmle(43, type, res3, "VS2")
+```
+
+
 
 
 # Trial 44
@@ -5430,6 +6045,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df44, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(44, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df44)
+df_comparison = update_df_tmle(44, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df44, T)
+df_comparison = update_df_tmle(44, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df44, T, 2, demo)
+df_comparison = update_df_tmle(44, type, res3, "VS2")
+```
+
 
 
 
@@ -5510,6 +6140,21 @@ res3 = analyze_rct_aipw(df45, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(45, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df45)
+df_comparison = update_df_tmle(45, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df45, T)
+df_comparison = update_df_tmle(45, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df45, T, 2, demo)
+df_comparison = update_df_tmle(45, type, res3, "VS2")
+```
+
+
 
 
 # Trial 46
@@ -5586,6 +6231,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df46, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(46, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df46)
+df_comparison = update_df_tmle(46, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df46, T)
+df_comparison = update_df_tmle(46, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df46, T, 2, demo)
+df_comparison = update_df_tmle(46, type, res3, "VS2")
+```
+
 
 
 
@@ -5664,6 +6324,21 @@ res3 = analyze_rct_aipw(df47, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(47, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df47)
+df_comparison = update_df_tmle(47, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df47, T)
+df_comparison = update_df_tmle(47, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df47, T, 2, demo)
+df_comparison = update_df_tmle(47, type, res3, "VS2")
+```
+
+
 
 
 # Trial 48
@@ -5740,6 +6415,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df48, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(48, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df48)
+df_comparison = update_df_tmle(48, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df48, T)
+df_comparison = update_df_tmle(48, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df48, T, 2, demo)
+df_comparison = update_df_tmle(48, type, res3, "VS2")
+```
+
 
 
 
@@ -5819,6 +6509,21 @@ res3 = analyze_rct_aipw(df49, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(49, type, res3, "IPW", "VS2")
 ```
 
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df49)
+df_comparison = update_df_tmle(49, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df49, T)
+df_comparison = update_df_tmle(49, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df49, T, 2, demo)
+df_comparison = update_df_tmle(49, type, res3, "VS2")
+```
+
+
 
 
 # Trial 50
@@ -5896,6 +6601,21 @@ cat("\n<------------------Variable Seclection 2------------->\n\n")
 res3 = analyze_rct_aipw(df50, T, 2, demo, "SL.mean", c("SL.glm","SL.mean"), 1)
 df_comparison = update_df_aipw(50, type, res3, "IPW", "VS2")
 ```
+
+```{r}
+# TMLE
+res1 = analyze_rct_tmle(df50)
+df_comparison = update_df_tmle(50, type, res1)
+# TMLE, VS1
+cat("\n<------------------Variable Selection------------->\n\n")
+res2 = analyze_rct_tmle(df50, T)
+df_comparison = update_df_tmle(50, type, res2, "VS1")
+# TMLE, VS2
+cat("\n<------------------Variable Selection 2------------->\n\n")
+res3 = analyze_rct_tmle(df50, T, 2, demo)
+df_comparison = update_df_tmle(50, type, res3, "VS2")
+```
+
 
 
 

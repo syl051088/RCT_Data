@@ -3635,8 +3635,378 @@ res$high_corr_pairs  # High correlations (|r| > 0.9)
 
 
 ```
-# sort
+# analyze_rct_ipw()
 ```{r}
-df_comparison = df_comparison %>% arrange(Trial_No)
+analyze_rct_ipw = function(df,
+                          selection = FALSE,
+                          variable_selection_type = 1,
+                          manual_covariates = NULL,
+                          seed = 123,
+                          outcome_cols = NULL,
+                          covariate_col = NULL,
+                          treatment_col = "Treatment",
+                          n_select = 3,
+                          trunc = 0.01) {
+  require(dplyr)
+  require(ipw)
+  require(survey)
+  require(tidyr)
+  require(DescTools)
+  
+  set.seed(seed)
+  
+  # Auto-detect outcome columns if not specified
+  if (is.null(outcome_cols)) {
+    yp_cols = names(df)[startsWith(names(df), "YP")]
+    
+    ys_cols = names(df)[startsWith(names(df), "YS")]
+    ys_valid = character(0)
+    for (col in ys_cols) {
+      if (is.numeric(df[[col]]) ||
+          (is.factor(df[[col]]) &&
+           length(levels(df[[col]])) == 2)) {
+        ys_valid = c(ys_valid, col)
+      }
+    }
+    
+    outcome_cols = c(yp_cols, ys_valid)
+    cat(
+      "Auto-detected",
+      length(outcome_cols),
+      "outcome columns:",
+      paste(outcome_cols, collapse = ", "),
+      "\n"
+    )
+  }
+  
+  # Setup covariates
+  if (is.null(covariate_col)) {
+    covariates = names(df)[startsWith(names(df), "X_")]
+    if ("n_participants" %in% names(df)) {
+      covariates = c(covariates, "n_participants")
+    }
+  } else {
+    covariates = covariate_col
+  }
+  
+  cat("DEBUG: Found", length(covariates), "covariates\n")
+  
+  # Fill missing values in covariates
+  df = df %>%
+    mutate(across(all_of(covariates), ~ if (is.numeric(.)) {
+      replace(., is.na(.), mean(., na.rm = TRUE))
+    } else if (is.factor(.)) {
+      replace(., is.na(.), Mode(., na.rm = TRUE)[1])
+    }))
+  
+  # Get treatment arms
+  arms = levels(df[[treatment_col]])
+  control_level = arms[1]
+  treatment_levels = arms[-1]
+  
+  cat("DEBUG: Treatment arms:", paste(arms, collapse = ", "), "\n")
+  cat("DEBUG: Control level:", control_level, "\n")
+  cat("DEBUG: Treatment levels:", paste(treatment_levels, collapse = ", "), "\n")
+  
+  # Process each outcome
+  all_results = vector("list", length(outcome_cols))
+  valid_outcomes = character(0)
+  
+  for (i in seq_along(outcome_cols)) {
+    outcome = outcome_cols[i]
+    
+    cat("\n========================================\n")
+    cat("Processing outcome:", outcome, "\n")
+    cat("========================================\n")
+    
+    # Check missing proportion for outcome
+    missing_prop = mean(is.na(df[[outcome]]))
+    cat("Missing proportion:", round(missing_prop, 3), "\n")
+    
+    if (missing_prop > 0.4) {
+      cat("REMOVED outcome:", outcome, "- Missing proportion:", 
+          round(missing_prop, 3), "(> 0.4)\n")
+      next
+    }
+    
+    # Filter complete cases for this outcome
+    complete_vars = c(outcome, treatment_col, covariates)
+    complete_cases_idx = complete.cases(df[, complete_vars, drop = FALSE])
+    df_complete = df[complete_cases_idx, , drop = FALSE]
+    
+    cat("Outcome:", outcome, "- Sample size:", nrow(df_complete),
+        "(", nrow(df) - nrow(df_complete), "rows removed)\n")
+    
+    # Check for single-level factors after filtering
+    if (is.factor(df_complete[[outcome]]) &&
+        length(levels(droplevels(df_complete[[outcome]]))) <= 1) {
+      cat("REMOVED outcome:", outcome, "- Only one level after filtering\n")
+      next
+    }
+    
+    # Check covariates for single levels and remove them
+    valid_covariates = character(0)
+    for (cov in covariates) {
+      if (is.factor(df_complete[[cov]]) &&
+          length(levels(droplevels(df_complete[[cov]]))) <= 1) {
+        cat("REMOVED covariate:", cov, "- Only one level after filtering (outcome:",
+            outcome, ")\n")
+      } else {
+        valid_covariates = c(valid_covariates, cov)
+      }
+    }
+    
+    cat("Valid covariates:", length(valid_covariates), "\n")
+    
+    # Convert outcome to numeric
+    df_complete_numeric = df_complete
+    if (is.factor(df_complete[[outcome]])) {
+      numeric_outcome = as.numeric(df_complete_numeric[[outcome]])
+      unique_vals = sort(unique(numeric_outcome))
+      
+      if (all(unique_vals == c(0, 1))) {
+        df_complete_numeric[[outcome]] = numeric_outcome
+      } else if (all(unique_vals == c(1, 2))) {
+        df_complete_numeric[[outcome]] = numeric_outcome - 1
+      } else {
+        df_complete_numeric[[outcome]] = numeric_outcome
+      }
+    } else {
+      df_complete_numeric[[outcome]] = as.numeric(df_complete_numeric[[outcome]])
+    }
+    
+    cat("Outcome class:", class(df_complete_numeric[[outcome]]), "\n")
+    cat("Outcome range:", range(df_complete_numeric[[outcome]], na.rm = TRUE), "\n")
+    
+    # Variable selection
+    if (selection && length(valid_covariates) > 0) {
+      if (variable_selection_type == 1) {
+        selected_covariates = variable_selection_correlation(
+          outcome, valid_covariates, df_complete_numeric, n_select
+        )
+      } else if (variable_selection_type == 2) {
+        selected_covariates = variable_selection_manual(
+          outcome, valid_covariates, manual_covariates
+        )
+        
+        if (length(selected_covariates) == 0) {
+          cat("No valid covariates found for outcome:", outcome, 
+              "- Setting all estimates to NA\n")
+          
+          outcome_results_list = lapply(treatment_levels, function(treat_level) {
+            tibble(
+              Outcome = outcome,
+              Treatment = treat_level,
+              Control = control_level,
+              N = sum(df_complete[[treatment_col]] %in% c(control_level, treat_level)),
+              N_Covariates = 0,
+              Selected_Covariates = "",
+              Est_IPW = NA_real_,
+              SE_IPW = NA_real_
+            )
+          })
+          outcome_results = bind_rows(outcome_results_list)
+          
+          valid_outcomes = c(valid_outcomes, outcome)
+          all_results[[length(valid_outcomes)]] = outcome_results
+          next
+        }
+      }
+      
+      valid_covariates = selected_covariates
+      cat("Selected covariates for", outcome, ":", 
+          paste(valid_covariates, collapse = ", "), "\n")
+    }
+    
+    ## PAIRWISE COMPARISONS
+    outcome_results_list = vector("list", length(treatment_levels))
+    
+    for (j in seq_along(treatment_levels)) {
+      treat_level = treatment_levels[j]
+      
+      cat("\n--- Comparing", treat_level, "vs", control_level, "---\n")
+      
+      # Subset data
+      df_pairwise = df_complete_numeric %>%
+        filter(!!sym(treatment_col) %in% c(control_level, treat_level))
+      
+      cat("Pairwise sample size:", nrow(df_pairwise), "\n")
+      
+      # Create binary treatment
+      df_pairwise_binary = df_pairwise
+      df_pairwise_binary$treatment_binary = as.numeric(
+        df_pairwise_binary[[treatment_col]] == treat_level
+      )
+      
+      cat("Binary treatment distribution:", 
+          table(df_pairwise_binary$treatment_binary), "\n")
+      
+      # FIX: Use eval() and parse() to handle formula properly
+      cat("Estimating IPW weights...\n")
+      
+      if (length(valid_covariates) > 0) {
+        # Build the formula string
+        formula_str = paste("~", paste(valid_covariates, collapse = " + "))
+        cat("Denominator formula string:", formula_str, "\n")
+        
+        # Use do.call to pass the formula directly
+        weights_obj = do.call(ipwpoint, list(
+          exposure = quote(treatment_binary),
+          family = "binomial",
+          link = "logit",
+          numerator = ~ 1,
+          denominator = as.formula(formula_str),
+          data = quote(df_pairwise_binary),
+          trunc = trunc
+        ))
+      } else {
+        weights_obj = ipwpoint(
+          exposure = treatment_binary,
+          family = "binomial",
+          link = "logit",
+          numerator = ~ 1,
+          denominator = ~ 1,
+          data = df_pairwise_binary,
+          trunc = trunc
+        )
+      }
+      
+      cat("Weight summary:\n")
+      print(summary(weights_obj$ipw.weights))
+      
+      # Add weights to data
+      df_pairwise_binary$ipw = weights_obj$ipw.weights
+      
+      cat("Fitting weighted outcome model...\n")
+      
+      # Fit weighted model
+      design = svydesign(~ 1, weights = ~ ipw, data = df_pairwise_binary)
+      model = svyglm(
+        as.formula(paste(outcome, "~ treatment_binary")),
+        design = design
+      )
+      
+      cat("Model fitted successfully\n")
+      
+      # Extract ATE and SE
+      est = coef(model)["treatment_binary"]
+      se = sqrt(diag(vcov(model)))["treatment_binary"]
+      
+      cat("ATE Estimate:", est, "\n")
+      cat("SE:", se, "\n")
+      
+      # Store results
+      outcome_results_list[[j]] = tibble(
+        Outcome = outcome,
+        Treatment = treat_level,
+        Control = control_level,
+        N = nrow(df_pairwise),
+        N_Covariates = length(valid_covariates),
+        Est_IPW = est,
+        SE_IPW = se
+      )
+      
+      if (selection) {
+        outcome_results_list[[j]]$Selected_Covariates = paste(valid_covariates, collapse = ", ")
+      }
+    }
+    
+    outcome_results = bind_rows(outcome_results_list)
+    valid_outcomes = c(valid_outcomes, outcome)
+    all_results[[length(valid_outcomes)]] = outcome_results
+  }
+  
+  if (length(valid_outcomes) == 0) {
+    stop("No valid outcomes remaining after data cleaning")
+  }
+  
+  # Combine all outcomes
+  final_results = bind_rows(all_results[1:length(valid_outcomes)]) %>%
+    mutate(across(starts_with("Est_"), ~ round(.x, 5)),
+           across(starts_with("SE_"), ~ round(.x, 5)))
+  
+  return(final_results)
+}
+```
+
+## test
+
+```{r}
+res1 = analyze_rct_ipw(df1, F, 1)
+res2 = analyze_rct_ipw(df1, T, 1)
+res3 = analyze_rct_ipw(df1, T, 2, demo)
+```
+
+```{r}
+library(ipw)
+library(survey)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Sample size
+n <- 1000
+
+# Generate confounders
+confounder1 <- rnorm(n, mean = 50, sd = 10)
+confounder2 <- rbinom(n, 1, 0.5)
+confounder3 <- rnorm(n, mean = 100, sd = 15)
+
+# Treatment assignment depends on confounders
+treatment_logit <- -2 + 0.05*confounder1 + 0.3*confounder2 + 0.02*confounder3
+treatment_prob <- exp(treatment_logit) / (1 + exp(treatment_logit))
+treatment_var <- rbinom(n, 1, treatment_prob)
+
+# Outcome depends on treatment AND confounders
+# True ATE = 10
+outcome <- 10*treatment_var + 
+           0.5*confounder1 + 
+           5*confounder2 + 
+           0.3*confounder3 + 
+           rnorm(n, 0, 15)
+
+# Create dataset
+your_data <- data.frame(
+  treatment_var = treatment_var,
+  outcome = outcome,
+  confounder1 = confounder1,
+  confounder2 = confounder2,
+  confounder3 = confounder3
+)
+
+## ══════════════════════════════════════════════════════════════
+## IPW Analysis
+## ══════════════════════════════════════════════════════════════
+
+# Calculate stabilized IPW weights
+weights <- ipwpoint(
+  exposure = treatment_var,
+  family = "binomial",
+  link = "logit",
+  numerator = ~ 1,
+  denominator = ~ confounder1 + confounder2 + confounder3,
+  data = your_data
+)
+
+# Add weights to dataset
+your_data$ipw <- weights$ipw.weights
+
+# Fit weighted outcome model with robust SE
+design <- svydesign(~ 1, weights = ~ ipw, data = your_data)
+ate_model <- svyglm(outcome ~ treatment_var, design = design)
+
+# Extract ATE and SE
+ate_est <- coef(ate_model)["treatment_var"]
+ate_se <- sqrt(diag(vcov(ate_model)))["treatment_var"]
+
+# Report results
+cat("══════════════════════════════════════════════════════════\n")
+cat("IPW Results (True ATE = 10)\n")
+cat("══════════════════════════════════════════════════════════\n")
+cat("ATE Estimate:", round(ate_est, 3), "\n")
+cat("Standard Error:", round(ate_se, 3), "\n")
+cat("95% CI: [", round(ate_est - 1.96*ate_se, 3), ",", 
+    round(ate_est + 1.96*ate_se, 3), "]\n")
+cat("══════════════════════════════════════════════════════════\n")
 ```
 
