@@ -6722,32 +6722,40 @@ prepare_long_data = function(data) {
     pivot_longer(cols      = starts_with("precision_gain_"),
                  names_to  = "method_raw",
                  values_to = "pg") %>%
-    mutate(method = dplyr::case_match(
-      method_raw,
-      # All methods - excluding SL1 and individual SL methods and AIPW
-      "precision_gain_ANCOVA"                       ~ "ANCOVA",
-      "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
-      "precision_gain_G_Logistic"                   ~ "G-Logistic",
-      "precision_gain_DML"                          ~ "DML",
-      "precision_gain_TMLE"                         ~ "TMLE",
-      "precision_gain_IPW"                          ~ "IPW",
-      
-      # Top-3 methods
-      "precision_gain_ANCOVA_Top-3"                 ~ "ANCOVA\nTop-3",
-      "precision_gain_ANHECOVA_Top-3"               ~ "ANHECOVA\nTop-3",
-      "precision_gain_G_Logistic_Top-3"             ~ "G-Logistic\nTop-3",
-      "precision_gain_DML_Top-3"                    ~ "DML\nTop-3",
-      "precision_gain_TMLE_Top-3"                   ~ "TMLE\nTop-3",
-      "precision_gain_IPW_Top-3"                    ~ "IPW\nTop-3",
-      
-      # Baseline+ methods
-      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA\nBaseline+",
-      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA\nBaseline+",
-      "precision_gain_G_Logistic_Baseline+"         ~ "G-Logistic\nBaseline+",
-      "precision_gain_DML_Baseline+"                ~ "DML\nBaseline+",
-      "precision_gain_TMLE_Baseline+"               ~ "TMLE\nBaseline+",
-      "precision_gain_IPW_Baseline+"                ~ "IPW\nBaseline+"
-    )) %>%
+    mutate(
+      # Keep track of the adjustment type
+      adjustment_type = case_when(
+        grepl("_Top-3$", method_raw) ~ "Top-3",
+        grepl("_Baseline\\+$", method_raw) ~ "Baseline+",
+        TRUE ~ "All"
+      ),
+      # Simplified method names
+      method = dplyr::case_match(
+        method_raw,
+        # All methods - excluding SL1 and individual SL methods and AIPW
+        "precision_gain_ANCOVA"                       ~ "ANCOVA",
+        "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
+        "precision_gain_G_Logistic"                   ~ "G-Logistic",
+        "precision_gain_DML"                          ~ "DML",
+        "precision_gain_TMLE"                         ~ "TMLE",
+        "precision_gain_IPW"                          ~ "IPW",
+        
+        # Top-3 methods (same names, no suffix)
+        "precision_gain_ANCOVA_Top-3"                 ~ "ANCOVA",
+        "precision_gain_ANHECOVA_Top-3"               ~ "ANHECOVA",
+        "precision_gain_G_Logistic_Top-3"             ~ "G-Logistic",
+        "precision_gain_DML_Top-3"                    ~ "DML",
+        "precision_gain_TMLE_Top-3"                   ~ "TMLE",
+        "precision_gain_IPW_Top-3"                    ~ "IPW",
+        
+        # Baseline+ methods (same names, no suffix)
+        "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA",
+        "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA",
+        "precision_gain_G_Logistic_Baseline+"         ~ "G-Logistic",
+        "precision_gain_DML_Baseline+"                ~ "DML",
+        "precision_gain_TMLE_Baseline+"               ~ "TMLE",
+        "precision_gain_IPW_Baseline+"                ~ "IPW"
+      )) %>%
     filter(!is.na(method))  # Remove rows where method couldn't be matched
 }
 
@@ -6763,44 +6771,22 @@ build_and_print_table = function(outcome_type, vs_type = "All", data_type = "all
   # Select appropriate data source
   df_long_source = if (data_type == "primary") df_long_full_primary else df_long_full_all
 
-  ## Filter methods based on VS type
-  method_filter = function(methods) {
-    if (vs_type == "All") {
-      methods[!grepl("(Top-3|Baseline\\+)$", methods)]
-    } else if (vs_type == "Top-3") {
-      methods[grepl("Top-3$", methods)]
-    } else if (vs_type == "Baseline+") {
-      methods[grepl("Baseline\\+$", methods)]
-    } else {
-      methods
-    }
-  }
-
   ## ---- counts of outliers (pg ≥ 2) ---------------------------
   outliers = df_long_source %>%
-    filter(outcome_group == outcome_type, !is.na(pg)) %>%
+    filter(outcome_group == outcome_type, adjustment_type == vs_type, !is.na(pg)) %>%
     mutate(outlier = pg >= 2) %>%
     group_by(method) %>%
-    summarise(outliers_removed = sum(outlier), .groups = "drop") %>%
-    filter(method %in% method_filter(method))
+    summarise(outliers_removed = sum(outlier), .groups = "drop")
 
   ## ---- counts of original NA ----------------------------
   nas = df_long_source %>%
-    filter(outcome_group == outcome_type) %>%
+    filter(outcome_group == outcome_type, adjustment_type == vs_type) %>%
     group_by(method) %>%
-    summarise(na_removed = sum(is.na(pg)), .groups = "drop") %>%
-    filter(method %in% method_filter(method))
+    summarise(na_removed = sum(is.na(pg)), .groups = "drop")
 
   ## For *continuous* outcome, drop G-Logistic methods from NA line
   if (outcome_type == "continuous") {
-    logistic_methods = if (vs_type == "All") {
-      "G-Logistic"
-    } else if (vs_type == "Top-3") {
-      "G-Logistic\nTop-3"
-    } else if (vs_type == "Baseline+") {
-      "G-Logistic\nBaseline+"
-    }
-    nas = nas %>% filter(!method %in% logistic_methods)
+    nas = nas %>% filter(method != "G-Logistic")
   }
 
   # Print table header
@@ -6820,26 +6806,14 @@ build_and_print_table = function(outcome_type, vs_type = "All", data_type = "all
 ###############################################################################
 ##  2.  Color palette matching smooth plots ---------------------------------
 ###############################################################################
-# Define color palette that matches the smooth plots (AIPW removed)
+# Define color palette (simplified, no adjustment type suffixes)
 method_colors = c(
   "ANCOVA" = "#F8766D",
   "ANHECOVA" = "#B79F00",
   "G-Logistic" = "#00BA38",
   "DML" = "#00BFC4",
   "TMLE" = "#619CFF",
-  "IPW" = "#FF6F00",
-  "ANCOVA\nTop-3" = "#F8766D",
-  "ANHECOVA\nTop-3" = "#B79F00",
-  "G-Logistic\nTop-3" = "#00BA38",
-  "DML\nTop-3" = "#00BFC4",
-  "TMLE\nTop-3" = "#619CFF",
-  "IPW\nTop-3" = "#FF6F00",
-  "ANCOVA\nBaseline+" = "#F8766D",
-  "ANHECOVA\nBaseline+" = "#B79F00",
-  "G-Logistic\nBaseline+" = "#00BA38",
-  "DML\nBaseline+" = "#00BFC4",
-  "TMLE\nBaseline+" = "#619CFF",
-  "IPW\nBaseline+" = "#FF6F00"
+  "IPW" = "#FF6F00"
 )
 
 ###############################################################################
@@ -6851,17 +6825,13 @@ make_plot = function(data, outcome_type) {
   data = data %>%
     mutate(prop_var_reduction = 1 - precision_gain)
   
-  # Set factor levels based on outcome type (AIPW removed)
+  # Set factor levels based on outcome type
   if (outcome_type == "binary") {
     # Binary: ANCOVA, ANHECOVA, G-Logistic, DML, TMLE, IPW
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW",
-                     "ANCOVA\nTop-3", "ANHECOVA\nTop-3", "G-Logistic\nTop-3", "DML\nTop-3", "TMLE\nTop-3", "IPW\nTop-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "G-Logistic\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+", "IPW\nBaseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW")
   } else {
     # Continuous: ANCOVA, ANHECOVA, DML, TMLE, IPW (no G-Logistic)
-    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW",
-                     "ANCOVA\nTop-3", "ANHECOVA\nTop-3", "DML\nTop-3", "TMLE\nTop-3", "IPW\nTop-3",
-                     "ANCOVA\nBaseline+", "ANHECOVA\nBaseline+", "DML\nBaseline+", "TMLE\nBaseline+", "IPW\nBaseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW")
   }
   
   data = data %>%
@@ -6894,7 +6864,7 @@ make_plot = function(data, outcome_type) {
       axis.text.x   = element_blank(),  # Remove default x-axis text
       axis.ticks.x  = element_blank(),
       axis.text.y   = element_text(size = 16),
-      axis.title.y  = element_text(size = 18),  # Removed face = "bold"
+      axis.title.y  = element_text(size = 18),
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = "white", colour = NA),
       plot.background = element_rect(fill = "white", colour = NA),
@@ -6941,7 +6911,7 @@ df_long_outlier_removed_primary = remove_outliers(df_long_full_primary)
 ##  Publication quality settings ---------------------------------------------
 ###############################################################################
 pub_width = 10
-pub_height = 6
+pub_height = 6.5
 pub_dpi = 600  # 600 dpi for publication quality
 
 ###############################################################################
@@ -6950,7 +6920,7 @@ pub_dpi = 600  # 600 dpi for publication quality
 
 # All methods - All outcomes
 df_binary_all_all = df_long_outlier_removed_all %>% 
-  filter(outcome_group == "binary", !grepl("(Top-3|Baseline\\+)$", method))
+  filter(outcome_group == "binary", adjustment_type == "All")
 build_and_print_table("binary", vs_type = "All", data_type = "all")
 
 p_binary_all_all = make_plot(df_binary_all_all, "binary")
@@ -6959,7 +6929,7 @@ ggsave("cleaned_data/Plot/precision_gain_binary_all_all.png",
 
 # Top-3 methods - All outcomes
 df_binary_top3_all = df_long_outlier_removed_all %>% 
-  filter(outcome_group == "binary", grepl("Top-3$", method))
+  filter(outcome_group == "binary", adjustment_type == "Top-3")
 build_and_print_table("binary", vs_type = "Top-3", data_type = "all")
 
 p_binary_top3_all = make_plot(df_binary_top3_all, "binary")
@@ -6968,7 +6938,7 @@ ggsave("cleaned_data/Plot/precision_gain_binary_top3_all.png",
 
 # Baseline+ methods - All outcomes
 df_binary_baseline_all = df_long_outlier_removed_all %>% 
-  filter(outcome_group == "binary", grepl("Baseline\\+$", method))
+  filter(outcome_group == "binary", adjustment_type == "Baseline+")
 build_and_print_table("binary", vs_type = "Baseline+", data_type = "all")
 
 p_binary_baseline_all = make_plot(df_binary_baseline_all, "binary")
@@ -6977,7 +6947,7 @@ ggsave("cleaned_data/Plot/precision_gain_binary_baseline_all.png",
 
 # Continuous plots - All outcomes
 df_continuous_all_all = df_long_outlier_removed_all %>% 
-  filter(outcome_group == "continuous", !grepl("(Top-3|Baseline\\+)$", method))
+  filter(outcome_group == "continuous", adjustment_type == "All")
 build_and_print_table("continuous", vs_type = "All", data_type = "all")
 
 p_cont_all_all = make_plot(df_continuous_all_all, "continuous")
@@ -6985,7 +6955,7 @@ ggsave("cleaned_data/Plot/precision_gain_continuous_all_all.png",
        p_cont_all_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_top3_all = df_long_outlier_removed_all %>% 
-  filter(outcome_group == "continuous", grepl("Top-3$", method))
+  filter(outcome_group == "continuous", adjustment_type == "Top-3")
 build_and_print_table("continuous", vs_type = "Top-3", data_type = "all")
 
 p_cont_top3_all = make_plot(df_continuous_top3_all, "continuous")
@@ -6993,7 +6963,7 @@ ggsave("cleaned_data/Plot/precision_gain_continuous_top3_all.png",
        p_cont_top3_all, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_baseline_all = df_long_outlier_removed_all %>% 
-  filter(outcome_group == "continuous", grepl("Baseline\\+$", method))
+  filter(outcome_group == "continuous", adjustment_type == "Baseline+")
 build_and_print_table("continuous", vs_type = "Baseline+", data_type = "all")
 
 p_cont_baseline_all = make_plot(df_continuous_baseline_all, "continuous")
@@ -7006,7 +6976,7 @@ ggsave("cleaned_data/Plot/precision_gain_continuous_baseline_all.png",
 
 # All methods - Primary outcomes
 df_binary_all_primary = df_long_outlier_removed_primary %>% 
-  filter(outcome_group == "binary", !grepl("(Top-3|Baseline\\+)$", method))
+  filter(outcome_group == "binary", adjustment_type == "All")
 build_and_print_table("binary", vs_type = "All", data_type = "primary")
 
 p_binary_all_primary = make_plot(df_binary_all_primary, "binary")
@@ -7015,7 +6985,7 @@ ggsave("cleaned_data/Plot/precision_gain_binary_all_primary.png",
 
 # Top-3 methods - Primary outcomes
 df_binary_top3_primary = df_long_outlier_removed_primary %>% 
-  filter(outcome_group == "binary", grepl("Top-3$", method))
+  filter(outcome_group == "binary", adjustment_type == "Top-3")
 build_and_print_table("binary", vs_type = "Top-3", data_type = "primary")
 
 p_binary_top3_primary = make_plot(df_binary_top3_primary, "binary")
@@ -7024,7 +6994,7 @@ ggsave("cleaned_data/Plot/precision_gain_binary_top3_primary.png",
 
 # Baseline+ methods - Primary outcomes
 df_binary_baseline_primary = df_long_outlier_removed_primary %>% 
-  filter(outcome_group == "binary", grepl("Baseline\\+$", method))
+  filter(outcome_group == "binary", adjustment_type == "Baseline+")
 build_and_print_table("binary", vs_type = "Baseline+", data_type = "primary")
 
 p_binary_baseline_primary = make_plot(df_binary_baseline_primary, "binary")
@@ -7033,7 +7003,7 @@ ggsave("cleaned_data/Plot/precision_gain_binary_baseline_primary.png",
 
 # Continuous plots - Primary outcomes
 df_continuous_all_primary = df_long_outlier_removed_primary %>% 
-  filter(outcome_group == "continuous", !grepl("(Top-3|Baseline\\+)$", method))
+  filter(outcome_group == "continuous", adjustment_type == "All")
 build_and_print_table("continuous", vs_type = "All", data_type = "primary")
 
 p_cont_all_primary = make_plot(df_continuous_all_primary, "continuous")
@@ -7041,7 +7011,7 @@ ggsave("cleaned_data/Plot/precision_gain_continuous_all_primary.png",
        p_cont_all_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_top3_primary = df_long_outlier_removed_primary %>% 
-  filter(outcome_group == "continuous", grepl("Top-3$", method))
+  filter(outcome_group == "continuous", adjustment_type == "Top-3")
 build_and_print_table("continuous", vs_type = "Top-3", data_type = "primary")
 
 p_cont_top3_primary = make_plot(df_continuous_top3_primary, "continuous")
@@ -7049,7 +7019,7 @@ ggsave("cleaned_data/Plot/precision_gain_continuous_top3_primary.png",
        p_cont_top3_primary, width = pub_width, height = pub_height, dpi = pub_dpi, bg = "white")
 
 df_continuous_baseline_primary = df_long_outlier_removed_primary %>% 
-  filter(outcome_group == "continuous", grepl("Baseline\\+$", method))
+  filter(outcome_group == "continuous", adjustment_type == "Baseline+")
 build_and_print_table("continuous", vs_type = "Baseline+", data_type = "primary")
 
 p_cont_baseline_primary = make_plot(df_continuous_baseline_primary, "continuous")
@@ -7098,19 +7068,7 @@ method_colors = c(
   "G-Logistic" = "#00BA38",
   "DML" = "#00BFC4",
   "TMLE" = "#619CFF",
-  "IPW" = "#FF6F00",
-  "ANCOVA Top-3" = "#F8766D",
-  "ANHECOVA Top-3" = "#B79F00",
-  "G-Logistic Top-3" = "#00BA38",
-  "DML Top-3" = "#00BFC4",
-  "TMLE Top-3" = "#619CFF",
-  "IPW Top-3" = "#FF6F00",
-  "ANCOVA Baseline+" = "#F8766D",
-  "ANHECOVA Baseline+" = "#B79F00",
-  "G-Logistic Baseline+" = "#00BA38",
-  "DML Baseline+" = "#00BFC4",
-  "TMLE Baseline+" = "#619CFF",
-  "IPW Baseline+" = "#FF6F00"
+  "IPW" = "#FF6F00"
 )
 
 # CORRECT APPROACH: Add Sample_Size directly when creating long data
@@ -7120,32 +7078,40 @@ prepare_long_data_with_size = function(data) {
     pivot_longer(cols = starts_with("precision_gain_"),
                  names_to = "method_raw",
                  values_to = "pg") %>%
-    mutate(method = dplyr::case_match(
-      method_raw,
-      # All methods (AIPW removed)
-      "precision_gain_ANCOVA"                       ~ "ANCOVA",
-      "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
-      "precision_gain_G_Logistic"                   ~ "G-Logistic",
-      "precision_gain_DML"                          ~ "DML",
-      "precision_gain_TMLE"                         ~ "TMLE",
-      "precision_gain_IPW"                          ~ "IPW",
-      
-      # Top-3 methods (no line break, AIPW removed)
-      "precision_gain_ANCOVA_Top-3"                 ~ "ANCOVA Top-3",
-      "precision_gain_ANHECOVA_Top-3"               ~ "ANHECOVA Top-3",
-      "precision_gain_G_Logistic_Top-3"             ~ "G-Logistic Top-3",
-      "precision_gain_DML_Top-3"                    ~ "DML Top-3",
-      "precision_gain_TMLE_Top-3"                   ~ "TMLE Top-3",
-      "precision_gain_IPW_Top-3"                    ~ "IPW Top-3",
-      
-      # Baseline+ methods (no line break, AIPW removed)
-      "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA Baseline+",
-      "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA Baseline+",
-      "precision_gain_G_Logistic_Baseline+"         ~ "G-Logistic Baseline+",
-      "precision_gain_DML_Baseline+"                ~ "DML Baseline+",
-      "precision_gain_TMLE_Baseline+"               ~ "TMLE Baseline+",
-      "precision_gain_IPW_Baseline+"                ~ "IPW Baseline+"
-    )) %>%
+    mutate(
+      # Track adjustment type
+      adjustment_type = case_when(
+        grepl("_Top-3$", method_raw) ~ "Top-3",
+        grepl("_Baseline\\+$", method_raw) ~ "Baseline+",
+        TRUE ~ "All"
+      ),
+      # Simplified method names (no adjustment type suffix)
+      method = dplyr::case_match(
+        method_raw,
+        # All methods (AIPW removed)
+        "precision_gain_ANCOVA"                       ~ "ANCOVA",
+        "precision_gain_ANHECOVA"                     ~ "ANHECOVA",
+        "precision_gain_G_Logistic"                   ~ "G-Logistic",
+        "precision_gain_DML"                          ~ "DML",
+        "precision_gain_TMLE"                         ~ "TMLE",
+        "precision_gain_IPW"                          ~ "IPW",
+        
+        # Top-3 methods (same names, no suffix)
+        "precision_gain_ANCOVA_Top-3"                 ~ "ANCOVA",
+        "precision_gain_ANHECOVA_Top-3"               ~ "ANHECOVA",
+        "precision_gain_G_Logistic_Top-3"             ~ "G-Logistic",
+        "precision_gain_DML_Top-3"                    ~ "DML",
+        "precision_gain_TMLE_Top-3"                   ~ "TMLE",
+        "precision_gain_IPW_Top-3"                    ~ "IPW",
+        
+        # Baseline+ methods (same names, no suffix)
+        "precision_gain_ANCOVA_Baseline+"             ~ "ANCOVA",
+        "precision_gain_ANHECOVA_Baseline+"           ~ "ANHECOVA",
+        "precision_gain_G_Logistic_Baseline+"         ~ "G-Logistic",
+        "precision_gain_DML_Baseline+"                ~ "DML",
+        "precision_gain_TMLE_Baseline+"               ~ "TMLE",
+        "precision_gain_IPW_Baseline+"                ~ "IPW"
+      )) %>%
     filter(!is.na(method))
 }
 
@@ -7177,15 +7143,11 @@ cat("Sample size range:", min(df_long_size_cleaned_all$Sample_Size),
 # Function for smoothed plot (log10 sample size) - USING LOESS
 make_plot_smooth_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3", "IPW Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+", "IPW Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
-    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3", "IPW Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+", "IPW Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -7211,15 +7173,11 @@ make_plot_smooth_log = function(data, outcome_type) {
 # Function for scatter plot (original sample size)
 make_plot_scatter = function(data, outcome_type) {
   if (outcome_type == "binary") {
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3", "IPW Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+", "IPW Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
-    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3", "IPW Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+", "IPW Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -7245,15 +7203,11 @@ make_plot_scatter = function(data, outcome_type) {
 # Function for scatter plot (log10 sample size)
 make_plot_scatter_log = function(data, outcome_type) {
   if (outcome_type == "binary") {
-    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "G-Logistic Top-3", "DML Top-3", "TMLE Top-3", "IPW Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "G-Logistic Baseline+", "DML Baseline+", "TMLE Baseline+", "IPW Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "G-Logistic", "DML", "TMLE", "IPW")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   } else {
     # For continuous, exclude G-Logistic
-    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW",
-                     "ANCOVA Top-3", "ANHECOVA Top-3", "DML Top-3", "TMLE Top-3", "IPW Top-3",
-                     "ANCOVA Baseline+", "ANHECOVA Baseline+", "DML Baseline+", "TMLE Baseline+", "IPW Baseline+")
+    method_levels = c("ANCOVA", "ANHECOVA", "DML", "TMLE", "IPW")
     data = data %>% mutate(method = factor(method, levels = method_levels))
   }
   
@@ -7293,16 +7247,16 @@ generate_single_plot = function(data_source, outcome_type, vs_type, version, plo
   # Select appropriate dataset
   df_long_cleaned = if (data_source == "all") df_long_size_cleaned_all else df_long_size_cleaned_primary
   
-  # Filter based on outcome type and VS type
+  # Filter based on outcome type and adjustment type
   if (vs_type == "all") {
     df_filtered = df_long_cleaned %>% 
-      filter(outcome_group == outcome_type, !grepl("(Top-3|Baseline\\+)$", method))
+      filter(outcome_group == outcome_type, adjustment_type == "All")
   } else if (vs_type == "top3") {
     df_filtered = df_long_cleaned %>% 
-      filter(outcome_group == outcome_type, grepl("Top-3$", method))
+      filter(outcome_group == outcome_type, adjustment_type == "Top-3")
   } else if (vs_type == "baseline") {
     df_filtered = df_long_cleaned %>% 
-      filter(outcome_group == outcome_type, grepl("Baseline\\+$", method))
+      filter(outcome_group == outcome_type, adjustment_type == "Baseline+")
   }
   
   # Check if we have data
@@ -7327,7 +7281,7 @@ generate_single_plot = function(data_source, outcome_type, vs_type, version, plo
 ##  Publication quality settings ---------------------------------------------
 ###############################################################################
 pub_width = 10
-pub_height = 6
+pub_height = 6.5
 pub_dpi = 600
 ```
 ## smoothed log
@@ -7608,8 +7562,8 @@ fig_configs = tibble::tribble(
 )
 
 # Adjusted dimensions for 3x2 layout (taller since we have 3 rows)
-combined_width = 22
-combined_height = 18  # Increased height for 3 rows
+combined_width = 23
+combined_height = 21  # Increased height for 3 rows
 
 for (i in 1:nrow(fig_configs)) {
   outcome = fig_configs$outcome_type[i]
@@ -7850,7 +7804,7 @@ p = ggplot(df, aes(x = sample_size)) +
   scale_y_continuous(expand = c(0, 0, 0.05, 0))
 
 print(p)
-ggsave("cleaned_data/Plot/sample_size_linear.png", p, width = 10, height = 6, dpi = 600, bg = "white")
+# ggsave("cleaned_data/Plot/sample_size_linear.png", p, width = 10, height = 6, dpi = 600, bg = "white")
 
 ###############################################################################
 ## Plot 2: Custom Bins (RECOMMENDED for skewed data)
@@ -7921,7 +7875,7 @@ p_sqrt = ggplot(df, aes(x = sqrt(sample_size))) +
   scale_y_continuous(expand = c(0, 0, 0.05, 0))
 
 print(p_sqrt)
-ggsave("cleaned_data/Plot/sample_size_sqrt.png", p_sqrt, width = 10, height = 6, dpi = 600, bg = "white")
+# ggsave("cleaned_data/Plot/sample_size_sqrt.png", p_sqrt, width = 10, height = 6, dpi = 600, bg = "white")
 
 ###############################################################################
 ## Plot 4: Log-Transformed Distribution
@@ -7947,7 +7901,7 @@ p_log = ggplot(df, aes(x = log10(sample_size))) +
   scale_y_continuous(expand = c(0, 0, 0.05, 0))
 
 print(p_log)
-ggsave("cleaned_data/Plot/sample_size_log.png", p_log, width = 10, height = 6, dpi = 600, bg = "white")
+# ggsave("cleaned_data/Plot/sample_size_log.png", p_log, width = 10, height = 6, dpi = 600, bg = "white")
 
 ###############################################################################
 ## Additional Analysis: Categorize Studies by Size
@@ -8250,8 +8204,8 @@ p2 <- ggplot(area_counts,
   scale_fill_viridis_d(option = "turbo") +
   theme_void() +
   theme(
-    legend.title = element_text(size = 21, face = "bold"),
-    legend.text = element_text(size = 19),
+    legend.title = element_text(size = 20, face = "bold"),
+    legend.text = element_text(size = 18),
     legend.position = "right"
   ) +
   labs(fill = "Research Area") +
@@ -8302,8 +8256,8 @@ p1 <- ggplot(randomization_counts,
   scale_fill_manual(values = rand_colors) +
   theme_void() +
   theme(
-    legend.title = element_text(size = 21, face = "bold"),
-    legend.text = element_text(size = 19),
+    legend.title = element_text(size = 20, face = "bold"),
+    legend.text = element_text(size = 18),
     legend.position = "right"
   ) +
   labs(fill = "Randomization Scheme") +
@@ -8326,34 +8280,97 @@ print(randomization_counts %>% select(-label))
 # Processing Flowchart
 ```{r}
 library(DiagrammeR)
+
+# Create the flowchart with missing data handling
+flowchart <- grViz("
+digraph data_curation {
+  
+  # Graph settings
+  graph [layout = dot, rankdir = TB, fontname = Helvetica]
+  
+  # Node settings
+  node [shape = rectangle, style = filled, fontname = Helvetica, fontsize = 12]
+  
+  # Define nodes with colors
+  # Search phase
+  search [label = 'Search Public Databases\nKeywords: randomized controlled trial,\nrandomized trial,\nrandomized clinical trial', fillcolor = lightblue]
+  
+  databases [label = 'Databases:\n• Dryad\n• Harvard Dataverse\n• Zenodo', fillcolor = lightblue]
+  
+  r_packages [label = 'R Packages\n(CRAN)', fillcolor = lightblue]
+  
+  # Selection criteria
+  criteria [label = 'Selection Criteria:\n• Clear data dictionary\n• Key variables present\n• Published paper available\n• Confirmed RCT design', fillcolor = lightyellow]
+  
+  # Results
+  public_db [label = '45 datasets from\npublic databases\n(mostly Dryad)', fillcolor = '#90EE90', shape = box, style = 'filled,rounded']
+  
+  r_pkg [label = '5 datasets from\nR packages', fillcolor = '#90EE90', shape = box, style = 'filled,rounded']
+  
+  total [label = 'Total: 50 datasets', fillcolor = '#98FB98', fontsize = 14, penwidth = 2, shape = box, style = 'filled,rounded']
+  
+  # Data cleaning
+  cleaning_title [label = 'Data Cleaning Process', fillcolor = lightyellow, fontsize = 14, penwidth = 2]
+  
+  extract [label = 'Extract Variables:\n• Baseline covariates\n• Treatment assignment\n• Primary outcomes\n• Secondary outcomes', fillcolor = lightcoral]
+  
+  missing [label = 'Standardize Missing Values:\nRename all to NA', fillcolor = lightcoral]
+  
+  reshape [label = 'Reshape Data:\nConvert to wide format', fillcolor = lightcoral]
+  
+  # Missing data handling
+  missing_title [label = 'Missing Data Handling', fillcolor = '#FFE4B5', fontsize = 14, penwidth = 2]
+  
+  outcome_filter [label = 'Filter Outcomes:\nRemove outcomes with\nmissingness > 40%', fillcolor = '#FFDAB9']
+  
+  patient_filter [label = 'Remove Patients:\nExclude patients with\nmissing outcome values', fillcolor = '#FFDAB9']
+  
+  covariate_impute [label = 'Impute Covariates:\n• Continuous → Mean imputation\n• Categorical → Mode imputation', fillcolor = '#FFDAB9']
+  
+  final [label = 'Final Dataset\nReady for Analysis', fillcolor = '#98FB98', fontsize = 14, penwidth = 2, shape = box, style = 'filled,rounded']
+  
+  # Define edges
+  search -> databases
+  search -> r_packages
+  
+  databases -> criteria
+  r_packages -> criteria
+  
+  criteria -> public_db
+  criteria -> r_pkg
+  
+  public_db -> total
+  r_pkg -> total
+  
+  total -> cleaning_title
+  
+  cleaning_title -> extract
+  extract -> missing
+  missing -> reshape
+  
+  reshape -> missing_title
+  
+  missing_title -> outcome_filter
+  outcome_filter -> patient_filter
+  patient_filter -> covariate_impute
+  covariate_impute -> final
+  
+}
+")
+
+# Display the flowchart
+flowchart
+
+# Save the flowchart
 library(DiagrammeRsvg)
 library(rsvg)
 
-dot = "
-digraph RCT_DataProcessing {
-  graph [rankdir=LR, fontsize=18, splines=ortho, nodesep=0.6, ranksep=0.5]
-  node  [shape=rect, fontname=Helvetica, fontsize=16, style=filled, fillcolor=white]
-  edge  [arrowhead=normal, penwidth=1.4]
+flowchart %>%
+  export_svg() %>%
+  charToRaw() %>%
+  rsvg_png("cleaned_data/Plot/data_curation_flowchart.png", width = 2400, height = 3600)
 
-  # Stage 1: Raw and import
-  A [label='Raw dataset(s)\n(downloaded from Dryad / Dataverse)']
-
-  # Stage 2: Cleaning
-  B [label='Clean missing values\n(. , NULL , blank → NA)']
-  C [label='Define Treatment variable']
-  D [label='Rename outcomes\n(YP_/YS_/X_ convention)']
-
-  # Stage 3: Structuring
-  E [label='Reshape to wide format\n(1 row per subject)']
-  F [label='Cluster-level aggregation\n(mean within cluster)']
-  G [label='Save cleaned & cluster-level datasets']
-
-  # Edges
-  A -> B -> C -> D -> E -> F -> G
-}
-"
-
-grViz(dot)
+cat("Flowchart saved to cleaned_data/Plot/data_curation_flowchart.png\n")
 
 ```
 
