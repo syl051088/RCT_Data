@@ -6806,14 +6806,14 @@ build_and_print_table = function(outcome_type, vs_type = "All", data_type = "all
 ###############################################################################
 ##  2.  Color palette matching smooth plots ---------------------------------
 ###############################################################################
-# Define color palette (simplified, no adjustment type suffixes)
+# Define color palette (IPW changed to purple to differentiate from ANCOVA)
 method_colors = c(
-  "ANCOVA" = "#F8766D",
-  "ANHECOVA" = "#B79F00",
-  "G-Logistic" = "#00BA38",
-  "DML" = "#00BFC4",
-  "TMLE" = "#619CFF",
-  "IPW" = "#FF6F00"
+  "ANCOVA" = "#F8766D",      # Red
+  "ANHECOVA" = "#B79F00",    # Gold/Yellow
+  "G-Logistic" = "#00BA38",  # Green
+  "DML" = "#00BFC4",         # Cyan
+  "TMLE" = "#619CFF",        # Blue
+  "IPW" = "#C77CFF"          # Purple (changed from orange)
 )
 
 ###############################################################################
@@ -6852,9 +6852,9 @@ make_plot = function(data, outcome_type) {
   x_labels_counts = x_labels_df %>%
     left_join(method_counts, by = "method")
   
-  # Create the main plot
+  # Create the main plot with wider violins
   p = ggplot(data, aes(method, prop_var_reduction, fill = method)) +
-    geom_violin(colour = "grey25", alpha = .50, width = 0.5) +
+    geom_violin(colour = "grey25", alpha = .50, width = 1) +  # Increased width from 0.5 to 0.75
     geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
     scale_fill_manual(values = method_colors) +
     labs(x = NULL, y = "Proportional Variance Reduction") +
@@ -7068,7 +7068,7 @@ method_colors = c(
   "G-Logistic" = "#00BA38",
   "DML" = "#00BFC4",
   "TMLE" = "#619CFF",
-  "IPW" = "#FF6F00"
+  "IPW" = "#C77CFF"
 )
 
 # CORRECT APPROACH: Add Sample_Size directly when creating long data
@@ -8216,7 +8216,7 @@ p2 <- ggplot(area_counts,
 # Display and save
 print(p2)
 ggsave("cleaned_data/Plot/research_area_pie.png", p2, 
-       width = 10, height = 8, dpi = 600, bg = "white")
+       width = 10, height = 6, dpi = 600, bg = "white")
 
 # Print summary
 cat("\n=== Research Area Summary ===\n")

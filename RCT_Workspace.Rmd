@@ -4009,4 +4009,9 @@ cat("95% CI: [", round(ate_est - 1.96*ate_se, 3), ",",
     round(ate_est + 1.96*ate_se, 3), "]\n")
 cat("══════════════════════════════════════════════════════════\n")
 ```
+```{r}
+df_comparison %>% 
+  filter(`Outcome Type` %in% c("continuous", "binary", "continuous proportion", "composite binary")) %>% 
+  nrow()
+```
 
