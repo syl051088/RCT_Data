@@ -8281,96 +8281,95 @@ print(randomization_counts %>% select(-label))
 ```{r}
 library(DiagrammeR)
 
-# Create the flowchart with missing data handling
 flowchart <- grViz("
 digraph data_curation {
+  # ==== GLOBAL GRAPH SETTINGS ====
+  graph [layout = dot, rankdir = TB, fontname = Helvetica, ranksep = 1.2, nodesep = 0.5]
+  node  [shape = rectangle, style = filled, fontname = Helvetica, fontsize = 12, height = 1.2, width = 2.5]
+  edge  [penwidth = 1.5]
   
-  # Graph settings
-  graph [layout = dot, rankdir = TB, fontname = Helvetica]
+  # ================== ROW 1: Left → Right (LIGHTBLUE) ==================
+  {
+    rank = same;
+    
+    search [label = 'Search Public Databases\\nKeywords: randomized controlled trial,\\nrandomized trial,\\nrandomized clinical trial',
+            fillcolor = lightblue]
+    
+    databases [label = 'Databases:\\n• Dryad\\n• Harvard Dataverse\\n• Zenodo\\n\\nR Packages (CRAN)', 
+               fillcolor = lightblue]
+    
+    criteria [label = 'Selection Criteria:\\n• Clear data dictionary\\n• Key variables present\\n• Published paper available\\n• Confirmed RCT design', 
+              fillcolor = lightblue]
+    
+    datasets [label = '50 RCT Datasets:\\n• 45 from public databases\\n• 5 from R packages', 
+              fillcolor = lightblue]
+  }
   
-  # Node settings
-  node [shape = rectangle, style = filled, fontname = Helvetica, fontsize = 12]
+  # Row 1 connections (left to right)
+  search -> databases -> criteria -> datasets
   
-  # Define nodes with colors
-  # Search phase
-  search [label = 'Search Public Databases\nKeywords: randomized controlled trial,\nrandomized trial,\nrandomized clinical trial', fillcolor = lightblue]
+  # ================== ROW 2: Right → Left (LIGHTCORAL) ==================
+  {
+    rank = same;
+    
+    cleaning_start [label = 'Data Cleaning Process', 
+                    fillcolor = lightcoral]
+    
+    extract [label = 'Extract Variables:\\n• Baseline covariates\\n• Treatment assignment\\n• Primary outcomes\\n• Secondary outcomes', 
+             fillcolor = lightcoral]
+    
+    missing_std [label = 'Standardize Missing Values:\\nRename all to NA', 
+                 fillcolor = lightcoral]
+    
+    reshape [label = 'Reshape Data:\\nConvert to wide format', 
+             fillcolor = lightcoral]
+  }
   
-  databases [label = 'Databases:\n• Dryad\n• Harvard Dataverse\n• Zenodo', fillcolor = lightblue]
+  # Row 2 connections (right to left)
+  reshape -> missing_std -> extract -> cleaning_start [dir = back]
   
-  r_packages [label = 'R Packages\n(CRAN)', fillcolor = lightblue]
+  # ================== ROW 3: Left → Right (PEACH) ==================
+  {
+    rank = same;
+    
+    missing_start [label = 'Missing Data Handling', 
+                   fillcolor = '#FFE4B5']
+    
+    outcome_filter [label = 'Filter Outcomes:\\nRemove outcomes with\\nmissingness > 40%', 
+                    fillcolor = '#FFE4B5']
+    
+    patient_filter [label = 'Remove Patients:\\nExclude patients with\\nmissing outcome values', 
+                    fillcolor = '#FFE4B5']
+    
+    covariate_impute [label = 'Impute Covariates:\\n• Continuous → Mean imputation\\n• Categorical → Mode imputation', 
+                      fillcolor = '#FFE4B5']
+  }
   
-  # Selection criteria
-  criteria [label = 'Selection Criteria:\n• Clear data dictionary\n• Key variables present\n• Published paper available\n• Confirmed RCT design', fillcolor = lightyellow]
+  # Row 3 connections (left to right)
+  missing_start -> outcome_filter -> patient_filter -> covariate_impute
   
-  # Results
-  public_db [label = '45 datasets from\npublic databases\n(mostly Dryad)', fillcolor = '#90EE90', shape = box, style = 'filled,rounded']
+  # ================== VERTICAL CONNECTIONS ==================
+  # Row 1 to Row 2 (datasets → cleaning_start with arrow)
+  datasets -> cleaning_start [weight = 0]
   
-  r_pkg [label = '5 datasets from\nR packages', fillcolor = '#90EE90', shape = box, style = 'filled,rounded']
-  
-  total [label = 'Total: 50 datasets', fillcolor = '#98FB98', fontsize = 14, penwidth = 2, shape = box, style = 'filled,rounded']
-  
-  # Data cleaning
-  cleaning_title [label = 'Data Cleaning Process', fillcolor = lightyellow, fontsize = 14, penwidth = 2]
-  
-  extract [label = 'Extract Variables:\n• Baseline covariates\n• Treatment assignment\n• Primary outcomes\n• Secondary outcomes', fillcolor = lightcoral]
-  
-  missing [label = 'Standardize Missing Values:\nRename all to NA', fillcolor = lightcoral]
-  
-  reshape [label = 'Reshape Data:\nConvert to wide format', fillcolor = lightcoral]
-  
-  # Missing data handling
-  missing_title [label = 'Missing Data Handling', fillcolor = '#FFE4B5', fontsize = 14, penwidth = 2]
-  
-  outcome_filter [label = 'Filter Outcomes:\nRemove outcomes with\nmissingness > 40%', fillcolor = '#FFDAB9']
-  
-  patient_filter [label = 'Remove Patients:\nExclude patients with\nmissing outcome values', fillcolor = '#FFDAB9']
-  
-  covariate_impute [label = 'Impute Covariates:\n• Continuous → Mean imputation\n• Categorical → Mode imputation', fillcolor = '#FFDAB9']
-  
-  final [label = 'Final Dataset\nReady for Analysis', fillcolor = '#98FB98', fontsize = 14, penwidth = 2, shape = box, style = 'filled,rounded']
-  
-  # Define edges
-  search -> databases
-  search -> r_packages
-  
-  databases -> criteria
-  r_packages -> criteria
-  
-  criteria -> public_db
-  criteria -> r_pkg
-  
-  public_db -> total
-  r_pkg -> total
-  
-  total -> cleaning_title
-  
-  cleaning_title -> extract
-  extract -> missing
-  missing -> reshape
-  
-  reshape -> missing_title
-  
-  missing_title -> outcome_filter
-  outcome_filter -> patient_filter
-  patient_filter -> covariate_impute
-  covariate_impute -> final
-  
+  # Row 2 to Row 3 (reshape → missing_start with arrow)
+  reshape -> missing_start [weight = 0]
 }
 ")
 
-# Display the flowchart
+# Display
 flowchart
 
-# Save the flowchart
+# Save to file
 library(DiagrammeRsvg)
 library(rsvg)
 
 flowchart %>%
   export_svg() %>%
   charToRaw() %>%
-  rsvg_png("cleaned_data/Plot/data_curation_flowchart.png", width = 2400, height = 3600)
+  rsvg_png("cleaned_data/Plot/data_curation_flowchart.png", width = 4800, height = 2400)
 
-cat("Flowchart saved to cleaned_data/Plot/data_curation_flowchart.png\n")
+cat('Flowchart saved to cleaned_data/Plot/data_curation_flowchart.png\n')
 
 ```
 
